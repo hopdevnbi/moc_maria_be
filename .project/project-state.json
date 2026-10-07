@@ -1,0 +1,22 @@
+{
+  "project": "moc-maria",
+  "currentPhase": 1,
+  "currentTask": "P01-T10",
+  "phaseStatus": "IN_PROGRESS",
+  "blockers": [
+    "Supabase Direct Connection host is not reachable from the current local network; Session Pooler URI is required to complete migration smoke validation."
+  ],
+  "completedTasks": [
+    "P01-T01",
+    "P01-T02",
+    "P01-T03",
+    "P01-T04_CODE",
+    "P01-T05",
+    "P01-T06",
+    "P01-T07",
+    "P01-T08_CODE",
+    "P01-T09"
+  ],
+  "lastValidatedAt": "2026-10-07",
+  "lastCommit": null
+}

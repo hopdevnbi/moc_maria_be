@@ -1,0 +1,93 @@
+{
+    "name":  "moc-maria-be",
+    "version":  "0.1.0",
+    "description":  "Moc Maria Wellness Platform backend API",
+    "private":  true,
+    "license":  "UNLICENSED",
+    "engines":  {
+                    "node":  "22.23.1",
+                    "npm":  "\u003e=10.9.0"
+                },
+    "scripts":  {
+                    "start":  "nest start",
+                    "start:dev":  "nest start --watch",
+                    "start:prod":  "node dist/src/main.js",
+                    "build":  "nest build",
+                    "typecheck":  "tsc --noEmit -p tsconfig.json",
+                    "lint":  "eslint \"{src,test}/**/*.ts\"",
+                    "lint:fix":  "eslint \"{src,test}/**/*.ts\" --fix",
+                    "format":  "prettier --write \"src/**/*.ts\"",
+                    "format:check":  "prettier --check \"src/**/*.ts\"",
+                    "test":  "jest",
+                    "test:e2e":  "jest --config ./test/jest-e2e.json",
+                    "quality":  "npm run format:check \u0026\u0026 npm run lint \u0026\u0026 npm run typecheck \u0026\u0026 npm test \u0026\u0026 npm run build",
+                    "migration:create":  "typeorm-ts-node-commonjs migration:create src/database/migrations/",
+                    "migration:generate":  "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
+                    "migration:run":  "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
+                    "migration:revert":  "typeorm-ts-node-commonjs migration:revert -d src/database/data-source.ts",
+                    "migration:show":  "typeorm-ts-node-commonjs migration:show -d src/database/data-source.ts",
+                    "migration:run:prod":  "typeorm migration:run -d dist/src/database/data-source.js",
+                    "migration:revert:prod":  "typeorm migration:revert -d dist/src/database/data-source.js"
+                },
+    "dependencies":  {
+                         "@nestjs/common":  "^11.2.3",
+                         "@nestjs/config":  "^4.0.2",
+                         "@nestjs/core":  "^11.2.3",
+                         "@nestjs/platform-express":  "^11.2.3",
+                         "@nestjs/swagger":  "11.4.7",
+                         "@nestjs/throttler":  "^6.5.0",
+                         "@nestjs/typeorm":  "^11.0.3",
+                         "catechism-api":  "file:D:/DASH vs Shopify/Acutis Education/acutis_education",
+                         "class-transformer":  "^0.5.1",
+                         "class-validator":  "^0.14.2",
+                         "dotenv":  "^16.6.1",
+                         "joi":  "^17.13.3",
+                         "nestjs-pino":  "^4.4.0",
+                         "pg":  "^8.23.1",
+                         "pino-http":  "^10.5.0",
+                         "reflect-metadata":  "^0.2.2",
+                         "rxjs":  "^7.8.2",
+                         "typeorm":  "^0.3.28"
+                     },
+    "devDependencies":  {
+                            "@eslint/js":  "^9.39.1",
+                            "@nestjs/cli":  "^11.0.10",
+                            "@nestjs/testing":  "^11.2.3",
+                            "@types/express":  "^5.0.3",
+                            "@types/jest":  "^29.5.14",
+                            "@types/node":  "^22.18.0",
+                            "@types/supertest":  "^6.0.3",
+                            "eslint":  "^9.39.1",
+                            "eslint-config-prettier":  "^10.1.8",
+                            "eslint-plugin-prettier":  "^5.5.4",
+                            "globals":  "^16.4.0",
+                            "jest":  "^29.7.0",
+                            "pino-pretty":  "^13.1.1",
+                            "prettier":  "^3.6.2",
+                            "supertest":  "^7.1.4",
+                            "ts-jest":  "^29.4.1",
+                            "ts-node":  "^10.9.2",
+                            "typescript":  "~5.9.3",
+                            "typescript-eslint":  "^8.46.0"
+                        },
+    "jest":  {
+                 "moduleFileExtensions":  [
+                                              "js",
+                                              "json",
+                                              "ts"
+                                          ],
+                 "rootDir":  "src",
+                 "testRegex":  ".*\\.spec\\.ts$",
+                 "transform":  {
+                                   "^.+\\.(t|j)s$":  "ts-jest"
+                               },
+                 "collectCoverageFrom":  [
+                                             "**/*.(t|j)s"
+                                         ],
+                 "coverageDirectory":  "../coverage",
+                 "testEnvironment":  "node"
+             },
+    "overrides":  {
+                      "js-yaml":  "5.4.3"
+                  }
+}
