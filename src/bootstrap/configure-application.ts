@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { API_GLOBAL_PREFIX, APP_ID } from '../app.constants';
 import { AppConfigService } from '../config/app-config.service';
+import { GlobalExceptionFilter } from '../http/global-exception.filter';
 
 export function configureApplication(application: INestApplication): void {
   const config = application.get(AppConfigService);
@@ -23,6 +24,7 @@ export function configureApplication(application: INestApplication): void {
     next();
   });
   application.useGlobalPipes(config.createValidationPipe());
+  application.useGlobalFilters(application.get(GlobalExceptionFilter));
 
   if (config.isSwaggerEnabled()) {
     const document = SwaggerModule.createDocument(

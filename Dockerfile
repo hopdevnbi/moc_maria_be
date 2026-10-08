@@ -1,4 +1,4 @@
-﻿FROM node:22.23.1-alpine AS dependencies
+FROM node:22.23.1-alpine AS dependencies
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci
@@ -17,4 +17,4 @@ RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist
 USER node
 EXPOSE 3000
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/main.js"]

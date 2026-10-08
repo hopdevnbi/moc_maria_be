@@ -1,4 +1,5 @@
 import type { DataSourceOptions } from 'typeorm';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 function readBoolean(value: string | undefined, fallback: boolean): boolean {
   if (value === undefined || value.trim() === '') return fallback;
@@ -30,12 +31,14 @@ export function buildDatabaseOptionsFromEnv(
     type: 'postgres',
     synchronize: false,
     migrationsRun: false,
+    namingStrategy: new SnakeNamingStrategy(),
     entities: [__dirname + '/../**/*.entity{.ts,.js}'],
     migrations: [__dirname + '/migrations/*{.ts,.js}'],
     ssl: sslEnabled ? { rejectUnauthorized } : false,
     extra: {
       max: poolMax,
       application_name: 'moc-maria-api',
+      options: '-c timezone=UTC',
     },
   };
 
