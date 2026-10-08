@@ -56,3 +56,12 @@ production TLS/CA settings must be reviewed again in Phase 08.
 - P03-T06..T08: services, priced duration/buffer variants, branch-specific service mapping and optional override, admin create and public read endpoints. Supabase migration ServiceCatalogPricing1791534400000 applied. Quality/unit 7/7 pass. Integrations, editing flows and published price interpretation still need E2E before task DONE.
 - Added KTV applicant self-registration, admin review, internal-certificate issue/revoke and approved-only public listing foundation; migration ProviderOnboarding1791538000000 APPLIED on configured Supabase. Quality 7/7 PASS. Training attendance/assessment, skills eligibility, rating, home booking/chat not implemented; do NOT activate production bookings until validated.
 - KTV academy foundation: training courses, enrollment, assessment, 80 percent minimum attendance, internal certification gated by actual COMPLETED passing enrollment. Migration ProviderTraining1791541600000 applied. Quality PASS and 17/17 unit tests. Full training UI/attendance evidence/legal credential checks still pending. VPS namespace moc-maria exists but no deployment; secret provisioning was blocked, ingress DNS not yet verified.
+
+## Production execution audit — 2026-10-08
+- Completed source/plan/infrastructure audit: see PRODUCTION_AUDIT_2026-10-08.md. Phases 03–08 remain open.
+- API DNS points to dedicated VPS; Let's Encrypt certificate READY. Frontend DNS unchanged.
+- Dedicated namespace Secret and public CA mounted; immutable GHCR image pull verified.
+- Read-only Kubernetes database preflight passes authorized TLS 1.3 with all nine migrations already applied. No migration/reset or production seed required.
+- Initial rollout exposed guard dependency resolution failure in new modules. AuthModule now re-exports IdentityModule; complete-application startup integration and CORS/CSRF checks added. Updated image and rollout verification pending.
+- Supabase data is currently empty; no fake services, providers or prices will be published.
+- Validation: backend quality PASS (17 unit tests), full application integration PASS 11/11 including CORS and cookie-origin rejection. No data mutations in these integration checks.

@@ -18,9 +18,26 @@ export function configureApplication(application: INestApplication): void {
   });
   application.use(cookieParser());
   application.use((request: Request, response: Response, next: NextFunction) => {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return next();
+    const origin = request.headers.origin;
+    const cookies = request.cookies as Record<string, unknown> | undefined;
+    const cookieSessionRequest =
+      request.path.startsWith('/api/v1/auth/') && Boolean(cookies?.['moc_maria_refresh']);
+    if (
+      (origin !== undefined && !config.getCorsAllowedOrigins().includes(origin)) ||
+      (cookieSessionRequest && origin === undefined)
+    ) {
+      response.status(403).json({ message: 'Request origin is not allowed.' });
+      return;
+    }
+    next();
+  });
+  application.use((request: Request, response: Response, next: NextFunction) => {
     const incoming = request.headers['x-request-id'];
     const requestId =
-      typeof incoming === 'string' && incoming.trim().length > 0 ? incoming.trim() : randomUUID();
+      typeof incoming === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(incoming)
+        ? incoming
+        : randomUUID();
     request.headers['x-request-id'] = requestId;
     response.setHeader('x-request-id', requestId);
     next();

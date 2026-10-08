@@ -1,0 +1,56 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: moc-maria-database-preflight
+  namespace: moc-maria
+spec:
+  backoffLimit: 0
+  activeDeadlineSeconds: 120
+  ttlSecondsAfterFinished: 86400
+  template:
+    spec:
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
+      restartPolicy: Never
+      containers:
+        - name: verify
+          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:0006ddb5e2b12e6dacbbd18cfef8645bba15d08855a3602da61126d67ea7d2b1
+          command: [node, -e]
+          args:
+            - |
+              const {Client}=require('pg');
+              const fs=require('fs');
+              const client=new Client({connectionString:process.env.DATABASE_URL,ssl:{rejectUnauthorized:true,ca:fs.readFileSync('/etc/moc-maria-ca/supabase.crt','utf8')}});
+              client.connect().then(async()=>{
+                const socket=client.connection.stream;
+                if(!socket.encrypted || !socket.authorized) throw Object.assign(new Error(),{code:'TLS_UNVERIFIED'});
+                const migrations=await client.query('select name from migrations order by id');
+                console.log(JSON.stringify({encrypted:socket.encrypted,authorized:socket.authorized,protocol:socket.getProtocol(),migrations:migrations.rows.map(row=>row.name)}));
+                await client.end();
+              }).catch(async error=>{console.error(JSON.stringify({code:error.code||'PREFLIGHT_FAILED'}));await client.end().catch(()=>{});process.exitCode=1;});
+          env:
+            - name: NODE_EXTRA_CA_CERTS
+              value: /etc/moc-maria-ca/supabase.crt
+          envFrom:
+            - secretRef:
+                name: moc-maria-api-secrets
+          volumeMounts:
+            - name: database-ca
+              mountPath: /etc/moc-maria-ca
+              readOnly: true
+          resources:
+            requests: {cpu: 25m, memory: 64Mi}
+            limits: {cpu: 200m, memory: 128Mi}
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            capabilities: {drop: ["ALL"]}
+            seccompProfile: {type: RuntimeDefault}
+      volumes:
+        - name: database-ca
+          configMap:
+            name: moc-maria-database-ca

@@ -15,10 +15,14 @@ spec:
       labels:
         app: moc-maria-api
     spec:
+      dnsConfig:
+        options:
+          - name: ndots
+            value: "1"
       terminationGracePeriodSeconds: 30
       containers:
         - name: api
-          image: ghcr.io/hopdevnbi/moc_maria_be:REPLACE_WITH_IMMUTABLE_SHA
+          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:0006ddb5e2b12e6dacbbd18cfef8645bba15d08855a3602da61126d67ea7d2b1
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
@@ -35,9 +39,25 @@ spec:
               value: MOC_MARIA
             - name: DATABASE_POOL_MAX
               value: "3"
+            - name: NODE_EXTRA_CA_CERTS
+              value: /etc/moc-maria-ca/supabase.crt
+            - name: DATABASE_SSL
+              value: "true"
+            - name: DATABASE_SSL_REJECT_UNAUTHORIZED
+              value: "true"
+            - name: CORS_ORIGINS
+              value: https://mocmaria.com,https://www.mocmaria.com
+            - name: AUTH_COOKIE_SECURE
+              value: "true"
+            - name: SWAGGER_ENABLED
+              value: "false"
           envFrom:
             - secretRef:
                 name: moc-maria-api-secrets
+          volumeMounts:
+            - name: database-ca
+              mountPath: /etc/moc-maria-ca
+              readOnly: true
           startupProbe:
             httpGet:
               path: /api/v1/health/live
@@ -69,8 +89,14 @@ spec:
             capabilities:
               drop: ["ALL"]
             runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
             seccompProfile:
               type: RuntimeDefault
+      volumes:
+        - name: database-ca
+          configMap:
+            name: moc-maria-database-ca
 ---
 apiVersion: v1
 kind: Service
