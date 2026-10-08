@@ -182,6 +182,11 @@ describe('Auth and RBAC (e2e)', () => {
       .send({ isActive: false })
       .expect(403);
 
+    await adminAgent
+      .post('/api/v1/admin/users/' + superUserId + '/reset-password')
+      .set('Authorization', 'Bearer ' + adminLogin.body.accessToken)
+      .expect(403);
+
     const therapistAgent = request.agent(app.getHttpServer());
     const therapistLogin = await therapistAgent
       .post('/api/v1/auth/login')

@@ -162,6 +162,7 @@ export class AdminUsersService {
   ): Promise<{ id: string; isActive: boolean }> {
     const user = await this.users.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Không tìm thấy tài khoản.');
+    await this.assertSuperAdminTargetAccess(actor, userId);
     if (actor.id === userId && !isActive) {
       throw new BadRequestException('Không thể tự vô hiệu hóa tài khoản đang sử dụng.');
     }
@@ -190,6 +191,7 @@ export class AdminUsersService {
   ): Promise<{ temporaryPassword: string; mustChangePassword: true }> {
     const user = await this.users.findOne({ where: { id: userId } });
     if (!user) throw new NotFoundException('Không tìm thấy tài khoản.');
+    await this.assertSuperAdminTargetAccess(actor, userId);
 
     const temporaryPassword = 'Mm9-' + randomBytes(9).toString('base64url');
     user.passwordHash = await this.hashPassword(temporaryPassword);
@@ -234,6 +236,21 @@ export class AdminUsersService {
         bio: user.staffProfile.bio,
       },
     };
+  }
+
+  private async assertSuperAdminTargetAccess(
+    actor: AuthUserContext,
+    userId: string,
+  ): Promise<void> {
+    if (actor.roles.includes('SUPER_ADMIN')) return;
+    const superAdminRole = await this.roles.findOne({ where: { name: 'SUPER_ADMIN' } });
+    if (!superAdminRole) return;
+    const assignment = await this.dataSource.getRepository(UserRole).findOne({
+      where: { userId, roleId: superAdminRole.id },
+    });
+    if (assignment) {
+      throw new ForbiddenException('Chỉ SUPER_ADMIN có thể quản lý tài khoản SUPER_ADMIN.');
+    }
   }
 
   private async hashPassword(password: string): Promise<string> {
