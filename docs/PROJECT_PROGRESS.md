@@ -80,3 +80,10 @@ production TLS/CA settings must be reviewed again in Phase 08.
 - Validation: 17 unit tests + 20 integration tests PASS; full BE build PASS. Integration fixtures ran only in ephemeral PostgreSQL over SSH; nine migrations applied in QA and pod/Secret cleaned up. Production database was not seeded/reset/modified by fixture tests.
 - Frontend authentication tested in live browser including session restoration/reload and logout. Temporary browser QA identity removed.
 - No new production schema migration in this group. Immutable image publication/rollout and FE catalog/admin deployment pending.
+
+Catalog/provider release ffc89b39ddaa2b37b70c337160c90778227d0ffd deployed successfully.
+- GHCR publication and CI quality PASS; image digest sha256:4ec1e00d8521e01f52980cfe3a3fa85602f6482da817939bfb42a49d9d1e17b9 pulled anonymously on VPS and deployed only in moc-maria.
+- Kubernetes rollout ready=1, live/ready HTTPS 200; providers no-store, private training/admin requests require authentication and use private/no-store; missing published service 404. GiangXa HTTPS still 200.
+- FE companion 99612d5 deployed via Vercel dpl_743MiiREwFh3gvt6U8RmTdN7eM1d and aliased https://mocmaria.com. Public page reads actual empty production catalog/providers.
+- Rollback API: reapply previous digest sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb81029e419c7f. Schema unchanged, no database rollback needed. FE rollback: prior READY deployment dpl_6QkFFnd7uF6EwLHGALEfTxs1k5nR.
+- Broader marketplace scope remains unfinished; isolated private admin browser QA continues next.
