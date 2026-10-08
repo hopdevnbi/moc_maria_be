@@ -3,6 +3,7 @@ import { AdminUsersModule } from './modules/admin-users/admin-users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { BranchesModule } from './modules/branches/branches.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
 import { ApplicationConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
@@ -19,6 +20,7 @@ import { ApplicationLoggingModule } from './logging/logging.module';
     AdminUsersModule,
     ProfilesModule,
     BranchesModule,
+    CatalogModule,
   ],
   providers: [GlobalExceptionFilter],
 })
