@@ -17,7 +17,7 @@ Scope: the user's production execution request, Phases 03–08 and the existing 
 | Admin portal and audit evidence | PARTIAL | MISSING | PARTIAL | PARTIAL | MISSING |
 | Independent media storage and uploads | MISSING | MISSING | MISSING | MISSING | MISSING |
 | Dynamic catalog SEO and performance QA | PARTIAL | PARTIAL | PARTIAL | MISSING | MISSING |
-| API domain, Kubernetes, HTTPS | PARTIAL | MISSING | DONE | PARTIAL | IN PROGRESS |
+| API domain, Kubernetes, HTTPS | DONE | IN PROGRESS | DONE | DONE | DONE |
 
 ## Verified infrastructure
 
@@ -33,3 +33,5 @@ Scope: the user's production execution request, Phases 03–08 and the existing 
 Public directory eligibility currently covers approval, public profile and certificate only. Skills, quality state, territory and schedule gates must be implemented before enabling booking. Service edit/detail, applicant-owned training/certificate reads and complete admin screens are missing. Existing unit tests do not prove booking, pricing or production integration.
 
 Phases 03–08 remain open. Production infrastructure is prioritized explicitly by the user; it does not imply that Phase 03 or Phase 08 is complete.
+
+Production infrastructure milestone: API healthy on verified HTTPS, dedicated database TLS, production auth smoke and fixture cleanup all PASS. Image/source SHA and release evidence are recorded in PROJECT_PROGRESS.md. Product phases remain incomplete.

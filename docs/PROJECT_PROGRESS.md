@@ -65,3 +65,7 @@ production TLS/CA settings must be reviewed again in Phase 08.
 - Initial rollout exposed guard dependency resolution failure in new modules. AuthModule now re-exports IdentityModule; complete-application startup integration and CORS/CSRF checks added. Updated image and rollout verification pending.
 - Supabase data is currently empty; no fake services, providers or prices will be published.
 - Validation: backend quality PASS (17 unit tests), full application integration PASS 11/11 including CORS and cookie-origin rejection. No data mutations in these integration checks.
+- Backend source/image commit: 6ced49be33c82d8cabd11ca5e7394a2553160266. CI quality and image publication PASS.
+- Rollout HEALTHY with digest sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb81029e419c7f. HTTPS health ready/live HTTP 200.
+- Production auth smoke PASS: secure HttpOnly cookie, customer-only register, me, RBAC denial, bad password, refresh rotation/replay rejection, logout token invalidation and subsequent login/logout. Random strong-password account cleaned up.
+- CORS apex credentialed preflight verified; GiangXa.com still HTTP 200. FE production API environment configuration and browser validation continue.

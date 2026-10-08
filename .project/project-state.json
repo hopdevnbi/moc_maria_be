@@ -53,12 +53,13 @@
     "tls": "LETSENCRYPT_READY",
     "databaseTLS": "VERIFIED_TLS_1_3",
     "migrations": "ALL_9_APPLIED",
-    "deployment": "WAITING_FOR_STARTUP_FIX_IMAGE",
+    "deployment": "HEALTHY",
     "remaining": [
-      "Full application rollout",
-      "Production auth smoke",
-      "FE API configuration",
+      "FE API configuration and browser verification",
       "Phase 03-08 product implementation"
-    ]
+    ],
+    "imageDigest": "sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb81029e419c7f",
+    "backendSourceCommit": "6ced49be33c82d8cabd11ca5e7394a2553160266",
+    "authSmoke": "PASS_12_CHECKS_FIXTURE_REMOVED"
   }
 }
