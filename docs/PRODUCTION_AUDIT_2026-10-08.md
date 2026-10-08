@@ -4,12 +4,12 @@ Scope: the user's production execution request, Phases 03–08 and the existing 
 
 | Module | Backend | Frontend | Database | Test | Production |
 |---|---|---|---|---|---|
-| Auth, JWT, refresh sessions, RBAC | PARTIAL | PARTIAL | DONE | PARTIAL | MISSING |
-| Branches, hours, exceptions, resources | PARTIAL | MISSING | DONE | PARTIAL | MISSING |
-| Service categories, variants, branch pricing | PARTIAL | MISSING | DONE | PARTIAL | MISSING |
-| KTV applications and approval | PARTIAL | MISSING | DONE | PARTIAL | MISSING |
-| Training, assessment, internal certificates | PARTIAL | MISSING | DONE | PARTIAL | MISSING |
-| Public KTV directory | PARTIAL | MISSING | DONE | PARTIAL | MISSING |
+| Auth, JWT, refresh sessions, RBAC | DONE | DONE | DONE | DONE | DONE |
+| Branches, hours, exceptions, resources | PARTIAL | PARTIAL | DONE | DONE | PARTIAL |
+| Service categories, variants, branch pricing | PARTIAL | PARTIAL | DONE | DONE | PARTIAL |
+| KTV applications and approval | PARTIAL | PARTIAL | DONE | DONE | PARTIAL |
+| Training, assessment, internal certificates | PARTIAL | PARTIAL | DONE | DONE | PARTIAL |
+| Public KTV directory | PARTIAL | PARTIAL | DONE | DONE | PARTIAL |
 | Skills, schedules, service areas, eligibility | MISSING | MISSING | MISSING | MISSING | MISSING |
 | Booking, availability, quotes, concurrency | MISSING | MISSING | MISSING | MISSING | MISSING |
 | Direct tenant-isolated chat and reports | MISSING | MISSING | MISSING | MISSING | MISSING |
@@ -26,11 +26,11 @@ Scope: the user's production execution request, Phases 03–08 and the existing 
 - Latest GHCR image build and quality CI succeeded. Anonymous containerd pull of the immutable image succeeds. Manifest pins its digest.
 - Official Supabase root CA permits an authorized TLS 1.3 connection from this workstation. SQL `pg_stat_ssl` reflects the pooler's downstream connection, so client TLS was additionally checked on the actual Node TLS socket.
 - All nine source migrations are present in the configured Supabase migration table. Counts of users, branches, services and provider applications are zero. No fabricated catalog or provider data will be published.
-- Frontend apex and www DNS records already point to Vercel and must remain unchanged. A separate API A record and cert-manager ingress are being configured.
+- Frontend apex and www DNS records already point to Vercel and must remain unchanged. The separate API A record and cert-manager ingress are verified and healthy.
 
 ## Remaining critical work
 
-Public directory eligibility currently covers approval, public profile and certificate only. Skills, quality state, territory and schedule gates must be implemented before enabling booking. Service edit/detail, applicant-owned training/certificate reads and complete admin screens are missing. Existing unit tests do not prove booking, pricing or production integration.
+Public directory eligibility currently covers approval, public profile and certificate only. Skills, quality state, territory and schedule gates must be implemented before enabling booking. Service edit/detail and applicant-owned training/certificate reads are now implemented and integration tested. Catalog, branches/resources/hours, applications and training admin screens are implemented; the full booking/chat/reviews/media admin scope remains open. Existing unit tests do not prove booking, pricing or production integration.
 
 Phases 03–08 remain open. Production infrastructure is prioritized explicitly by the user; it does not imply that Phase 03 or Phase 08 is complete.
 

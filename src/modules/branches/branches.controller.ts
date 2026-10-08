@@ -80,6 +80,18 @@ export class AdminBranchesController {
     return this.service.replaceHours(id, dto);
   }
 
+  @Get(':id/hours')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  hours(@Param('id', new ParseUUIDPipe()) id: string): Promise<BranchBusinessHour[]> {
+    return this.service.listHours(id, true);
+  }
+
+  @Get(':id/exceptions')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  exceptions(@Param('id', new ParseUUIDPipe()) id: string): Promise<BranchExceptionHour[]> {
+    return this.service.listExceptions(id, true);
+  }
+
   @Put(':id/exceptions')
   @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
   saveException(

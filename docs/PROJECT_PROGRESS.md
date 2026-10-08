@@ -69,3 +69,14 @@ production TLS/CA settings must be reviewed again in Phase 08.
 - Rollout HEALTHY with digest sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb81029e419c7f. HTTPS health ready/live HTTP 200.
 - Production auth smoke PASS: secure HttpOnly cookie, customer-only register, me, RBAC denial, bad password, refresh rotation/replay rejection, logout token invalidation and subsequent login/logout. Random strong-password account cleaned up.
 - CORS apex credentialed preflight verified; GiangXa.com still HTTP 200. FE production API environment configuration and browser validation continue.
+
+## Catalog / provider integration release preparation — 2026-10-08
+- Public service detail with published-category/service checks, active duration/price variants and active branch mappings; service and variant edit/list API added without changing existing list response.
+- Owned training reads expose only applicant data and omit assessor/issuer identifiers. Admin training read added with staff-management permission.
+- Application state transitions, approval-to-staff identity, assessment, certificate issue and revoke audited. Eligibility mutations use a provider-application transaction lock; approval does not automatically publish the profile.
+- Public provider reads batch queries and immediately exclude suspended/revoked/expired/inactive users. Skills, territory, schedules, quality/legal gates still must be added before booking activation.
+- Admin hours/exceptions and branch mappings can be read for inactive branches without exposing them publicly.
+- Private response caching disabled; request logging excludes authorization/cookies/body/query.
+- Validation: 17 unit tests + 20 integration tests PASS; full BE build PASS. Integration fixtures ran only in ephemeral PostgreSQL over SSH; nine migrations applied in QA and pod/Secret cleaned up. Production database was not seeded/reset/modified by fixture tests.
+- Frontend authentication tested in live browser including session restoration/reload and logout. Temporary browser QA identity removed.
+- No new production schema migration in this group. Immutable image publication/rollout and FE catalog/admin deployment pending.

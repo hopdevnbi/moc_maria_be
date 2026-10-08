@@ -1,6 +1,6 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Branch } from './entities/branch.entity';
 import { BranchResource } from './entities/branch-resource.entity';
 import { ServiceCategory } from './entities/service-category.entity';
@@ -30,16 +30,85 @@ export class CatalogService {
       order: { name: 'ASC' },
     });
     const allowed = items.filter((s) => categories.some((c) => c.id === s.categoryId));
-    return Promise.all(
-      allowed.map(async (service) => ({
-        service,
-        variants: await this.variants.find({ where: { serviceId: service.id, isActive: true } }),
+    if (!allowed.length) return [];
+    const variants = await this.variants.find({
+      where: { serviceId: In(allowed.map((item) => item.id)), isActive: true },
+      order: { durationMinutes: 'ASC', name: 'ASC' },
+    });
+    return allowed.map((service) => ({
+      service,
+      variants: variants.filter((variant) => variant.serviceId === service.id),
+    }));
+  }
+
+  async publicService(slug: string): Promise<{
+    service: Service;
+    variants: ServiceVariant[];
+    branches: Array<{ branch: Branch; priceOverrideVnd: string | null }>;
+  }> {
+    const service = await this.services.findOneBy({ slug, isPublished: true });
+    if (
+      !service ||
+      !(await this.categories.findOneBy({ id: service.categoryId, isPublished: true }))
+    )
+      throw new NotFoundException('Không tìm thấy dịch vụ công khai.');
+    const [variants, mappings] = await Promise.all([
+      this.variants.find({
+        where: { serviceId: service.id, isActive: true },
+        order: { durationMinutes: 'ASC' },
+      }),
+      this.branchServices.find({ where: { serviceId: service.id, isActive: true } }),
+    ]);
+    const branches = mappings.length
+      ? await this.branches.find({
+          where: { id: In(mappings.map((mapping) => mapping.branchId)), isActive: true },
+        })
+      : [];
+    return {
+      service,
+      variants,
+      branches: branches.map((branch) => ({
+        branch,
+        priceOverrideVnd:
+          mappings.find((mapping) => mapping.branchId === branch.id)?.priceOverrideVnd ?? null,
       })),
-    );
+    };
   }
 
   adminServices(): Promise<Service[]> {
     return this.services.find({ order: { name: 'ASC' } });
+  }
+
+  async updateService(id: string, dto: Partial<CreateServiceDto>): Promise<Service> {
+    const item = await this.services.findOneBy({ id });
+    if (!item) throw new NotFoundException('Service not found');
+    if (dto.categoryId && !(await this.categories.findOneBy({ id: dto.categoryId })))
+      throw new NotFoundException('Category not found');
+    try {
+      return await this.services.save(Object.assign(item, dto));
+    } catch (error) {
+      this.checkConflict(error);
+      throw error;
+    }
+  }
+
+  async adminVariants(serviceId: string): Promise<ServiceVariant[]> {
+    if (!(await this.services.findOneBy({ id: serviceId })))
+      throw new NotFoundException('Service not found');
+    return this.variants.find({ where: { serviceId }, order: { durationMinutes: 'ASC' } });
+  }
+
+  async updateVariant(
+    serviceId: string,
+    id: string,
+    dto: Partial<CreateVariantDto>,
+  ): Promise<ServiceVariant> {
+    const item = await this.variants.findOneBy({ id, serviceId });
+    if (!item) throw new NotFoundException('Variant not found');
+    const { priceVnd, ...details } = dto;
+    Object.assign(item, details);
+    if (priceVnd !== undefined) item.priceVnd = String(priceVnd);
+    return this.variants.save(item);
   }
 
   async addService(dto: CreateServiceDto): Promise<Service> {
@@ -81,6 +150,12 @@ export class CatalogService {
               : String(dto.priceOverrideVnd),
       }),
     );
+  }
+
+  async adminBranchServices(branchId: string): Promise<BranchService[]> {
+    if (!(await this.branches.findOneBy({ id: branchId })))
+      throw new NotFoundException('Branch not found');
+    return this.branchServices.find({ where: { branchId } });
   }
 
   async publicBranchServices(

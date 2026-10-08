@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { ProvidersService } from './providers.service';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
@@ -15,10 +15,17 @@ describe('Provider eligibility', () => {
     save: jest.fn((input: unknown) => Promise.resolve(input)),
   };
   const certificates = { find: jest.fn() };
-  const profiles = { findOneBy: jest.fn() };
+  const profiles = { find: jest.fn() };
+  const users = { find: jest.fn() };
+  const manager = { findOne: jest.fn(), find: jest.fn() };
+  const dataSource = {
+    transaction: jest.fn((callback: (m: typeof manager) => unknown) => callback(manager)),
+    getRepository: jest.fn(() => users),
+  };
   const courses = { findOneBy: jest.fn() };
   const enrollments = { findOneBy: jest.fn() };
   const service = new ProvidersService(
+    dataSource as unknown as DataSource,
     applications as unknown as Repository<ProviderApplication>,
     certificates as unknown as Repository<ProviderCertificate>,
     profiles as unknown as Repository<StaffProfile>,
@@ -41,8 +48,12 @@ describe('Provider eligibility', () => {
   });
 
   it('rejects approving a provider without active certificate', async () => {
-    applications.findOneBy.mockResolvedValue({ id: 'application-1', userId: 'applicant' });
-    certificates.find.mockResolvedValue([]);
+    manager.findOne.mockResolvedValue({
+      id: 'application-1',
+      userId: 'applicant',
+      status: 'ASSESSMENT',
+    });
+    manager.find.mockResolvedValue([]);
     await expect(
       service.review('application-1', 'manager', { status: 'APPROVED' }),
     ).rejects.toThrow(BadRequestException);
@@ -70,7 +81,11 @@ describe('Provider eligibility', () => {
   });
 
   it('does not allow self-review', async () => {
-    applications.findOneBy.mockResolvedValue({ id: 'application-1', userId: 'applicant' });
+    manager.findOne.mockResolvedValue({
+      id: 'application-1',
+      userId: 'applicant',
+      status: 'ASSESSMENT',
+    });
     await expect(
       service.review('application-1', 'applicant', { status: 'APPROVED' }),
     ).rejects.toThrow(BadRequestException);
@@ -81,11 +96,12 @@ describe('Provider eligibility', () => {
       { id: 'app-1', userId: 'u1', publicName: 'A', status: 'APPROVED' },
       { id: 'app-2', userId: 'u2', publicName: 'B', status: 'APPROVED' },
     ]);
-    profiles.findOneBy
-      .mockResolvedValueOnce({ avatarUrl: null, isActive: true, isPublic: true })
-      .mockResolvedValueOnce(null);
+    profiles.find.mockResolvedValue([
+      { userId: 'u1', avatarUrl: null, isActive: true, isPublic: true },
+    ]);
+    users.find.mockResolvedValue([{ id: 'u1' }]);
     certificates.find.mockResolvedValue([
-      { revokedAt: null, expiresAt: new Date(Date.now() - 1000) },
+      { providerApplicationId: 'app-1', revokedAt: null, expiresAt: new Date(Date.now() - 1000) },
     ]);
     expect(await service.publicProviders()).toEqual([]);
   });

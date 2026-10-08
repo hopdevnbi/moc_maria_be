@@ -55,11 +55,20 @@
     "migrations": "ALL_9_APPLIED",
     "deployment": "HEALTHY",
     "remaining": [
-      "FE API configuration and browser verification",
-      "Phase 03-08 product implementation"
+      "Skills/territory/schedules/quality eligibility",
+      "Booking/chat/reviews/media/SEO",
+      "Complete private profile and admin integration"
     ],
     "imageDigest": "sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb81029e419c7f",
     "backendSourceCommit": "6ced49be33c82d8cabd11ca5e7394a2553160266",
-    "authSmoke": "PASS_12_CHECKS_FIXTURE_REMOVED"
+    "authSmoke": "PASS_12_CHECKS_FIXTURE_REMOVED",
+    "frontendIntegration": "LIVE_AUTH_BROWSER_PASS"
+  },
+  "catalogProviderIntegration": {
+    "status": "VALIDATED_RELEASE_PENDING",
+    "unitTests": 17,
+    "integrationTests": 20,
+    "qaDatabase": "EPHEMERAL_ISOLATED_POSTGRES",
+    "productionMigration": "NO_NEW_MIGRATION_REQUIRED"
   }
 }

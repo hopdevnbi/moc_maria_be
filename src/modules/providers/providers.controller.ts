@@ -27,9 +27,17 @@ import { ProvidersService } from './providers.service';
 export class PublicProvidersController {
   constructor(private readonly service: ProvidersService) {}
   @Get()
-  @Header('Cache-Control', 'public, max-age=10, s-maxage=20, stale-while-revalidate=30')
+  @Header('Cache-Control', 'no-store')
   list(): ReturnType<ProvidersService['publicProviders']> {
     return this.service.publicProviders();
+  }
+
+  @Get(':id')
+  @Header('Cache-Control', 'no-store')
+  detail(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): ReturnType<ProvidersService['publicProvider']> {
+    return this.service.publicProvider(id);
   }
 }
 
@@ -50,6 +58,12 @@ export class ProviderApplicationsController {
   mine(@CurrentUser() actor: AuthUserContext): Promise<ProviderApplication | null> {
     return this.service.myApplication(actor.id);
   }
+
+  @Get('me/training')
+  @Header('Cache-Control', 'no-store')
+  training(@CurrentUser() actor: AuthUserContext): ReturnType<ProvidersService['myTraining']> {
+    return this.service.myTraining(actor.id);
+  }
 }
 
 @ApiTags('admin-providers')
@@ -62,6 +76,15 @@ export class AdminProvidersController {
   @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
   list(): Promise<ProviderApplication[]> {
     return this.service.listApplications();
+  }
+
+  @Get(':id/training')
+  @Header('Cache-Control', 'no-store')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  training(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): ReturnType<ProvidersService['applicationTraining']> {
+    return this.service.applicationTraining(id);
   }
 
   @Post(':id/certificates')
@@ -77,10 +100,11 @@ export class AdminProvidersController {
   @Patch(':id/certificates/:certificateId/revoke')
   @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   revoke(
+    @CurrentUser() actor: AuthUserContext,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('certificateId', new ParseUUIDPipe()) certificateId: string,
   ): Promise<ProviderCertificate> {
-    return this.service.revokeCertificate(id, certificateId);
+    return this.service.revokeCertificate(id, certificateId, actor.id);
   }
   @Patch(':id/review')
   @RequirePermissions(PERMISSIONS.ROLE_MANAGE)

@@ -5,8 +5,12 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, In, Repository } from 'typeorm';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
+import { AuditLog } from '../identity/entities/audit-log.entity';
+import { Role } from '../identity/entities/role.entity';
+import { UserRole } from '../identity/entities/user-role.entity';
+import { User } from '../identity/entities/user.entity';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
 import { TrainingCourse } from './entities/training-course.entity';
@@ -17,6 +21,7 @@ import { IssueCertificateDto } from './dto/certificate.dto';
 @Injectable()
 export class ProvidersService {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(ProviderApplication)
     private readonly applications: Repository<ProviderApplication>,
     @InjectRepository(ProviderCertificate)
@@ -30,23 +35,73 @@ export class ProvidersService {
   async apply(userId: string, dto: ApplyProviderDto): Promise<ProviderApplication> {
     if (await this.applications.findOneBy({ userId }))
       throw new ConflictException('Đã có hồ sơ ứng tuyển KTV.');
-    return this.applications.save(
-      this.applications.create({
-        userId,
-        publicName: dto.publicName.trim(),
-        introduction: dto.introduction?.trim() ?? null,
-        serviceArea: dto.serviceArea?.trim() ?? null,
-        status: 'APPLIED',
-      }),
-    );
+    try {
+      return await this.applications.save(
+        this.applications.create({
+          userId,
+          publicName: dto.publicName.trim(),
+          introduction: dto.introduction?.trim() ?? null,
+          serviceArea: dto.serviceArea?.trim() ?? null,
+          status: 'APPLIED',
+        }),
+      );
+    } catch (error) {
+      if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')
+        throw new ConflictException('Đã có hồ sơ ứng tuyển KTV.');
+      throw error;
+    }
   }
 
   myApplication(userId: string): Promise<ProviderApplication | null> {
     return this.applications.findOneBy({ userId });
   }
 
+  async myTraining(userId: string): Promise<{
+    enrollments: Array<{
+      enrollment: Omit<TrainingEnrollment, 'assessedBy'>;
+      course: TrainingCourse | null;
+    }>;
+    certificates: Array<Omit<ProviderCertificate, 'issuedBy'> & { isValid: boolean }>;
+  }> {
+    const application = await this.applications.findOneBy({ userId });
+    if (!application) return { enrollments: [], certificates: [] };
+    const [enrollments, certificates] = await Promise.all([
+      this.enrollments.find({ where: { providerApplicationId: application.id } }),
+      this.certificates.find({ where: { providerApplicationId: application.id } }),
+    ]);
+    const courses = enrollments.length
+      ? await this.courses.find({ where: { id: In(enrollments.map((item) => item.courseId)) } })
+      : [];
+    return {
+      enrollments: enrollments.map(({ assessedBy: _assessedBy, ...enrollment }) => ({
+        enrollment,
+        course: courses.find((item) => item.id === enrollment.courseId) ?? null,
+      })),
+      certificates: certificates.map(({ issuedBy: _issuedBy, ...certificate }) => ({
+        ...certificate,
+        isValid:
+          !certificate.revokedAt &&
+          (!certificate.expiresAt || certificate.expiresAt.getTime() > Date.now()),
+      })),
+    };
+  }
+
+  async publicProvider(
+    id: string,
+  ): Promise<Awaited<ReturnType<ProvidersService['publicProviders']>>[number]> {
+    const provider = (await this.publicProviders()).find((item) => item.id === id);
+    if (!provider) throw new NotFoundException('Không tìm thấy chuyên viên công khai.');
+    return provider;
+  }
+
   listApplications(): Promise<ProviderApplication[]> {
     return this.applications.find({ order: { createdAt: 'DESC' } });
+  }
+
+  async applicationTraining(id: string): ReturnType<ProvidersService['myTraining']> {
+    const application = await this.applications.findOneBy({ id });
+    if (!application) throw new NotFoundException('Không tìm thấy hồ sơ KTV.');
+    return this.myTraining(application.userId);
   }
 
   async issueCertificate(
@@ -79,54 +134,144 @@ export class ProvidersService {
     const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
     if (expiresAt && expiresAt <= issuedAt)
       throw new BadRequestException('Ngày hết hạn không hợp lệ.');
-    return this.certificates.save(
-      this.certificates.create({
+    return this.dataSource.transaction(async (manager) => {
+      // Serialize eligibility changes, certificate issue/revoke and future booking acceptance.
+      const current = await manager.findOneOrFail(ProviderApplication, {
+        where: { id: applicationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!['TRAINING', 'ASSESSMENT', 'APPROVED'].includes(current.status))
+        throw new BadRequestException('Hồ sơ đã thay đổi trạng thái.');
+      const latestTraining = await manager.findOneBy(TrainingEnrollment, {
+        courseId: course.id,
         providerApplicationId: applicationId,
-        courseCode: dto.courseCode,
-        title: course.title,
-        certificateNumber: dto.certificateNumber,
-        issuedAt,
-        expiresAt,
-        revokedAt: null,
-        issuedBy: actorId,
-      }),
-    );
+      });
+      if (
+        !latestTraining ||
+        latestTraining.status !== 'COMPLETED' ||
+        !latestTraining.assessmentPassed ||
+        latestTraining.attendancePercent < 80
+      )
+        throw new BadRequestException('KTV chưa đạt đánh giá khóa đào tạo.');
+      if (
+        await manager.findOneBy(ProviderCertificate, {
+          providerApplicationId: applicationId,
+          courseCode: dto.courseCode,
+        })
+      )
+        throw new ConflictException('Khóa học này đã có chứng nhận. Vui lòng xử lý gia hạn riêng.');
+      const certificate = await manager.save(
+        ProviderCertificate,
+        manager.create(ProviderCertificate, {
+          providerApplicationId: applicationId,
+          courseCode: dto.courseCode,
+          title: course.title,
+          certificateNumber: dto.certificateNumber,
+          issuedAt,
+          expiresAt,
+          revokedAt: null,
+          issuedBy: actorId,
+        }),
+      );
+      await manager.save(AuditLog, {
+        event: 'provider.certificate.issued',
+        actorUserId: actorId,
+        targetUserId: applicant.userId,
+        metadata: { applicationId, certificateId: certificate.id, courseCode: course.code },
+      });
+      return certificate;
+    });
   }
 
   async revokeCertificate(
     applicationId: string,
     certificateId: string,
+    actorId: string,
   ): Promise<ProviderCertificate> {
-    const cert = await this.certificates.findOneBy({
-      id: certificateId,
-      providerApplicationId: applicationId,
+    return this.dataSource.transaction(async (manager) => {
+      const application = await manager.findOne(ProviderApplication, {
+        where: { id: applicationId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!application) throw new NotFoundException('Không tìm thấy hồ sơ KTV.');
+      if (application.userId === actorId)
+        throw new BadRequestException('Không được tự xử lý chứng nhận.');
+      const cert = await manager.findOneBy(ProviderCertificate, {
+        id: certificateId,
+        providerApplicationId: applicationId,
+      });
+      if (!cert) throw new NotFoundException('Không tìm thấy chứng nhận.');
+      if (!cert.revokedAt) cert.revokedAt = new Date();
+      const saved = await manager.save(cert);
+      if (application.status === 'APPROVED') {
+        application.status = 'SUSPENDED';
+        await manager.save(application);
+      }
+      await manager.save(AuditLog, {
+        event: 'provider.certificate.revoked',
+        actorUserId: actorId,
+        targetUserId: application.userId,
+        metadata: { applicationId, certificateId },
+      });
+      return saved;
     });
-    if (!cert) throw new NotFoundException('Không tìm thấy chứng nhận.');
-    cert.revokedAt = new Date();
-    const saved = await this.certificates.save(cert);
-    const application = await this.applications.findOneBy({ id: applicationId });
-    if (application?.status === 'APPROVED') {
-      application.status = 'SUSPENDED';
-      await this.applications.save(application);
-    }
-    return saved;
   }
 
   async review(id: string, actorId: string, dto: ReviewProviderDto): Promise<ProviderApplication> {
-    const app = await this.applications.findOneBy({ id });
-    if (!app) throw new NotFoundException('Không tìm thấy hồ sơ KTV.');
-    if (actorId === app.userId) throw new BadRequestException('Không được tự duyệt hồ sơ.');
-    if (dto.status === 'APPROVED') {
-      const certs = await this.certificates.find({ where: { providerApplicationId: id } });
-      const now = Date.now();
-      if (!certs.some((c) => !c.revokedAt && (!c.expiresAt || c.expiresAt.getTime() > now))) {
-        throw new BadRequestException('KTV chưa có chứng nhận đào tạo nội bộ hợp lệ.');
+    return this.dataSource.transaction(async (manager) => {
+      const app = await manager.findOne(ProviderApplication, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!app) throw new NotFoundException('Không tìm thấy hồ sơ KTV.');
+      if (actorId === app.userId) throw new BadRequestException('Không được tự duyệt hồ sơ.');
+      const transitions: Record<string, string[]> = {
+        APPLIED: ['REVIEWING', 'REJECTED'],
+        REVIEWING: ['TRAINING', 'REJECTED'],
+        TRAINING: ['ASSESSMENT', 'REJECTED'],
+        ASSESSMENT: ['TRAINING', 'APPROVED', 'REJECTED'],
+        APPROVED: ['SUSPENDED'],
+        REJECTED: ['REVIEWING'],
+        SUSPENDED: ['TRAINING', 'ASSESSMENT', 'APPROVED', 'REJECTED'],
+      };
+      if (!transitions[app.status]?.includes(dto.status))
+        throw new BadRequestException('Chuyển trạng thái hồ sơ không hợp lệ.');
+      const previousStatus = app.status;
+      if (dto.status === 'APPROVED') {
+        const certs = await manager.find(ProviderCertificate, {
+          where: { providerApplicationId: id },
+        });
+        const now = Date.now();
+        if (!certs.some((c) => !c.revokedAt && (!c.expiresAt || c.expiresAt.getTime() > now))) {
+          throw new BadRequestException('KTV chưa có chứng nhận đào tạo nội bộ hợp lệ.');
+        }
+        if (!(await manager.findOneBy(User, { id: app.userId, isActive: true })))
+          throw new BadRequestException('Tài khoản KTV không hoạt động.');
+        const role = await manager.findOneByOrFail(Role, { name: 'THERAPIST' });
+        if (!(await manager.findOneBy(UserRole, { userId: app.userId, roleId: role.id })))
+          await manager.save(UserRole, { userId: app.userId, roleId: role.id });
+        if (!(await manager.findOneBy(StaffProfile, { userId: app.userId })))
+          await manager.save(StaffProfile, {
+            userId: app.userId,
+            publicName: app.publicName,
+            bio: app.introduction,
+            isActive: true,
+            isPublic: false,
+            avatarUrl: null,
+          });
       }
-    }
-    app.status = dto.status;
-    app.reviewedBy = actorId;
-    app.reviewNote = dto.note?.trim() ?? null;
-    return this.applications.save(app);
+      app.status = dto.status;
+      app.reviewedBy = actorId;
+      app.reviewNote = dto.note?.trim() ?? null;
+      const saved = await manager.save(app);
+      await manager.save(AuditLog, {
+        event: 'provider.application.reviewed',
+        actorUserId: actorId,
+        targetUserId: app.userId,
+        metadata: { applicationId: id, previousStatus, status: dto.status },
+      });
+      return saved;
+    });
   }
 
   async publicProviders(): Promise<
@@ -139,6 +284,19 @@ export class ProvidersService {
     }>
   > {
     const approved = await this.applications.find({ where: { status: 'APPROVED' } });
+    if (!approved.length) return [];
+    const [profiles, certs, users] = await Promise.all([
+      this.profiles.find({
+        where: { userId: In(approved.map((app) => app.userId)), isActive: true, isPublic: true },
+      }),
+      this.certificates.find({
+        where: { providerApplicationId: In(approved.map((app) => app.id)) },
+      }),
+      this.dataSource.getRepository(User).find({
+        select: ['id'],
+        where: { id: In(approved.map((app) => app.userId)), isActive: true },
+      }),
+    ]);
     const result: Array<{
       id: string;
       publicName: string;
@@ -147,14 +305,16 @@ export class ProvidersService {
       avatarUrl: string | null;
     }> = [];
     for (const app of approved) {
-      const profile = await this.profiles.findOneBy({
-        userId: app.userId,
-        isActive: true,
-        isPublic: true,
-      });
-      if (!profile) continue;
-      const certs = await this.certificates.find({ where: { providerApplicationId: app.id } });
-      if (!certs.some((c) => !c.revokedAt && (!c.expiresAt || c.expiresAt.getTime() > Date.now())))
+      const profile = profiles.find((profile) => profile.userId === app.userId);
+      if (!profile || !users.some((user) => user.id === app.userId)) continue;
+      if (
+        !certs.some(
+          (c) =>
+            c.providerApplicationId === app.id &&
+            !c.revokedAt &&
+            (!c.expiresAt || c.expiresAt.getTime() > Date.now()),
+        )
+      )
         continue;
       result.push({
         id: app.id,

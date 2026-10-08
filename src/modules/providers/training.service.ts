@@ -5,7 +5,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
+import { AuditLog } from '../identity/entities/audit-log.entity';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { TrainingCourse } from './entities/training-course.entity';
 import { TrainingEnrollment } from './entities/training-enrollment.entity';
@@ -18,6 +19,7 @@ import {
 @Injectable()
 export class TrainingService {
   constructor(
+    private readonly dataSource: DataSource,
     @InjectRepository(ProviderApplication)
     private readonly applications: Repository<ProviderApplication>,
     @InjectRepository(TrainingCourse) private readonly courses: Repository<TrainingCourse>,
@@ -89,13 +91,34 @@ export class TrainingService {
     if (!applicant) throw new NotFoundException('Không tìm thấy KTV.');
     if (applicant.userId === assessorId)
       throw new BadRequestException('Không được tự đánh giá tay nghề.');
-    const passed = dto.assessmentPassed && dto.attendancePercent >= 80;
-    enrollment.attendancePercent = dto.attendancePercent;
-    enrollment.assessmentPassed = passed;
-    enrollment.status = passed ? 'COMPLETED' : 'FAILED';
-    enrollment.assessedBy = assessorId;
-    enrollment.assessedAt = new Date();
-    return this.enrollments.save(enrollment);
+    return this.dataSource.transaction(async (manager) => {
+      const current = await manager.findOneOrFail(ProviderApplication, {
+        where: { id: applicant.id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!['TRAINING', 'ASSESSMENT'].includes(current.status))
+        throw new BadRequestException('Hồ sơ không ở giai đoạn đánh giá đào tạo.');
+      const latest = await manager.findOneOrFail(TrainingEnrollment, { where: { id } });
+      const passed = dto.assessmentPassed && dto.attendancePercent >= 80;
+      latest.attendancePercent = dto.attendancePercent;
+      latest.assessmentPassed = passed;
+      latest.status = passed ? 'COMPLETED' : 'FAILED';
+      latest.assessedBy = assessorId;
+      latest.assessedAt = new Date();
+      const saved = await manager.save(latest);
+      await manager.save(AuditLog, {
+        event: 'provider.training.assessed',
+        actorUserId: assessorId,
+        targetUserId: applicant.userId,
+        metadata: {
+          applicationId: applicant.id,
+          enrollmentId: id,
+          attendancePercent: dto.attendancePercent,
+          assessmentPassed: passed,
+        },
+      });
+      return saved;
+    });
   }
 
   listEnrollments(providerApplicationId: string): Promise<TrainingEnrollment[]> {

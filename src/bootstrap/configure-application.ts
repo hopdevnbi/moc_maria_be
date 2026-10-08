@@ -18,6 +18,15 @@ export function configureApplication(application: INestApplication): void {
   });
   application.use(cookieParser());
   application.use((request: Request, response: Response, next: NextFunction) => {
+    if (
+      request.headers.authorization ||
+      /^\/api\/v1\/(auth|admin|customers|staff|provider-applications)(\/|$)/.test(request.path)
+    ) {
+      response.setHeader('Cache-Control', 'private, no-store');
+    }
+    next();
+  });
+  application.use((request: Request, response: Response, next: NextFunction) => {
     if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return next();
     const origin = request.headers.origin;
     const cookies = request.cookies as Record<string, unknown> | undefined;

@@ -11,6 +11,7 @@ import { Role } from '../src/modules/identity/entities/role.entity';
 import { StaffProfile } from '../src/modules/identity/entities/staff-profile.entity';
 import { UserRole } from '../src/modules/identity/entities/user-role.entity';
 import { User } from '../src/modules/identity/entities/user.entity';
+import { requireIsolatedDatabase } from './isolated-database';
 
 describe('Auth and RBAC (e2e)', () => {
   let app: INestApplication;
@@ -28,6 +29,7 @@ describe('Auth and RBAC (e2e)', () => {
   const adminPassword = 'AdminTest1234';
 
   beforeAll(async () => {
+    requireIsolatedDatabase();
     process.env['NODE_ENV'] = 'test';
     process.env['SWAGGER_ENABLED'] = 'false';
 
@@ -52,13 +54,12 @@ describe('Auth and RBAC (e2e)', () => {
   });
 
   it('registers a customer, blocks admin access, rotates refresh, and revokes logout', async () => {
-    const agent = request.agent(app.getHttpServer());
+    const agent = request.agent(app.getHttpServer()).set('Origin', 'http://localhost:3001');
     const register = await agent
       .post('/api/v1/auth/register')
       .send({
         displayName: 'Phase 2 Customer',
         email: customerEmail,
-        phone: '0912345678',
         password: customerPassword,
       })
       .expect(201);
@@ -95,7 +96,7 @@ describe('Auth and RBAC (e2e)', () => {
   });
 
   it('supports forgot/reset password and revokes previous sessions', async () => {
-    const agent = request.agent(app.getHttpServer());
+    const agent = request.agent(app.getHttpServer()).set('Origin', 'http://localhost:3001');
     const login = await agent
       .post('/api/v1/auth/login')
       .send({ identifier: customerEmail, password: customerPassword })
@@ -127,7 +128,7 @@ describe('Auth and RBAC (e2e)', () => {
     const superUserId = await createSuperAdmin();
     createdUserIds.push(superUserId);
 
-    const superAgent = request.agent(app.getHttpServer());
+    const superAgent = request.agent(app.getHttpServer()).set('Origin', 'http://localhost:3001');
     const superLogin = await superAgent
       .post('/api/v1/auth/login')
       .send({ identifier: superEmail, password: superPassword })
@@ -165,7 +166,7 @@ describe('Auth and RBAC (e2e)', () => {
       .expect(201);
     createdUserIds.push(admin.body.id);
 
-    const adminAgent = request.agent(app.getHttpServer());
+    const adminAgent = request.agent(app.getHttpServer()).set('Origin', 'http://localhost:3001');
     const adminLogin = await adminAgent
       .post('/api/v1/auth/login')
       .send({ identifier: adminEmail, password: adminPassword })
@@ -187,7 +188,9 @@ describe('Auth and RBAC (e2e)', () => {
       .set('Authorization', 'Bearer ' + adminLogin.body.accessToken)
       .expect(403);
 
-    const therapistAgent = request.agent(app.getHttpServer());
+    const therapistAgent = request
+      .agent(app.getHttpServer())
+      .set('Origin', 'http://localhost:3001');
     const therapistLogin = await therapistAgent
       .post('/api/v1/auth/login')
       .send({ identifier: therapistEmail, password: therapistPassword })

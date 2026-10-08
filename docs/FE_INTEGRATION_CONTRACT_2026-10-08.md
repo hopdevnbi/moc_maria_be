@@ -58,3 +58,14 @@ API prefix: `/api/v1`. Use the Backend OpenAPI contract when adding new screens.
 
 If API data is empty, show a refined empty/loading state rather than fictional staff,
 ratings, service prices or testimonials.
+
+## Contract additions — verified 2026-10-08
+- HTTPS API is live at https://api.mocmaria.com/api/v1; auth browser smoke PASS.
+- GET /services/:slug returns {service,variants,branches:[{branch,priceOverrideVnd}]} for published services/categories only.
+- PATCH /admin/services/:id; GET/POST /admin/services/:id/variants; PATCH /admin/services/:id/variants/:variantId.
+- GET /provider-applications/me/training returns own enrollments/courses and certificates with server-calculated isValid. Assessor/issuer ids excluded.
+- GET /admin/provider-applications/:id/training requires staff.manage.
+- GET /admin/branches/:id/hours, /exceptions and /services includes inactive branch configuration for authorized admin operations.
+- Provider public cache is now no-store to avoid stale eligibility. Private APIs are private/no-store.
+- Application review follows APPLIED→REVIEWING→TRAINING→ASSESSMENT→APPROVED with rejection, remediation and suspension transitions; invalid jumps fail. Approval creates THERAPIST identity/profile with isPublic=false; it does not imply bookable eligibility.
+- Catalog/provider lifecycle integration suite now exercises PostgreSQL constraints and HTTP RBAC in an isolated ephemeral QA database.

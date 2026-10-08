@@ -5,7 +5,19 @@ import { Module } from '@nestjs/common';
   imports: [
     LoggerModule.forRoot({
       pinoHttp: {
-        level: process.env['NODE_ENV'] === 'production' ? 'info' : 'debug',
+        level:
+          process.env['NODE_ENV'] === 'test'
+            ? 'silent'
+            : process.env['NODE_ENV'] === 'production'
+              ? 'info'
+              : 'debug',
+        serializers: {
+          req: (request: { id?: string | number; method?: string; url?: string }) => ({
+            id: request.id,
+            method: request.method,
+            url: request.url?.split('?')[0],
+          }),
+        },
         redact: {
           paths: [
             'req.headers.authorization',

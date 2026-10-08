@@ -27,6 +27,8 @@ import { BranchService } from './entities/branch-service.entity';
 
 class UpdateCategoryDto extends PartialType(SaveCategoryDto) {}
 class UpdateResourceDto extends PartialType(SaveResourceDto) {}
+class UpdateServiceDto extends PartialType(CreateServiceDto) {}
+class UpdateVariantDto extends PartialType(CreateVariantDto) {}
 
 @ApiTags('catalog')
 @Controller()
@@ -46,6 +48,12 @@ export class PublicCatalogController {
   @Header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300')
   services(): Promise<Array<{ service: Service; variants: ServiceVariant[] }>> {
     return this.service.publicServices();
+  }
+
+  @Get('services/:slug')
+  @Header('Cache-Control', 'no-store')
+  detail(@Param('slug') slug: string): ReturnType<CatalogService['publicService']> {
+    return this.service.publicService(slug);
   }
 
   @Get('branches/:id/services')
@@ -76,6 +84,31 @@ export class AdminCatalogController {
     return this.service.addService(dto);
   }
 
+  @Patch('services/:id')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  updateService(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateServiceDto,
+  ): Promise<Service> {
+    return this.service.updateService(id, dto);
+  }
+
+  @Get('services/:id/variants')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  variants(@Param('id', new ParseUUIDPipe()) id: string): Promise<ServiceVariant[]> {
+    return this.service.adminVariants(id);
+  }
+
+  @Patch('services/:id/variants/:variantId')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  updateVariant(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('variantId', new ParseUUIDPipe()) variantId: string,
+    @Body() dto: UpdateVariantDto,
+  ): Promise<ServiceVariant> {
+    return this.service.updateVariant(id, variantId, dto);
+  }
+
   @Post('services/:id/variants')
   @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
   createVariant(
@@ -92,6 +125,12 @@ export class AdminCatalogController {
     @Body() dto: SetBranchServiceDto,
   ): Promise<BranchService> {
     return this.service.setBranchService(id, dto);
+  }
+
+  @Get('branches/:id/services')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  branchServices(@Param('id', new ParseUUIDPipe()) id: string): Promise<BranchService[]> {
+    return this.service.adminBranchServices(id);
   }
   @Get('service-categories')
   @RequirePermissions(PERMISSIONS.STAFF_MANAGE)

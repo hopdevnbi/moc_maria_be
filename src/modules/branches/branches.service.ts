@@ -24,8 +24,8 @@ export class BranchesService {
     private readonly dataSource: DataSource,
   ) {}
 
-  async listExceptions(id: string): Promise<BranchExceptionHour[]> {
-    const branch = await this.branches.findOne({ where: { id, isActive: true } });
+  async listExceptions(id: string, admin = false): Promise<BranchExceptionHour[]> {
+    const branch = await this.branches.findOne({ where: admin ? { id } : { id, isActive: true } });
     if (!branch) throw new NotFoundException('Không tìm thấy chi nhánh.');
     return this.exceptions.find({ where: { branchId: id }, order: { date: 'ASC' } });
   }
@@ -56,8 +56,8 @@ export class BranchesService {
     return this.exceptions.save(row);
   }
 
-  async listHours(id: string): Promise<BranchBusinessHour[]> {
-    const branch = await this.branches.findOne({ where: { id, isActive: true } });
+  async listHours(id: string, admin = false): Promise<BranchBusinessHour[]> {
+    const branch = await this.branches.findOne({ where: admin ? { id } : { id, isActive: true } });
     if (!branch) throw new NotFoundException('Không tìm thấy chi nhánh.');
     return this.hours.find({ where: { branchId: id }, order: { weekday: 'ASC' } });
   }
