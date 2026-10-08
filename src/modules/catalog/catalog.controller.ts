@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -32,6 +33,7 @@ class UpdateResourceDto extends PartialType(SaveResourceDto) {}
 export class PublicCatalogController {
   constructor(private readonly service: CatalogService) {}
   @Get('service-categories')
+  @Header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300')
   categories(): Promise<ServiceCategory[]> {
     return this.service.publicCategories();
   }
@@ -41,11 +43,13 @@ export class PublicCatalogController {
   }
 
   @Get('services')
+  @Header('Cache-Control', 'public, max-age=60, s-maxage=300, stale-while-revalidate=300')
   services(): Promise<Array<{ service: Service; variants: ServiceVariant[] }>> {
     return this.service.publicServices();
   }
 
   @Get('branches/:id/services')
+  @Header('Cache-Control', 'public, max-age=30, s-maxage=60, stale-while-revalidate=120')
   branchServices(
     @Param('id', new ParseUUIDPipe()) id: string,
   ): ReturnType<CatalogService['publicBranchServices']> {

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -26,6 +27,7 @@ import { ProvidersService } from './providers.service';
 export class PublicProvidersController {
   constructor(private readonly service: ProvidersService) {}
   @Get()
+  @Header('Cache-Control', 'public, max-age=10, s-maxage=20, stale-while-revalidate=30')
   list(): ReturnType<ProvidersService['publicProviders']> {
     return this.service.publicProviders();
   }
