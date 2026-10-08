@@ -40,6 +40,30 @@ export class AppConfigService {
     return this.config.getOrThrow<boolean>('SWAGGER_ENABLED');
   }
 
+  getJwtAccessSecret(): string {
+    return this.config.getOrThrow<string>('JWT_ACCESS_SECRET');
+  }
+
+  getJwtAccessTtlSeconds(): number {
+    return this.config.getOrThrow<number>('JWT_ACCESS_TTL_SECONDS');
+  }
+
+  getRefreshSessionTtlDays(): number {
+    return this.config.getOrThrow<number>('REFRESH_SESSION_TTL_DAYS');
+  }
+
+  getPasswordResetTtlMinutes(): number {
+    return this.config.getOrThrow<number>('PASSWORD_RESET_TTL_MINUTES');
+  }
+
+  isAuthCookieSecure(): boolean {
+    return this.config.getOrThrow<boolean>('AUTH_COOKIE_SECURE');
+  }
+
+  getAuthCookieDomain(): string | undefined {
+    return this.config.getOrThrow<string>('AUTH_COOKIE_DOMAIN').trim() || undefined;
+  }
+
   getDatabaseConfiguration(): DatabaseConfiguration {
     const url = this.config.get<string>('DATABASE_URL')?.trim() || undefined;
     const migrationUrl = this.config.get<string>('DATABASE_MIGRATION_URL')?.trim() || undefined;

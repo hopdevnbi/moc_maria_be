@@ -1,5 +1,6 @@
 import type { INestApplication } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
 import { API_GLOBAL_PREFIX, APP_ID } from '../app.constants';
@@ -15,6 +16,7 @@ export function configureApplication(application: INestApplication): void {
     origin: config.getCorsAllowedOrigins(),
     credentials: true,
   });
+  application.use(cookieParser());
   application.use((request: Request, response: Response, next: NextFunction) => {
     const incoming = request.headers['x-request-id'];
     const requestId =
@@ -32,7 +34,7 @@ export function configureApplication(application: INestApplication): void {
       new DocumentBuilder()
         .setTitle('Moc Maria API')
         .setDescription('Moc Maria Wellness Platform API')
-        .setVersion('0.1.0')
+        .setVersion('0.2.0')
         .addBearerAuth()
         .build(),
     );
