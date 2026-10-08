@@ -5,6 +5,9 @@
 - Phase 02 Auth / RBAC / Customer / Staff Identity: DONE (e2e 3/3 PASS; migration applied)
 - Phase 03: IN PROGRESS - P03-T01 branch entity and migration authored, not yet applied
 - Phase 03 branch API added: GET /api/v1/branches (active only), and protected GET/POST/PATCH /api/v1/admin/branches. Quality PASS; branch integration e2e and new migration application pending.
+- Product plan extended 2026-10-08: KTV self-application, in-house courses and assessment,
+  admin eligibility, at-home booking, public prices, customer address and direct KTV chat
+  are now mandatory MVP requirements. See docs/KTV_MARKETPLACE_REQUIREMENTS.md.
 - Next step: validate branch migration on an isolated DB, then branch CRUD and public read APIs
 - Phase 01 implementation commit: 8a87b44
 
