@@ -2,7 +2,9 @@
 
 ## Current
 - Phase 01 Foundation: DONE
-- Next phase: 02 Auth / RBAC / Customer / Staff Identity
+- Phase 02 Auth / RBAC / Customer / Staff Identity: DONE (e2e 3/3 PASS; migration applied)
+- Phase 03: IN PROGRESS - P03-T01 branch entity and migration authored, not yet applied
+- Next step: validate branch migration on an isolated DB, then branch CRUD and public read APIs
 - Phase 01 implementation commit: 8a87b44
 
 ## Phase 01 completed
