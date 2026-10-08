@@ -1,0 +1,58 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { RequirePermissions } from '../access-control/decorators/require-permissions.decorator';
+import { PermissionsGuard } from '../access-control/guards/permissions.guard';
+import { AccessTokenGuard } from '../auth/guards/access-token.guard';
+import { PERMISSIONS } from '../identity/identity.constants';
+import { Branch } from '../catalog/entities/branch.entity';
+import { BranchesService } from './branches.service';
+import { SaveBranchDto } from './dto/save-branch.dto';
+import { UpdateBranchDto } from './dto/update-branch.dto';
+
+@ApiTags('branches')
+@Controller('branches')
+export class PublicBranchesController {
+  constructor(private readonly service: BranchesService) {}
+  @Get()
+  list(): Promise<Branch[]> {
+    return this.service.listPublic();
+  }
+}
+
+@ApiTags('admin-branches')
+@ApiBearerAuth()
+@Controller('admin/branches')
+@UseGuards(AccessTokenGuard, PermissionsGuard)
+export class AdminBranchesController {
+  constructor(private readonly service: BranchesService) {}
+
+  @Get()
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  list(): Promise<Branch[]> {
+    return this.service.listAdmin();
+  }
+
+  @Post()
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  create(@Body() dto: SaveBranchDto): Promise<Branch> {
+    return this.service.create(dto);
+  }
+
+  @Patch(':id')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  update(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: UpdateBranchDto,
+  ): Promise<Branch> {
+    return this.service.update(id, dto);
+  }
+}
