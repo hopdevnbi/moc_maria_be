@@ -13,6 +13,9 @@ describe('CatalogService guardrails', () => {
     branches as unknown as Repository<Branch>,
     resources as unknown as Repository<BranchResource>,
     categories as unknown as Repository<ServiceCategory>,
+    {} as never,
+    {} as never,
+    {} as never,
   );
 
   beforeEach(() => jest.clearAllMocks());

@@ -19,6 +19,10 @@ import { ServiceCategory } from './entities/service-category.entity';
 import { SaveCategoryDto } from './dto/save-category.dto';
 import { SaveResourceDto } from './dto/save-resource.dto';
 import { PartialType } from '@nestjs/swagger';
+import { CreateServiceDto, CreateVariantDto, SetBranchServiceDto } from './dto/service-catalog.dto';
+import { Service } from './entities/service.entity';
+import { ServiceVariant } from './entities/service-variant.entity';
+import { BranchService } from './entities/branch-service.entity';
 
 class UpdateCategoryDto extends PartialType(SaveCategoryDto) {}
 class UpdateResourceDto extends PartialType(SaveResourceDto) {}
@@ -35,6 +39,18 @@ export class PublicCatalogController {
   resources(@Param('id', new ParseUUIDPipe()) id: string): Promise<BranchResource[]> {
     return this.service.branchResources(id);
   }
+
+  @Get('services')
+  services(): Promise<Array<{ service: Service; variants: ServiceVariant[] }>> {
+    return this.service.publicServices();
+  }
+
+  @Get('branches/:id/services')
+  branchServices(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): ReturnType<CatalogService['publicBranchServices']> {
+    return this.service.publicBranchServices(id);
+  }
 }
 
 @ApiTags('admin-catalog')
@@ -43,6 +59,36 @@ export class PublicCatalogController {
 @UseGuards(AccessTokenGuard, PermissionsGuard)
 export class AdminCatalogController {
   constructor(private readonly service: CatalogService) {}
+
+  @Get('services')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  services(): Promise<Service[]> {
+    return this.service.adminServices();
+  }
+
+  @Post('services')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  createService(@Body() dto: CreateServiceDto): Promise<Service> {
+    return this.service.addService(dto);
+  }
+
+  @Post('services/:id/variants')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  createVariant(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: CreateVariantDto,
+  ): Promise<ServiceVariant> {
+    return this.service.addVariant(id, dto);
+  }
+
+  @Post('branches/:id/services')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  setBranchService(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetBranchServiceDto,
+  ): Promise<BranchService> {
+    return this.service.setBranchService(id, dto);
+  }
   @Get('service-categories')
   @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
   categories(): Promise<ServiceCategory[]> {

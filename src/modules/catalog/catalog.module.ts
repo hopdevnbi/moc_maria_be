@@ -5,12 +5,22 @@ import { AuthModule } from '../auth/auth.module';
 import { Branch } from './entities/branch.entity';
 import { BranchResource } from './entities/branch-resource.entity';
 import { ServiceCategory } from './entities/service-category.entity';
+import { Service } from './entities/service.entity';
+import { ServiceVariant } from './entities/service-variant.entity';
+import { BranchService } from './entities/branch-service.entity';
 import { AdminCatalogController, PublicCatalogController } from './catalog.controller';
 import { CatalogService } from './catalog.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Branch, BranchResource, ServiceCategory]),
+    TypeOrmModule.forFeature([
+      Branch,
+      BranchResource,
+      ServiceCategory,
+      Service,
+      ServiceVariant,
+      BranchService,
+    ]),
     AuthModule,
     AccessControlModule,
   ],
