@@ -8,6 +8,9 @@
 - Product plan extended 2026-10-08: KTV self-application, in-house courses and assessment,
   admin eligibility, at-home booking, public prices, customer address and direct KTV chat
   are now mandatory MVP requirements. See docs/KTV_MARKETPLACE_REQUIREMENTS.md.
+- KTV Quality & Trust requirements added to Phases 03-08: verified customer reviews,
+  premium KTV public cards, monitoring, risk pauses, fair moderation, reinstatement and appeals.
+  See docs/KTV_QUALITY_TRUST_REQUIREMENTS.md. PLANNED, not implemented.
 - Next step: validate branch migration on an isolated DB, then branch CRUD and public read APIs
 - Phase 01 implementation commit: 8a87b44
 

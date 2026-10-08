@@ -23,3 +23,10 @@ certification, eligibility approval, transparent home-service pricing and direct
 prebooking chat are core requirements, not optional future enhancements.
 Internal certification is not a legal practice licence; regulated services require
 additional verification. See `docs/KTV_MARKETPLACE_REQUIREMENTS.md`.
+
+## TD-007 - Verified feedback and reversible KTV quality governance
+KTV profiles use authentic public avatars, bios, services and verified rating counts.
+Post-booking customer reviews and provider incidents feed a transparent quality model.
+Automated risk monitoring may temporarily pause new jobs for serious safety signals;
+long-term removal and reinstatement require human decisions, an audit trail and appeals.
+See `docs/KTV_QUALITY_TRUST_REQUIREMENTS.md`.
