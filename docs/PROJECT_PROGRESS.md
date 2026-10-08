@@ -1,25 +1,43 @@
 # Mộc Maria Project Progress - Backend
 
 ## Current
-- Phase: 01 Foundation
-- Status: IN_PROGRESS
-- Current blocker: Supabase Direct Connection hostname is not reachable from this local network; Session Pooler URI is still needed for DB migration smoke validation.
+- Phase 01 Foundation: DONE
+- Next phase: 02 Auth / RBAC / Customer / Staff Identity
+- Phase 01 implementation commit: 8a87b44
 
-## P01 backend
-- [x] P01-T01 Acutis base audit
-- [x] P01-T02 Repository created/cloned
-- [x] P01-T03 NestJS foundation
-- [x] P01-T04 PostgreSQL/TypeORM configuration and initial migration authored
-- [x] P01-T06 Tracking files
-- [x] P01-T07 Repo hygiene
-- [x] P01-T08 Dockerfile and health endpoints
-- [x] P01-T09 APP_ID / CHAT_TENANT / QUEUE_SOURCE constants
-- [ ] PostgreSQL migration run/revert smoke test
-- [ ] P01 final validation/commit
+## Phase 01 completed
+- [x] Acutis backend/frontend/chat/queue fresh audit
+- [x] Independent repository bootstrap
+- [x] NestJS 11 strict TypeScript foundation
+- [x] Config/Joi/Pino/Swagger/global validation
+- [x] Global exception filter and request correlation ID
+- [x] PostgreSQL + TypeORM + snake_case naming strategy
+- [x] Database session timezone UTC
+- [x] Supabase Session Pooler runtime/migration connection validated
+- [x] Migration show/run/revert/run smoke test
+- [x] Health live/readiness endpoints validated against Supabase
+- [x] Dockerfile authored
+- [x] GitHub quality workflow
+- [x] APP_ID / CHAT_TENANT / QUEUE_SOURCE = MOC_MARIA
+- [x] Secret scan of trackable files clean
+- [x] Production dependency audit: 0 vulnerabilities
 
-## Validation so far
-- Typecheck: PASS
-- Unit tests: PASS (3)
-- Build: PASS
+## Phase 01 validation
+- Install: PASS
+- Format: PASS
 - Lint: PASS
-- PostgreSQL connection: BLOCKED on local network using Supabase Direct host
+- Typecheck: PASS
+- Unit tests: PASS
+- Build: PASS
+- PostgreSQL migration up/down: PASS
+- PostgreSQL timezone: UTC
+- Health live: HTTP 200
+- Health ready + DB: HTTP 200
+- Production dependency audit: PASS, 0 vulnerabilities
+- Docker image execution: not run because Docker CLI is not installed on this workstation; Dockerfile is committed and image build remains part of production infrastructure verification.
+
+## Database note
+The Supabase Direct hostname uses IPv6 and was not reachable from this local network.
+Local runtime and migration validation therefore use the Supabase Session Pooler on port 5432.
+Certificate chain verification is disabled only in the local .env for the current workstation;
+production TLS/CA settings must be reviewed again in Phase 08.
