@@ -50,3 +50,4 @@ The Supabase Direct hostname uses IPv6 and was not reachable from this local net
 Local runtime and migration validation therefore use the Supabase Session Pooler on port 5432.
 Certificate chain verification is disabled only in the local .env for the current workstation;
 production TLS/CA settings must be reviewed again in Phase 08.
+- P03-T01 branch migration applied to configured Supabase PostgreSQL (2026-10-08). P03-T02 weekly business-hours migration applied, public GET /branches/:id/hours and permission-guarded PUT /admin/branches/:id/hours added. Quality PASS; endpoint integration tests pending.

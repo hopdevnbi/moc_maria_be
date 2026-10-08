@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -14,9 +15,11 @@ import { PermissionsGuard } from '../access-control/guards/permissions.guard';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { PERMISSIONS } from '../identity/identity.constants';
 import { Branch } from '../catalog/entities/branch.entity';
+import { BranchBusinessHour } from '../catalog/entities/branch-business-hour.entity';
 import { BranchesService } from './branches.service';
 import { SaveBranchDto } from './dto/save-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
+import { ReplaceBusinessHoursDto } from './dto/replace-business-hours.dto';
 
 @ApiTags('branches')
 @Controller('branches')
@@ -25,6 +28,11 @@ export class PublicBranchesController {
   @Get()
   list(): Promise<Branch[]> {
     return this.service.listPublic();
+  }
+
+  @Get(':id/hours')
+  hours(@Param('id', new ParseUUIDPipe()) id: string): Promise<BranchBusinessHour[]> {
+    return this.service.listHours(id);
   }
 }
 
@@ -54,5 +62,14 @@ export class AdminBranchesController {
     @Body() dto: UpdateBranchDto,
   ): Promise<Branch> {
     return this.service.update(id, dto);
+  }
+
+  @Put(':id/hours')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  replaceHours(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ReplaceBusinessHoursDto,
+  ): Promise<BranchBusinessHour[]> {
+    return this.service.replaceHours(id, dto);
   }
 }
