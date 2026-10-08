@@ -9,6 +9,8 @@ import { Repository } from 'typeorm';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
+import { TrainingCourse } from './entities/training-course.entity';
+import { TrainingEnrollment } from './entities/training-enrollment.entity';
 import { ApplyProviderDto, ReviewProviderDto } from './dto/provider-application.dto';
 import { IssueCertificateDto } from './dto/certificate.dto';
 
@@ -20,6 +22,9 @@ export class ProvidersService {
     @InjectRepository(ProviderCertificate)
     private readonly certificates: Repository<ProviderCertificate>,
     @InjectRepository(StaffProfile) private readonly profiles: Repository<StaffProfile>,
+    @InjectRepository(TrainingCourse) private readonly courses: Repository<TrainingCourse>,
+    @InjectRepository(TrainingEnrollment)
+    private readonly enrollments: Repository<TrainingEnrollment>,
   ) {}
 
   async apply(userId: string, dto: ApplyProviderDto): Promise<ProviderApplication> {
@@ -56,6 +61,20 @@ export class ProvidersService {
     if (!['TRAINING', 'ASSESSMENT', 'APPROVED'].includes(applicant.status)) {
       throw new BadRequestException('KTV chưa đủ điều kiện nhận chứng nhận.');
     }
+    const course = await this.courses.findOneBy({ code: dto.courseCode, isActive: true });
+    if (!course) throw new NotFoundException('Không tìm thấy khóa học Mộc Maria.');
+    const training = await this.enrollments.findOneBy({
+      courseId: course.id,
+      providerApplicationId: applicationId,
+    });
+    if (
+      !training ||
+      training.status !== 'COMPLETED' ||
+      !training.assessmentPassed ||
+      training.attendancePercent < 80
+    ) {
+      throw new BadRequestException('KTV chưa hoàn thành và đạt đánh giá khóa đào tạo.');
+    }
     const issuedAt = new Date();
     const expiresAt = dto.expiresAt ? new Date(dto.expiresAt) : null;
     if (expiresAt && expiresAt <= issuedAt)
@@ -64,7 +83,7 @@ export class ProvidersService {
       this.certificates.create({
         providerApplicationId: applicationId,
         courseCode: dto.courseCode,
-        title: dto.title.trim(),
+        title: course.title,
         certificateNumber: dto.certificateNumber,
         issuedAt,
         expiresAt,

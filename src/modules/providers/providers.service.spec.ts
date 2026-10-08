@@ -4,6 +4,8 @@ import { ProvidersService } from './providers.service';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
+import { TrainingCourse } from './entities/training-course.entity';
+import { TrainingEnrollment } from './entities/training-enrollment.entity';
 
 describe('Provider eligibility', () => {
   const applications = {
@@ -14,10 +16,14 @@ describe('Provider eligibility', () => {
   };
   const certificates = { find: jest.fn() };
   const profiles = { findOneBy: jest.fn() };
+  const courses = { findOneBy: jest.fn() };
+  const enrollments = { findOneBy: jest.fn() };
   const service = new ProvidersService(
     applications as unknown as Repository<ProviderApplication>,
     certificates as unknown as Repository<ProviderCertificate>,
     profiles as unknown as Repository<StaffProfile>,
+    courses as unknown as Repository<TrainingCourse>,
+    enrollments as unknown as Repository<TrainingEnrollment>,
   );
 
   beforeEach(() => jest.clearAllMocks());
@@ -39,6 +45,27 @@ describe('Provider eligibility', () => {
     certificates.find.mockResolvedValue([]);
     await expect(
       service.review('application-1', 'manager', { status: 'APPROVED' }),
+    ).rejects.toThrow(BadRequestException);
+  });
+
+  it('rejects issuing a certificate before a real completed course', async () => {
+    applications.findOneBy.mockResolvedValue({
+      id: 'app',
+      userId: 'trainee',
+      status: 'ASSESSMENT',
+    });
+    courses.findOneBy.mockResolvedValue({ id: 'course', title: 'Massage training' });
+    enrollments.findOneBy.mockResolvedValue({
+      status: 'IN_PROGRESS',
+      attendancePercent: 100,
+      assessmentPassed: false,
+    });
+    await expect(
+      service.issueCertificate('app', 'admin', {
+        courseCode: 'TRAIN01',
+        title: 'Massage training',
+        certificateNumber: 'CERT-001',
+      }),
     ).rejects.toThrow(BadRequestException);
   });
 
