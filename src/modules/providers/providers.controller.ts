@@ -65,7 +65,7 @@ export class AdminProvidersController {
   }
 
   @Post(':id/certificates')
-  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   issue(
     @CurrentUser() actor: AuthUserContext,
     @Param('id', new ParseUUIDPipe()) id: string,
@@ -75,7 +75,7 @@ export class AdminProvidersController {
   }
 
   @Patch(':id/certificates/:certificateId/revoke')
-  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   revoke(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('certificateId', new ParseUUIDPipe()) certificateId: string,
@@ -83,7 +83,7 @@ export class AdminProvidersController {
     return this.service.revokeCertificate(id, certificateId);
   }
   @Patch(':id/review')
-  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   review(
     @CurrentUser() actor: AuthUserContext,
     @Param('id', new ParseUUIDPipe()) id: string,

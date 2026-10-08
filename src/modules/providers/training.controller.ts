@@ -38,13 +38,13 @@ export class TrainingController {
   }
 
   @Post('courses')
-  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   createCourse(@Body() dto: CreateTrainingCourseDto): Promise<TrainingCourse> {
     return this.training.createCourse(dto);
   }
 
   @Post('enrollments')
-  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   enroll(@Body() dto: EnrollProviderDto): Promise<TrainingEnrollment> {
     return this.training.enroll(dto);
   }
@@ -56,7 +56,7 @@ export class TrainingController {
   }
 
   @Patch('enrollments/:id/assessment')
-  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   assess(
     @CurrentUser() actor: AuthUserContext,
     @Param('id', new ParseUUIDPipe()) id: string,
