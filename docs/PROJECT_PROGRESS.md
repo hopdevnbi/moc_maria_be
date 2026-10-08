@@ -51,3 +51,4 @@ Local runtime and migration validation therefore use the Supabase Session Pooler
 Certificate chain verification is disabled only in the local .env for the current workstation;
 production TLS/CA settings must be reviewed again in Phase 08.
 - P03-T01 branch migration applied to configured Supabase PostgreSQL (2026-10-08). P03-T02 weekly business-hours migration applied, public GET /branches/:id/hours and permission-guarded PUT /admin/branches/:id/hours added. Quality PASS; endpoint integration tests pending.
+- P03-T03 exceptional branch hours: public GET /branches/:id/exceptions and protected PUT /admin/branches/:id/exceptions. PostgreSQL schema migration applied; backend quality PASS. Branch integration e2e remains pending.

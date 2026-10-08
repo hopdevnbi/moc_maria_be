@@ -7,8 +7,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { BranchBusinessHour } from '../catalog/entities/branch-business-hour.entity';
+import { BranchExceptionHour } from '../catalog/entities/branch-exception-hour.entity';
 import { Branch } from '../catalog/entities/branch.entity';
 import { ReplaceBusinessHoursDto } from './dto/replace-business-hours.dto';
+import { SaveExceptionHourDto } from './dto/save-exception-hour.dto';
 import { SaveBranchDto } from './dto/save-branch.dto';
 import { UpdateBranchDto } from './dto/update-branch.dto';
 
@@ -17,8 +19,42 @@ export class BranchesService {
   constructor(
     @InjectRepository(Branch) private readonly branches: Repository<Branch>,
     @InjectRepository(BranchBusinessHour) private readonly hours: Repository<BranchBusinessHour>,
+    @InjectRepository(BranchExceptionHour)
+    private readonly exceptions: Repository<BranchExceptionHour>,
     private readonly dataSource: DataSource,
   ) {}
+
+  async listExceptions(id: string): Promise<BranchExceptionHour[]> {
+    const branch = await this.branches.findOne({ where: { id, isActive: true } });
+    if (!branch) throw new NotFoundException('Không tìm thấy chi nhánh.');
+    return this.exceptions.find({ where: { branchId: id }, order: { date: 'ASC' } });
+  }
+
+  async saveException(id: string, dto: SaveExceptionHourDto): Promise<BranchExceptionHour> {
+    if (
+      !/^\d{4}-\d{2}-\d{2}$/.test(dto.date) ||
+      (dto.isClosed && (dto.opensAtMinute != null || dto.closesAtMinute != null)) ||
+      (!dto.isClosed &&
+        (dto.opensAtMinute == null ||
+          dto.closesAtMinute == null ||
+          dto.opensAtMinute >= dto.closesAtMinute))
+    ) {
+      throw new BadRequestException('Ngày hoặc thời gian ngoại lệ không hợp lệ.');
+    }
+    const branch = await this.branches.findOne({ where: { id } });
+    if (!branch) throw new NotFoundException('Không tìm thấy chi nhánh.');
+    const existing = await this.exceptions.findOne({ where: { branchId: id, date: dto.date } });
+    const row = this.exceptions.create({
+      ...existing,
+      branchId: id,
+      date: dto.date,
+      isClosed: dto.isClosed,
+      opensAtMinute: dto.isClosed ? null : dto.opensAtMinute,
+      closesAtMinute: dto.isClosed ? null : dto.closesAtMinute,
+      note: dto.note?.trim() || null,
+    });
+    return this.exceptions.save(row);
+  }
 
   async listHours(id: string): Promise<BranchBusinessHour[]> {
     const branch = await this.branches.findOne({ where: { id, isActive: true } });

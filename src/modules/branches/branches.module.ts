@@ -4,12 +4,13 @@ import { AccessControlModule } from '../access-control/access-control.module';
 import { AuthModule } from '../auth/auth.module';
 import { Branch } from '../catalog/entities/branch.entity';
 import { BranchBusinessHour } from '../catalog/entities/branch-business-hour.entity';
+import { BranchExceptionHour } from '../catalog/entities/branch-exception-hour.entity';
 import { AdminBranchesController, PublicBranchesController } from './branches.controller';
 import { BranchesService } from './branches.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Branch, BranchBusinessHour]),
+    TypeOrmModule.forFeature([Branch, BranchBusinessHour, BranchExceptionHour]),
     AuthModule,
     AccessControlModule,
   ],
