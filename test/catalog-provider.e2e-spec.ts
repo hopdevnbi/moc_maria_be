@@ -22,6 +22,7 @@ describe('Catalog and provider lifecycle in isolated database', () => {
   let app: INestApplication;
   let database: DataSource;
   let admin: string;
+  let adminUserId: string;
   let applicant: string;
   let otherCustomer: string;
   let applicantUserId: string;
@@ -61,6 +62,7 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       passwordHash: await argon2.hash(password),
     });
     await database.getRepository(UserRole).save({ userId: user.id, roleId: role.id });
+    adminUserId = user.id;
     const login = await api()
       .post('/api/v1/auth/login')
       .send({ identifier: user.email, password })
@@ -293,22 +295,128 @@ describe('Catalog and provider lifecycle in isolated database', () => {
     await api(admin)
       .patch(`/api/v1/admin/provider-training/enrollments/${enrollmentId}/assessment`)
       .send({ attendancePercent: 60, assessmentPassed: true })
+      .expect(400);
+    const base = '/api/v1/admin/provider-training';
+    const reason = 'Disposable QA detailed training evidence';
+    const moduleId: string = (
+      await api(admin)
+        .post(base + `/courses/${courseId}/modules`)
+        .send({
+          code: 'REQUIRED',
+          title: 'QA required practice',
+          sortOrder: 0,
+          isRequired: true,
+          reason,
+        })
+        .expect(201)
+    ).body.id;
+    await api(admin)
+      .patch(base + `/courses/${courseId}/modules/${moduleId}/requirements`)
+      .send({
+        requiredMinutes: 60,
+        isRequired: true,
+        isActive: true,
+        requirementsConfirmed: true,
+        reason,
+      })
       .expect(200);
+    const criterionId: string = (
+      await api(admin)
+        .post(base + `/courses/${courseId}/criteria`)
+        .send({
+          code: 'SERVICE_PRACTICE',
+          title: 'QA service practical criterion',
+          serviceId,
+          minimumScore: 80,
+          isRequired: true,
+          isActive: true,
+          criteriaConfirmed: true,
+          reason,
+        })
+        .expect(201)
+    ).body.id;
+    const sessionId: string = (
+      await api(admin)
+        .post(base + `/courses/${courseId}/sessions`)
+        .send({
+          moduleId,
+          instructorUserId: adminUserId,
+          startsAt: new Date(Date.now() - 10800000).toISOString(),
+          endsAt: new Date(Date.now() - 7200000).toISOString(),
+          reason,
+        })
+        .expect(201)
+    ).body.id;
+    await api(admin)
+      .post(base + `/enrollments/${enrollmentId}/sessions`)
+      .send({ sessionId, isActive: true, reason })
+      .expect(201);
+    await api(admin)
+      .patch(base + `/sessions/${sessionId}/state`)
+      .send({
+        status: 'COMPLETED',
+        completionReference: 'QA_CLASS_COMPLETE',
+        recordConfirmed: true,
+        reason,
+      })
+      .expect(200);
+    const attendancePath = base + `/enrollments/${enrollmentId}/sessions/${sessionId}/attendance`;
+    await api(admin)
+      .post(attendancePath)
+      .send({
+        status: 'PRESENT',
+        attendedMinutes: 36,
+        evidenceReference: 'QA_ATTENDANCE',
+        attendanceConfirmed: true,
+        reason,
+      })
+      .expect(201);
+    const assessmentBody = {
+      scores: [{ criterionId, score: 95 }],
+      evidenceReference: 'QA_PRACTICAL_REVIEW',
+      validUntil: new Date(Date.now() + 2592000000).toISOString(),
+      practicalConfirmed: true,
+      reason,
+    };
+    const failed = await api(admin)
+      .post(base + `/enrollments/${enrollmentId}/assessments`)
+      .send(assessmentBody)
+      .expect(201);
+    expect(failed.body.attendancePercent).toBe(60);
+    expect(failed.body.assessmentPassed).toBe(false);
+    const certificateBody = {
+      courseCode,
+      title: 'ignored client title',
+      certificateNumber,
+      expiresAt: new Date(Date.now() + 604800000).toISOString(),
+      issuedConfirmed: true,
+      reason,
+    };
     await api(admin)
       .post(`/api/v1/admin/provider-applications/${applicationId}/certificates`)
-      .send({ courseCode, title: 'ignored title', certificateNumber })
+      .send(certificateBody)
       .expect(400);
     await api(applicant)
-      .patch(`/api/v1/admin/provider-training/enrollments/${enrollmentId}/assessment`)
-      .send({ attendancePercent: 100, assessmentPassed: true })
+      .post(base + `/enrollments/${enrollmentId}/assessments`)
+      .send(assessmentBody)
       .expect(403);
     await api(admin)
-      .patch(`/api/v1/admin/provider-training/enrollments/${enrollmentId}/assessment`)
-      .send({ attendancePercent: 100, assessmentPassed: true })
-      .expect(200);
+      .post(attendancePath)
+      .send({
+        status: 'PRESENT',
+        attendedMinutes: 60,
+        evidenceReference: 'QA_ATTENDANCE',
+        attendanceConfirmed: true,
+        reason,
+      })
+      .expect(201);
+    await api(admin)
+      .post(base + `/enrollments/${enrollmentId}/assessments`)
+      .send(assessmentBody)
+      .expect(201);
     const cert = await api(admin)
       .post(`/api/v1/admin/provider-applications/${applicationId}/certificates`)
-      .send({ courseCode, title: 'ignored client title', certificateNumber })
+      .send(certificateBody)
       .expect(201);
     certificateId = cert.body.id;
     expect(cert.body.title).toBe('QA internal training only');
@@ -768,7 +876,7 @@ describe('Catalog and provider lifecycle in isolated database', () => {
     expect(audit.map((item) => item.event)).toEqual(
       expect.arrayContaining([
         'provider.application.reviewed',
-        'provider.training.assessed',
+        'provider.training.assessment_recorded',
         'provider.certificate.issued',
         'provider.certificate.revoked',
       ]),

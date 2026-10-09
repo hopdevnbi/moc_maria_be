@@ -12,6 +12,8 @@ import { BranchExceptionHour } from '../catalog/entities/branch-exception-hour.e
 import { Service } from '../catalog/entities/service.entity';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
+import { currentCertificateEvidence } from './training-evidence';
+import { TrainingCourse } from './entities/training-course.entity';
 import { ProviderSkill } from './entities/provider-skill.entity';
 import { ProviderBranchAssignment } from './entities/provider-branch-assignment.entity';
 import { ProviderWeeklyShift } from './entities/provider-weekly-shift.entity';
@@ -77,11 +79,14 @@ export class ProviderScheduleService {
         providerApplicationId: id,
       });
       if (!cert) throw new NotFoundException('Chứng nhận không thuộc KTV này.');
-      if (
-        dto.isActive !== false &&
-        (cert.revokedAt || (cert.expiresAt && cert.expiresAt.getTime() <= Date.now()))
-      )
-        throw new BadRequestException('Chứng nhận nội bộ đã hết hiệu lực.');
+      if (dto.isActive !== false) {
+        await manager.findOne(TrainingCourse, {
+          where: { code: cert.courseCode },
+          lock: { mode: 'pessimistic_write' },
+        });
+        if (!(await currentCertificateEvidence(manager, [cert])).has(cert.id))
+          throw new BadRequestException('Chứng nhận cần sát hạch và điểm danh còn hiệu lực.');
+      }
       await manager.upsert(
         ProviderSkill,
         {
@@ -269,6 +274,10 @@ export class ProviderScheduleService {
           })
         : [],
     ]);
+    const validCertificates = await currentCertificateEvidence(
+      this.dataSource.manager,
+      certificates,
+    );
     return {
       timezone: 'Asia/Ho_Chi_Minh',
       branchSummaries,
@@ -277,10 +286,7 @@ export class ProviderScheduleService {
         const certificate = certificates.find((c) => c.id === skill.certificateId);
         return {
           ...skill,
-          certificateValid:
-            !!certificate &&
-            !certificate.revokedAt &&
-            (!certificate.expiresAt || certificate.expiresAt.getTime() > Date.now()),
+          certificateValid: !!certificate && validCertificates.has(certificate.id),
         };
       }),
       assignments,

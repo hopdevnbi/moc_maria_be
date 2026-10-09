@@ -8,6 +8,8 @@ import { ProviderCertificate } from './entities/provider-certificate.entity';
 import { TrainingCourse } from './entities/training-course.entity';
 import { TrainingEnrollment } from './entities/training-enrollment.entity';
 import { TrainingService } from './training.service';
+import { DetailedTrainingService } from './detailed-training.service';
+import { DetailedTrainingController } from './detailed-training.controller';
 import { ProviderTrustService } from './provider-trust.service';
 import { ProviderScheduleService } from './provider-schedule.service';
 import { ProviderEligibilityService } from './provider-eligibility.service';
@@ -47,6 +49,7 @@ import {
   providers: [
     ProvidersService,
     TrainingService,
+    DetailedTrainingService,
     ProviderTrustService,
     ProviderScheduleService,
     ProviderEligibilityService,
@@ -57,6 +60,7 @@ import {
     ProviderApplicationsController,
     AdminProvidersController,
     TrainingController,
+    DetailedTrainingController,
     AdminProviderScheduleController,
     OwnProviderScheduleController,
     AdminProviderEligibilityController,

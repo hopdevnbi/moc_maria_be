@@ -1,4 +1,4 @@
-import { IsDateString, IsOptional, IsString, Length, Matches } from 'class-validator';
+import { Equals, IsDateString, IsString, Length, Matches } from 'class-validator';
 
 export class IssueCertificateDto {
   @IsString()
@@ -15,7 +15,11 @@ export class IssueCertificateDto {
   @Matches(/^[A-Z0-9_-]+$/)
   certificateNumber!: string;
 
-  @IsOptional()
-  @IsDateString()
+  @IsDateString({ strict: true })
   expiresAt?: string;
+  @Equals(true)
+  issuedConfirmed?: boolean;
+  @IsString()
+  @Length(3, 500)
+  reason?: string;
 }

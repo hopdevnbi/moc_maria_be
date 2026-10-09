@@ -21,4 +21,6 @@ export class ProviderCertificate {
   revokedAt!: Date | null;
   @Column({ type: 'uuid' })
   issuedBy!: string;
+  @Column({ type: 'uuid', nullable: true })
+  assessmentId!: string | null;
 }

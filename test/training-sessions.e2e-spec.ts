@@ -12,6 +12,7 @@ import { User } from '../src/modules/identity/entities/user.entity';
 import { UserRole } from '../src/modules/identity/entities/user-role.entity';
 import { ProviderApplication } from '../src/modules/providers/entities/provider-application.entity';
 import { TrainingEnrollment } from '../src/modules/providers/entities/training-enrollment.entity';
+import { TrainingAssessment } from '../src/modules/providers/entities/training-assessment.entity';
 import { TrainingSessionRoster } from '../src/modules/providers/entities/training-session-roster.entity';
 import { AuditLog } from '../src/modules/identity/entities/audit-log.entity';
 import { requireIsolatedDatabase } from './isolated-database';
@@ -439,5 +440,257 @@ describe('Independent training sessions/attendance in disposable database', () =
         .send({ moduleId: foreignModuleId, instructorUserId: adminId, startsAt, endsAt, reason }),
     ]);
     expect(results.map((r) => r.status).sort()).toEqual([201, 409]);
+  });
+  let criterionId: string, detailedCertificateId: string, firstNumber: string;
+  const assessmentPath = (): string => base + `/enrollments/${enrollmentId}/assessments`;
+  const assessBody = (score = 95): Record<string, unknown> => ({
+    scores: [{ criterionId, score }],
+    evidenceReference: 'QA_DETAILED_PRACTICAL',
+    validUntil: new Date(Date.now() + 2592000000).toISOString(),
+    practicalConfirmed: true,
+    reason,
+  });
+  const issueBody = (number: string): Record<string, unknown> => ({
+    courseCode: 'QA_SESSION_' + suffix.toUpperCase(),
+    title: 'ignored client title',
+    certificateNumber: number,
+    expiresAt: new Date(Date.now() + 604800000).toISOString(),
+    issuedConfirmed: true,
+    reason,
+  });
+  const renewPath = (): string =>
+    `/api/v1/admin/provider-applications/${applicationId}/certificates/${detailedCertificateId}/renew`;
+  it('requires explicit module volume and real practical criteria before detailed assessment', async () => {
+    await api(admin)
+      .patch(`/api/v1/admin/provider-applications/${applicationId}/review`)
+      .send({ status: 'TRAINING', note: reason })
+      .expect(200);
+    await api(admin)
+      .post(assessmentPath())
+      .send({ ...assessBody(), scores: [{ criterionId: randomUUID(), score: 100 }] })
+      .expect(400);
+    await api(admin)
+      .patch(base + `/courses/${courseId}/modules/${moduleId}/requirements`)
+      .send({
+        requiredMinutes: 60,
+        isRequired: true,
+        isActive: true,
+        requirementsConfirmed: false,
+        reason,
+      })
+      .expect(400);
+    await api(admin)
+      .patch(base + `/courses/${courseId}/modules/${moduleId}/requirements`)
+      .send({
+        requiredMinutes: 60,
+        isRequired: true,
+        isActive: true,
+        requirementsConfirmed: true,
+        reason,
+      })
+      .expect(200);
+    criterionId = (
+      await api(admin)
+        .post(base + `/courses/${courseId}/criteria`)
+        .send({
+          code: 'PRACTICAL',
+          title: 'QA observed practice',
+          minimumScore: 80,
+          isRequired: true,
+          isActive: true,
+          criteriaConfirmed: true,
+          reason,
+        })
+        .expect(201)
+    ).body.id;
+    await api(admin)
+      .patch(base + `/courses/${foreignCourseId}/criteria/${criterionId}`)
+      .send({
+        code: 'PRACTICAL',
+        title: 'QA wrong course',
+        minimumScore: 80,
+        isRequired: true,
+        isActive: true,
+        criteriaConfirmed: true,
+        reason,
+      })
+      .expect(404);
+    await api().get(assessmentPath()).expect(401);
+    await api(trainee).get(assessmentPath()).expect(403);
+    await api(trainee).post(assessmentPath()).send(assessBody()).expect(403);
+    await api(admin)
+      .post(base + `/enrollments/${selfEnrollmentId}/assessments`)
+      .send(assessBody())
+      .expect(400);
+  });
+  it('rejects fabricated percentages/criteria/confirmation and preserves failed and passed attempts', async () => {
+    await api(admin)
+      .post(assessmentPath())
+      .send({ ...assessBody(), attendancePercent: 100 })
+      .expect(400);
+    await api(admin)
+      .post(assessmentPath())
+      .send({
+        ...assessBody(),
+        scores: [
+          { criterionId, score: 100 },
+          { criterionId, score: 100 },
+        ],
+      })
+      .expect(400);
+    await api(admin)
+      .post(assessmentPath())
+      .send({ ...assessBody(), scores: [{ criterionId: randomUUID(), score: 100 }] })
+      .expect(400);
+    await api(admin)
+      .post(assessmentPath())
+      .send({ ...assessBody(), practicalConfirmed: false })
+      .expect(400);
+    const failed = await api(admin).post(assessmentPath()).send(assessBody(50)).expect(201);
+    expect(failed.body.attendancePercent).toBe(100);
+    expect(failed.body.assessmentPassed).toBe(false);
+    const passed = await api(admin).post(assessmentPath()).send(assessBody()).expect(201);
+    expect(passed.body.assessmentPassed).toBe(true);
+    const view = await api(admin).get(assessmentPath()).expect(200);
+    expect(view.headers['cache-control']).toBe('private, no-store');
+    expect(view.body.history).toHaveLength(2);
+    expect(view.body.history[0].snapshot.requirementsRevision).toBeGreaterThan(1);
+    expect(view.body.evidenceCurrent).toBe(true);
+    firstNumber = 'QA_DETAIL_' + suffix.toUpperCase();
+    await api(admin)
+      .post(`/api/v1/admin/provider-applications/${applicationId}/certificates`)
+      .send({
+        ...issueBody(firstNumber),
+        expiresAt: new Date(Date.now() + 60 * 86400000).toISOString(),
+      })
+      .expect(400);
+    const certificate = await api(admin)
+      .post(`/api/v1/admin/provider-applications/${applicationId}/certificates`)
+      .send(issueBody(firstNumber))
+      .expect(201);
+    detailedCertificateId = certificate.body.id;
+    const own = await api(trainee).get('/api/v1/provider-applications/me/training').expect(200);
+    expect(own.body.certificates[0].isValid).toBe(true);
+    expect(JSON.stringify(own.body)).not.toContain('QA_DETAILED_PRACTICAL');
+  });
+  it('invalidates a certificate after changing and restoring criteria; renewal requires fresh assessment', async () => {
+    const criterion = (minimumScore: number): Record<string, unknown> => ({
+      code: 'PRACTICAL',
+      title: 'QA observed practice',
+      minimumScore,
+      isRequired: true,
+      isActive: true,
+      criteriaConfirmed: true,
+      reason,
+    });
+    await api(admin)
+      .post(renewPath())
+      .send(issueBody(firstNumber + '_EARLY'))
+      .expect(400);
+    await api(admin)
+      .patch(base + `/courses/${courseId}/criteria/${criterionId}`)
+      .send(criterion(80))
+      .expect(200);
+    const unchanged = await api(trainee)
+      .get('/api/v1/provider-applications/me/training')
+      .expect(200);
+    expect(unchanged.body.certificates[0].isValid).toBe(true);
+    await api(admin)
+      .patch(base + `/courses/${courseId}/criteria/${criterionId}`)
+      .send(criterion(90))
+      .expect(200);
+    await api(admin)
+      .patch(base + `/courses/${courseId}/criteria/${criterionId}`)
+      .send(criterion(80))
+      .expect(200);
+    const invalid = await api(trainee).get('/api/v1/provider-applications/me/training').expect(200);
+    expect(invalid.body.certificates[0].isValid).toBe(false);
+    await api(admin)
+      .post(renewPath())
+      .send(issueBody(firstNumber + '_STALE'))
+      .expect(400);
+    await api(admin).post(assessmentPath()).send(assessBody()).expect(201);
+    await api(admin).post(renewPath()).send(issueBody(firstNumber)).expect(409);
+    const renewed = await api(admin)
+      .post(renewPath())
+      .send(issueBody(firstNumber + '_R1'))
+      .expect(201);
+    expect(renewed.body.id).toBe(detailedCertificateId);
+    await api().get(renewPath().replace('/renew', '/history')).expect(401);
+    await api(trainee).get(renewPath().replace('/renew', '/history')).expect(403);
+    const history = await api(admin).get(renewPath().replace('/renew', '/history')).expect(200);
+    expect(history.body).toHaveLength(2);
+    expect(history.body[0].certificateNumber).toBe(firstNumber);
+    expect(history.body[1].kind).toBe('RENEWED');
+  });
+  it('derives module attendance and invalidates prior evidence after corrections, without a manual bypass', async () => {
+    const attendancePath = base + `/enrollments/${enrollmentId}/sessions/${sessionId}/attendance`;
+    const attendance = (minutes: number): Record<string, unknown> => ({
+      status: 'PRESENT',
+      attendedMinutes: minutes,
+      evidenceReference: 'QA_ATTENDANCE_REASSESS',
+      attendanceConfirmed: true,
+      reason,
+    });
+    await api(admin).post(attendancePath).send(attendance(45)).expect(201);
+    const own = await api(trainee).get('/api/v1/provider-applications/me/training').expect(200);
+    expect(own.body.certificates[0].isValid).toBe(false);
+    await api(admin)
+      .patch(base + `/enrollments/${enrollmentId}/assessment`)
+      .send({ attendancePercent: 100, assessmentPassed: true })
+      .expect(400);
+    const failed = await api(admin).post(assessmentPath()).send(assessBody()).expect(201);
+    expect(failed.body.attendancePercent).toBe(75);
+    expect(failed.body.assessmentPassed).toBe(false);
+    await api(admin)
+      .post(renewPath())
+      .send(issueBody(firstNumber + '_FAIL'))
+      .expect(400);
+    await api(admin).post(attendancePath).send(attendance(60)).expect(201);
+    await api(admin).post(assessmentPath()).send(assessBody()).expect(201);
+    const results = await Promise.all([
+      api(admin)
+        .post(renewPath())
+        .send(issueBody(firstNumber + '_R2A')),
+      api(admin)
+        .post(renewPath())
+        .send(issueBody(firstNumber + '_R2B')),
+    ]);
+    expect(results.map((r) => r.status).sort()).toEqual([201, 400]);
+    const history = await api(admin).get(renewPath().replace('/renew', '/history')).expect(200);
+    expect(history.body).toHaveLength(3);
+  });
+  it('expires assessment evidence and requires post-revocation reassessment without automatic approval', async () => {
+    const current = await db
+      .getRepository(TrainingEnrollment)
+      .findOneByOrFail({ id: enrollmentId });
+    await db
+      .getRepository(TrainingAssessment)
+      .update(current.latestAssessmentId!, { validUntil: new Date(Date.now() - 1000) });
+    const expired = await api(trainee).get('/api/v1/provider-applications/me/training').expect(200);
+    expect(expired.body.certificates[0].isValid).toBe(false);
+    await api(admin)
+      .post(renewPath())
+      .send(issueBody(firstNumber + '_EXP'))
+      .expect(400);
+    await api(admin).patch(renewPath().replace('/renew', '/revoke')).expect(200);
+    await api(admin).post(assessmentPath()).send(assessBody()).expect(201);
+    await api(admin)
+      .post(renewPath())
+      .send(issueBody(firstNumber + '_REVOKED'))
+      .expect(400);
+    await api(admin)
+      .patch(`/api/v1/admin/provider-applications/${applicationId}/review`)
+      .send({ status: 'ASSESSMENT', note: reason })
+      .expect(200);
+    const restored = await api(admin)
+      .post(renewPath())
+      .send(issueBody(firstNumber + '_R3'))
+      .expect(201);
+    expect(restored.body.id).toBe(detailedCertificateId);
+    const application = await db
+      .getRepository(ProviderApplication)
+      .findOneByOrFail({ id: applicationId });
+    expect(application.status).toBe('ASSESSMENT');
   });
 });

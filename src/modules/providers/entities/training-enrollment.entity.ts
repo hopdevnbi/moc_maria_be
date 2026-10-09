@@ -21,4 +21,6 @@ export class TrainingEnrollment {
   assessedBy!: string | null;
   @Column({ type: 'timestamptz', nullable: true })
   assessedAt!: Date | null;
+  @Column({ type: 'uuid', nullable: true })
+  latestAssessmentId!: string | null;
 }

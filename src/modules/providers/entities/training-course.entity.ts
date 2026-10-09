@@ -12,4 +12,6 @@ export class TrainingCourse {
   description!: string | null;
   @Column({ type: 'boolean', default: true })
   isActive!: boolean;
+  @Column({ type: 'integer', default: 1 })
+  requirementsRevision!: number;
 }

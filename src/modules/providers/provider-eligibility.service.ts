@@ -24,6 +24,8 @@ import { ServiceProviderPolicy } from './entities/service-provider-policy.entity
 import { ProviderServiceGrant } from './entities/provider-service-grant.entity';
 import { TrainingCourse } from './entities/training-course.entity';
 import { TrainingEnrollment } from './entities/training-enrollment.entity';
+import { currentCertificateEvidence } from './training-evidence';
+import { TrainingCriterion } from './entities/training-criterion.entity';
 import { ProviderTrustService } from './provider-trust.service';
 import {
   SaveProviderOperatingReviewDto,
@@ -374,6 +376,12 @@ export class ProviderEligibilityService {
         ? manager.find(StaffProfile, { where: { userId: In(applications.map((a) => a.userId)) } })
         : [],
     ]);
+    const validCertificates = await currentCertificateEvidence(manager, certificates, at);
+    const practicalCriteria = courses.length
+      ? await manager.find(TrainingCriterion, {
+          where: { courseId: In(courses.map((c) => c.id)), isActive: true, isRequired: true },
+        })
+      : [];
     const categories = services.length
       ? await manager.find(ServiceCategory, {
           where: { id: In(services.map((s) => s.categoryId)) },
@@ -430,6 +438,7 @@ export class ProviderEligibilityService {
           const certificate = certificates.find(
             (c) =>
               c.id === skill?.certificateId &&
+              validCertificates.has(c.id) &&
               c.providerApplicationId === app.id &&
               c.courseCode === course.code &&
               !c.revokedAt &&
@@ -437,6 +446,9 @@ export class ProviderEligibilityService {
           );
           if (
             !certificate ||
+            !practicalCriteria.some(
+              (c) => c.courseId === course.id && c.serviceId === service.id,
+            ) ||
             !enrollments.some(
               (e) =>
                 e.providerApplicationId === app.id &&

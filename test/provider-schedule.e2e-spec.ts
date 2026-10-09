@@ -112,19 +112,124 @@ describe('Provider skills and schedules in disposable database', () => {
         .send({ branchId: id, reason })
         .expect(201);
     }
-    // Fixture certificate only in explicitly isolated QA. Production lifecycle is tested in catalog-provider suite.
-    certificateId = (
-      await database.getRepository(ProviderCertificate).save({
-        providerApplicationId: applicationId,
-        courseCode: 'QA_SCHEDULE_' + suffix,
-        certificateNumber: 'QA_SCHEDULE_CERT_' + suffix,
-        title: 'QA internal training only',
-        issuedAt: new Date(),
-        expiresAt: new Date(Date.now() + 86400000),
-        revokedAt: null,
-        issuedBy: adminId,
+    // Real API lifecycle in explicitly disposable QA; no legacy/manual certificate bypass.
+    await api(admin)
+      .patch(path() + '/review')
+      .send({ status: 'REVIEWING', note: reason })
+      .expect(200);
+    await api(admin)
+      .patch(path() + '/review')
+      .send({ status: 'TRAINING', note: reason })
+      .expect(200);
+    const training = '/api/v1/admin/provider-training';
+    const code = 'QA_SCHEDULE_' + suffix.toUpperCase();
+    const courseId: string = (
+      await api(admin)
+        .post(training + '/courses')
+        .send({ code, title: 'QA schedule training only' })
+        .expect(201)
+    ).body.id;
+    const moduleId: string = (
+      await api(admin)
+        .post(training + `/courses/${courseId}/modules`)
+        .send({
+          code: 'PRACTICE',
+          title: 'QA schedule practice',
+          sortOrder: 0,
+          isRequired: true,
+          reason,
+        })
+        .expect(201)
+    ).body.id;
+    await api(admin)
+      .patch(training + `/courses/${courseId}/modules/${moduleId}/requirements`)
+      .send({
+        requiredMinutes: 60,
+        isRequired: true,
+        isActive: true,
+        requirementsConfirmed: true,
+        reason,
       })
-    ).id;
+      .expect(200);
+    const criterionId: string = (
+      await api(admin)
+        .post(training + `/courses/${courseId}/criteria`)
+        .send({
+          code: 'SERVICE',
+          title: 'QA schedule service practice',
+          serviceId,
+          minimumScore: 80,
+          isRequired: true,
+          isActive: true,
+          criteriaConfirmed: true,
+          reason,
+        })
+        .expect(201)
+    ).body.id;
+    const enrollmentId: string = (
+      await api(admin)
+        .post(training + '/enrollments')
+        .send({ providerApplicationId: applicationId, courseId })
+        .expect(201)
+    ).body.id;
+    const sessionId: string = (
+      await api(admin)
+        .post(training + `/courses/${courseId}/sessions`)
+        .send({
+          moduleId,
+          instructorUserId: adminId,
+          startsAt: new Date(Date.now() - 8 * 86400000).toISOString(),
+          endsAt: new Date(Date.now() - 8 * 86400000 + 3600000).toISOString(),
+          reason,
+        })
+        .expect(201)
+    ).body.id;
+    await api(admin)
+      .post(training + `/enrollments/${enrollmentId}/sessions`)
+      .send({ sessionId, isActive: true, reason })
+      .expect(201);
+    await api(admin)
+      .patch(training + `/sessions/${sessionId}/state`)
+      .send({
+        status: 'COMPLETED',
+        completionReference: 'QA_SCHEDULE_CLASS',
+        recordConfirmed: true,
+        reason,
+      })
+      .expect(200);
+    await api(admin)
+      .post(training + `/enrollments/${enrollmentId}/sessions/${sessionId}/attendance`)
+      .send({
+        status: 'PRESENT',
+        attendedMinutes: 60,
+        evidenceReference: 'QA_SCHEDULE_ATTENDANCE',
+        attendanceConfirmed: true,
+        reason,
+      })
+      .expect(201);
+    await api(admin)
+      .post(training + `/enrollments/${enrollmentId}/assessments`)
+      .send({
+        scores: [{ criterionId, score: 95 }],
+        evidenceReference: 'QA_SCHEDULE_PRACTICAL',
+        validUntil: new Date(Date.now() + 30 * 86400000).toISOString(),
+        practicalConfirmed: true,
+        reason,
+      })
+      .expect(201);
+    certificateId = (
+      await api(admin)
+        .post(path() + '/certificates')
+        .send({
+          courseCode: code,
+          title: 'ignored title',
+          certificateNumber: 'QA_SCHEDULE_CERT_' + suffix.toUpperCase(),
+          expiresAt: new Date(Date.now() + 86400000).toISOString(),
+          issuedConfirmed: true,
+          reason,
+        })
+        .expect(201)
+    ).body.id;
   });
   afterAll(async () => {
     await app?.close();

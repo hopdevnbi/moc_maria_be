@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { TrainingService } from './training.service';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { TrainingCourse } from './entities/training-course.entity';
@@ -13,15 +13,7 @@ describe('Training eligibility', () => {
     create: jest.fn((v: unknown) => v),
     save: jest.fn((v: unknown) => Promise.resolve(v)),
   };
-  const manager = {
-    findOneOrFail: jest.fn(),
-    save: jest.fn((...args: unknown[]) => Promise.resolve(args[args.length - 1])),
-  };
-  const dataSource = {
-    transaction: jest.fn((callback: (m: typeof manager) => unknown) => callback(manager)),
-  };
   const service = new TrainingService(
-    dataSource as unknown as DataSource,
     applications as unknown as Repository<ProviderApplication>,
     courses as unknown as Repository<TrainingCourse>,
     enrollments as unknown as Repository<TrainingEnrollment>,
@@ -59,17 +51,12 @@ describe('Training eligibility', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
-  it('does not pass practical assessment below 80 percent attendance', async () => {
-    enrollments.findOneBy.mockResolvedValue({ providerApplicationId: 'app' });
-    applications.findOneBy.mockResolvedValue({ userId: 'trainee' });
-    manager.findOneOrFail
-      .mockResolvedValueOnce({ id: 'app', status: 'ASSESSMENT' })
-      .mockResolvedValueOnce({ id: 'enrollment', providerApplicationId: 'app' });
-    const result = await service.assess('enrollment', 'assessor', {
-      attendancePercent: 60,
-      assessmentPassed: true,
-    });
-    expect(result.assessmentPassed).toBe(false);
-    expect(result.status).toBe('FAILED');
+  it('rejects the obsolete manual percentage assessment path for administrators too', async () => {
+    await expect(
+      service.assess('enrollment', 'assessor', {
+        attendancePercent: 60,
+        assessmentPassed: true,
+      }),
+    ).rejects.toThrow(BadRequestException);
   });
 });

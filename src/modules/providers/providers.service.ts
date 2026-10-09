@@ -21,6 +21,9 @@ import {
   UpdateOwnApplicationDto,
 } from './dto/provider-application.dto';
 import { IssueCertificateDto } from './dto/certificate.dto';
+import { writeEvidenceCertificate } from './certificate-evidence';
+import { currentCertificateEvidence, currentEnrollmentEvidence } from './training-evidence';
+import { CertificateIssuance } from './entities/certificate-issuance.entity';
 import { ProviderTrustService } from './provider-trust.service';
 import { ProviderEligibilityService } from './provider-eligibility.service';
 import type { EligibleProviderService } from './provider-eligibility.service';
@@ -119,7 +122,10 @@ export class ProvidersService {
 
   async myTraining(userId: string): Promise<{
     enrollments: Array<{
-      enrollment: Omit<TrainingEnrollment, 'assessedBy'>;
+      enrollment: Omit<TrainingEnrollment, 'assessedBy'> & {
+        evidenceCurrent: boolean;
+        currentAttendancePercent: number;
+      };
       course: TrainingCourse | null;
     }>;
     certificates: Array<Omit<ProviderCertificate, 'issuedBy'> & { isValid: boolean }>;
@@ -133,16 +139,22 @@ export class ProvidersService {
     const courses = enrollments.length
       ? await this.courses.find({ where: { id: In(enrollments.map((item) => item.courseId)) } })
       : [];
+    const validCertificates = await currentCertificateEvidence(
+      this.dataSource.manager,
+      certificates,
+    );
+    const enrollmentEvidence = await currentEnrollmentEvidence(
+      this.dataSource.manager,
+      enrollments,
+    );
     return {
       enrollments: enrollments.map(({ assessedBy: _assessedBy, ...enrollment }) => ({
-        enrollment,
+        enrollment: { ...enrollment, ...enrollmentEvidence.get(enrollment.id)! },
         course: courses.find((item) => item.id === enrollment.courseId) ?? null,
       })),
       certificates: certificates.map(({ issuedBy: _issuedBy, ...certificate }) => ({
         ...certificate,
-        isValid:
-          !certificate.revokedAt &&
-          (!certificate.expiresAt || certificate.expiresAt.getTime() > Date.now()),
+        isValid: validCertificates.has(certificate.id),
       })),
     };
   }
@@ -214,33 +226,38 @@ export class ProvidersService {
         latestTraining.attendancePercent < 80
       )
         throw new BadRequestException('KTV chưa đạt đánh giá khóa đào tạo.');
-      if (
-        await manager.findOneBy(ProviderCertificate, {
-          providerApplicationId: applicationId,
-          courseCode: dto.courseCode,
-        })
-      )
-        throw new ConflictException('Khóa học này đã có chứng nhận. Vui lòng xử lý gia hạn riêng.');
-      const certificate = await manager.save(
-        ProviderCertificate,
-        manager.create(ProviderCertificate, {
-          providerApplicationId: applicationId,
-          courseCode: dto.courseCode,
-          title: course.title,
-          certificateNumber: dto.certificateNumber,
-          issuedAt,
-          expiresAt,
-          revokedAt: null,
-          issuedBy: actorId,
-        }),
-      );
-      await manager.save(AuditLog, {
-        event: 'provider.certificate.issued',
-        actorUserId: actorId,
-        targetUserId: applicant.userId,
-        metadata: { applicationId, certificateId: certificate.id, courseCode: course.code },
+      return writeEvidenceCertificate(manager, current, actorId, dto);
+    });
+  }
+
+  async renewCertificate(
+    applicationId: string,
+    certificateId: string,
+    actorId: string,
+    dto: IssueCertificateDto,
+  ): Promise<ProviderCertificate> {
+    return this.dataSource.transaction(async (manager) => {
+      const app = await manager.findOne(ProviderApplication, {
+        where: { id: applicationId },
+        lock: { mode: 'pessimistic_write' },
       });
-      return certificate;
+      if (!app) throw new NotFoundException('Không tìm thấy hồ sơ.');
+      return writeEvidenceCertificate(manager, app, actorId, dto, certificateId);
+    });
+  }
+
+  async certificateHistory(
+    applicationId: string,
+    certificateId: string,
+  ): Promise<CertificateIssuance[]> {
+    const cert = await this.certificates.findOneBy({
+      id: certificateId,
+      providerApplicationId: applicationId,
+    });
+    if (!cert) throw new NotFoundException('Không tìm thấy chứng nhận của hồ sơ.');
+    return this.dataSource.manager.find(CertificateIssuance, {
+      where: { certificateId },
+      order: { issuedAt: 'ASC', id: 'ASC' },
     });
   }
 
@@ -304,7 +321,7 @@ export class ProvidersService {
           where: { providerApplicationId: id },
         });
         const now = Date.now();
-        if (!certs.some((c) => !c.revokedAt && (!c.expiresAt || c.expiresAt.getTime() > now))) {
+        if (!(await currentCertificateEvidence(manager, certs, new Date(now))).size) {
           throw new BadRequestException('KTV chưa có chứng nhận đào tạo nội bộ hợp lệ.');
         }
         await this.trust.assertApprovalReady(id, manager);

@@ -158,6 +158,10 @@ export class TrainingSessionsService {
           isRequired: dto.isRequired,
           isActive: true,
         });
+        if (module.isRequired) {
+          course.requirementsRevision += 1;
+          await manager.save(course);
+        }
         await this.audit(manager, actor, 'provider.training.module_created', dto.reason, {
           courseId,
           moduleId: module.id,

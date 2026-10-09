@@ -156,6 +156,25 @@ export class AdminProvidersController {
     return this.service.issueCertificate(id, actor.id, dto);
   }
 
+  @Post(':id/certificates/:certificateId/renew')
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
+  renew(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('certificateId', new ParseUUIDPipe()) certificateId: string,
+    @Body() dto: IssueCertificateDto,
+  ): Promise<ProviderCertificate> {
+    return this.service.renewCertificate(id, certificateId, actor.id, dto);
+  }
+  @Get(':id/certificates/:certificateId/history')
+  @Header('Cache-Control', 'private, no-store')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  history(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('certificateId', new ParseUUIDPipe()) certificateId: string,
+  ): ReturnType<ProvidersService['certificateHistory']> {
+    return this.service.certificateHistory(id, certificateId);
+  }
   @Patch(':id/certificates/:certificateId/revoke')
   @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
   revoke(
