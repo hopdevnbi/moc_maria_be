@@ -5,7 +5,7 @@ AUDIT CHECKLIST 2026-10-09 — CURRENT
 ------------------------------------
 [x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
 Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
-Evidence current: Stage B BE cd51766 / FE fcb2b66 production; 17 BE unit + 21 isolated integrations; FE quality/4 unit/build; consent/contact browser QA; schema10. No booking gate complete.
+Evidence current: Stage C1 BE4544c60/FE07cdc19 production, schema11;21 BE unit+26 isolated integrations and browser schedule/create/conflict/leave/reload/mobile PASS. Full C2/booking gates remain open.
 Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
 P03-T08: Mapping active và override cấp service có thật; còn chính sách override theo variant/audit giá rõ ràng.
 P03-T09: Identity/bio/avatar URL/visibility có thật; thiếu slug/title/experience/media consent/trust fields.
@@ -62,15 +62,15 @@ C. Staff public profile
     visibility
     rating summary future-ready
 
-[ ] P03-T10 provider_skills / staff_services.
+[x] P03-T10 provider_skills / staff_services.
     Chỉ provider có mapping hợp lệ mới được booking service.
 
 D. Staff schedule
 -----------------
-[ ] P03-T11 recurring shifts
-[ ] P03-T12 one-off shift overrides
-[ ] P03-T13 staff_time_off
-[ ] P03-T14 branch assignment
+[x] P03-T11 recurring shifts
+[x] P03-T12 one-off shift overrides
+[x] P03-T13 staff_time_off
+[x] P03-T14 branch assignment
 [ ] P03-T15 expert/doctor schedule model:
     expert profile
     weekly/one-off availability
@@ -80,8 +80,8 @@ E. Admin foundation UI
 [x] P03-T16 CRUD branch
 [-] P03-T17 CRUD category/service/variant
 [ ] P03-T18 CRUD staff public profile
-[ ] P03-T19 assign service/skill
-[ ] P03-T20 schedule editor basic
+[x] P03-T19 assign service/skill
+[x] P03-T20 schedule editor basic
 
 F. Public read API
 ------------------
@@ -89,7 +89,7 @@ F. Public read API
 [x] P03-T22 list services
 [x] P03-T23 service detail
 [-] P03-T24 staff/expert list & profile
-[ ] P03-T25 schedules read model cần thiết
+[-] P03-T25 schedules read model cần thiết
 
 Data principles
 ---------------

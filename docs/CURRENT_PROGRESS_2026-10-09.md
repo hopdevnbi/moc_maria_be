@@ -8,7 +8,7 @@
 - Phase02: tài khoản, login/refresh/logout, phân quyền và audit nền tảng. Gửi email/SMS thực tế theo Phase08.
 - Chặng A: sửa QA còn treo, đối chiếu checklist, tạo ledger và quy tắc nhận việc.
 - Chặng B: hồ sơ ứng tuyển riêng có thể bổ sung, consent lưu server theo phiên bản, xác minh liên hệ hiện tại bởi người có quyền và có bằng chứng; chặn tự xác minh/tự duyệt. Lý do xét duyệt bắt buộc, có audit. Đổi liên hệ hoặc rút consent vô hiệu hóa điều kiện tương ứng.
-- Production chặng B: BE cd51766; FE fcb2b66; schema10; Vercel dpl_HaZaKDoqbpQ3ZhmGrofGgXfePmJs. Chi tiết và rollback trong 99_PROJECT_STATUS.txt.
+- Production hiện tại C1: BE4544c60; FE07cdc19; schema11; Vercel dpl_BPkUaftignL4U8NpGYtUZPHeLoJm. Chi tiết và rollback trong 99_PROJECT_STATUS.txt.
 - Kiểm chứng B: 17 unit BE + 21 integration PostgreSQL cô lập; FE quality/4 test/build; browser consent/reload/thu hồi/xác minh/mobile; API HTTPS khỏe. Backup public schema và khôi phục vào DB tạm PASS.
 
 ## Tám phase
@@ -17,7 +17,7 @@
 |---|---|---|
 | 01 Nền móng | DONE phạm vi nền tảng | Vận hành lâu dài nằm Phase08 |
 | 02 Tài khoản/phân quyền | DONE phạm vi nền tảng | Email/SMS delivery và UI quản lý đầy đủ thuộc nhóm sau |
-| 03 Catalog/KTV/lịch | IN_PROGRESS | Kỹ năng, ca/nghỉ/phân công, legal/territory/quality, buổi đào tạo và gia hạn |
+| 03 Catalog/KTV/lịch | IN_PROGRESS | Profile/chuyên gia, service policy/legal/territory/quality, buổi đào tạo và gia hạn |
 | 04 Booking | TODO | Availability, quote snapshot, concurrency, request/accept/confirm/change/cancel/complete |
 | 05 Web public/SEO | PARTIAL | Booking UX, dữ liệu hồ sơ đủ, SEO động/trang còn thiếu/performance |
 | 06 Portal/chat | PARTIAL | Lịch khách/KTV, chat tenant riêng, review/khiếu nại |
@@ -26,7 +26,7 @@
 
 ## Chặng đang làm và chặng tiếp theo
 
-C đang triển khai skills + phân công + ca tuần/ca riêng/nghỉ phép trước; sau đó profile/legal/territory/quality. D hoàn thiện đào tạo. E làm booking. F portal/chat/reviews. G vận hành/CMS. H hardening/SEO/media/queue và nghiệm thu production.
+C1 đã deploy skills/phân công/ca tuần/ca riêng/nghỉ phép:21 unit+26 integration, browser/mobile PASS. C2 đang làm profile/service policy/legal/territory/quality. D hoàn thiện đào tạo. E làm booking. F portal/chat/reviews. G vận hành/CMS. H hardening/SEO/media/queue và nghiệm thu production.
 
 Không đánh dấu DONE chỉ vì có code. 99_PROJECT_STATUS.txt ghi release đang chạy; 13_TASK_LEDGER.json ghi từng task. Chặng C mới có code/test thì vẫn ghi chưa deploy. Hệ thống chưa có giá/KTV giả; dữ liệu kinh doanh thật do chủ cung cấp hoặc nhập admin.
 

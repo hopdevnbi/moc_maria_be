@@ -4,7 +4,7 @@
     {
       "agent": "Codex current chat",
       "status": "ACTIVE",
-      "stage": "C — skills / branch assignments / schedules",
+      "stage": "C2 — reviewed profile / service policy / legal / territory / quality",
       "taskIds": [
         "P03-T26",
         "P03-T27",
@@ -20,7 +20,12 @@
         "P03-T20",
         "P03-T25",
         "P03-T31",
-        "P03-T33"
+        "P03-T33",
+        "P03-T15",
+        "P03-T24",
+        "P03-T36",
+        "P03-T38",
+        "P03-T39"
       ],
       "backendBranch": "codex/production-integration",
       "frontendBranch": "codex/platform-integration",
@@ -49,6 +54,14 @@
         "frontendDeployment": "dpl_HaZaKDoqbpQ3ZhmGrofGgXfePmJs",
         "imageDigest": "sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4",
         "migrations": 10
+      },
+      "next": "C2 service training/legal/territory/quality and reviewed profile, then D/E/F/G/H",
+      "releasedStageC1": {
+        "backend": "4544c60663cf6d4f5e3876106a599d48e101eadf",
+        "frontend": "07cdc199b111d7f8d350ba45cf2963ddb2db0183",
+        "frontendDeployment": "dpl_BPkUaftignL4U8NpGYtUZPHeLoJm",
+        "imageDigest": "sha256:017cc71c5607016f3739253b97a7aa1f48e8f1c94e3c1cd6fe244830b4a2ad68",
+        "migrations": 11
       }
     }
   ]

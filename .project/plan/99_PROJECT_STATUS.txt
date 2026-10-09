@@ -3,8 +3,8 @@ MỘC MARIA — CURRENT PROJECT STATUS
 SOURCE OF TRUTH: file này + 13_TASK_LEDGER.json. Lịch sử audit cũ ở file15.
 LAST_UPDATED: 2026-10-09
 CURRENT_PHASE: 03
-CURRENT_TASK: P03-T10
-CURRENT_STAGE: C — skills / assignment / shifts / time-off / eligibility
+CURRENT_TASK: P03-T32
+CURRENT_STAGE: C2 — profiles / service policy / legal / territory / quality
 OVERALL_STATUS: IMPLEMENTING
 MVP_STATUS: IN_PROGRESS_NOT_OPERATIONAL
 
@@ -12,7 +12,7 @@ PHASE STATUS
 ------------
 [x] 01 Foundation: DONE.
 [x] 02 Auth/RBAC identity foundation: DONE. Email/SMS delivery theo Phase08.
-[-] 03 Catalog/branches/providers/schedules: IN_PROGRESS. Hồ sơ/consent/contact/workflow duyệt đã deploy; còn skills/legal/quality/schedule/territory/training sessions.
+[-] 03 Catalog/branches/providers/schedules: IN_PROGRESS. Hồ sơ/consent/contact/workflow/skills/phân công/lịch cơ bản đã deploy; còn profile/expert/service policy/legal/quality/territory/training sessions.
 [ ] 04 Booking engine: TODO. Chưa booking/quote/concurrency.
 [-] 05 Public web/SEO/booking UX: PARTIAL.
 [-] 06 Customer/staff portal/chat: PARTIAL.
@@ -22,22 +22,22 @@ Không đóng Phase03-08 gate vì một nhóm code đã deploy.
 
 CHECKLIST
 ---------
-[x] DONE đúng task; [-] PARTIAL; [ ] TODO. Phase02-08: 225 tasks; 38 DONE, 62 PARTIAL, 125 TODO. Đây là số task, không là phần trăm sản phẩm.
+[x] DONE đúng task; [-] PARTIAL; [ ] TODO. Phase02-08: 225 tasks; 45 DONE, 63 PARTIAL, 117 TODO. Đây là số task, không là phần trăm sản phẩm.
 P03-T26/T27 đã đóng với source/API/UI/test/release. Contact là manual independent confirmation có bằng chứng, không OTP/SMS delivery.
 Các task khác theo 13_TASK_LEDGER.json và checklist từng phase.
 
-VERIFIED RELEASE — STAGE B
+VERIFIED RELEASE — STAGE C1
 -------------------------
-BE source cd51766c6be91abf44da2d7bdf6b987291dddb7c
+BE source 4544c60663cf6d4f5e3876106a599d48e101eadf
 API https://api.mocmaria.com/api/v1/health/ready HTTP200/database up.
-Image sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4; deployment ready=1.
-Production schema10; migration ProviderConsentContact1791628000000 APPLIED (2 additive tables). No production fixtures/reset.
-FE source fcb2b66daa015f6cd52aa4d4c9359ad8a53e39cf
-https://mocmaria.com; Vercel dpl_HaZaKDoqbpQ3ZhmGrofGgXfePmJs READY, alias verified by browser.
-BE quality/17 unit + 21 isolated integrations PASS; FE quality/4 unit/build + CI PASS.
+Image sha256:017cc71c5607016f3739253b97a7aa1f48e8f1c94e3c1cd6fe244830b4a2ad68; deployment ready=1.
+Production schema11; ProviderSkillsSchedule1791631600000 APPLIED (4 additive tables); prior consent/contact schema retained. No production fixtures/reset.
+FE source 07cdc199b111d7f8d350ba45cf2963ddb2db0183
+https://mocmaria.com; Vercel dpl_BPkUaftignL4U8NpGYtUZPHeLoJm READY, alias verified by browser.
+BE quality/21 unit + 26 isolated integrations PASS; FE quality/4 unit/build + CI PASS.
 Isolated browser consent/reload/withdraw/admin verification/revoke/mobile PASS; final own-edit guarded API assertions PASS.
 Private API anonymous401 + private/no-store; public providers no-store. Public catalog/providers empty, no fake business data published.
-Before migration: private public-schema dump109030 bytes; disposable restore PASS9 migrations/24 tables/7 roles/8 permissions; temporary pods/Secrets removed. See docs/DATABASE_BACKUP_RESTORE_DRILL_2026-10-09.md.
+Before C1 migration: private public-schema dump61239 bytes, SHA256 e7ad5690c6be0732f538a7c497da1db29a12b5bc8c76da26542b493eac090845; disposable restore PASS10 migrations/26 tables/7 roles/8 permissions. Prior StageB dump109030 bytes/schema9 retained separately. Temporary pods/Secrets removed. See backup drill docs.
 GiangXa HTTPS200; only namespace moc-maria mutated.
 
 OWNERSHIP / NEXT
@@ -47,17 +47,17 @@ Current Codex owns provider/training/capability/schedule + narrow catalog eligib
 No parallel BE checkout writer. Other AI must claim scope and isolated worktree; coordinated shared API/schema/globalCSS.
 FE Desktop d27c1c0 preserved; current worktree C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe. No reset/overwrite.
 Stage A DONE (Plan reconciliation + QA fixes); Stage B DONE (consent/contact/own profile + review guards).
-Stage C ACTIVE. D training sessions/assessment renewal; E booking+FE; F portal/chat/reviews; G operations/CMS; H SEO/media/queue/production acceptance.
+Stage C1 DONE (skills/assignment/basic schedules). C2 ACTIVE. D training sessions/assessment renewal; E booking+FE; F portal/chat/reviews; G operations/CMS; H SEO/media/queue/production acceptance.
 Owner inputs pending: admin email, real catalog/prices/branches/providers and applicable legal policy. Continue independent code; do not fabricate.
 
 ROLLBACK
 --------
-API Stage B prior digest sha256:4ec1e00d8521e01f52980cfe3a3fa85602f6482da817939bfb42a49d9d1e17b9.
-FE prior READY dpl_7aBE3CnHZazqB7YfZJQiqy2gfrSh.
+API C1 prior digest sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4.
+FE prior READY dpl_HaZaKDoqbpQ3ZhmGrofGgXfePmJs.
 Schema is additive. Keep consent/contact tables on source rollback; do not DROP after live writes. Backup outside Git, restricted ACL.
 
 AUDIT SNAPSHOT: 10_CURRENT_PROGRESS.md. Current truth is this file + ledger + release evidence.
 
-STAGE C1 PRE-RELEASE
---------------------
-Skills/certificate mapping, branch assignments, weekly shifts, dated overrides/time-off and private planning UI implemented. 21 BE unit +26 isolated integrations, migration rollback/reapply PASS; FE quality/build PASS. Private planning is NOT booking availability. Browser create/overlap/leave/reload/mobile QA PASS. Before live migration: schema10 backup/restore PASS26 tables/7 roles/8 permissions. Source/image/migration11/FE deploy pending. Remaining C2: staff profiles/expert/territory/legal/quality/service training policies.
+STAGE C1 RELEASE EVIDENCE
+-------------------------
+Source/image CI PASS; migration10→11 applied; API rollout ready, HTTPS200. Own planning anonymous401/private,no-store. FE Vercel READY. Browser isolated create/overlap denial/leave/reload/mobile390 PASS; fixture DB/pod/Secret/credential file removed. Schema10 backup61239 bytes restored PASS10 migrations/26 tables/7 roles/8 permissions before migration11. No production business fixtures. C2 is pending; private planning windows are not bookable slots.

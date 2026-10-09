@@ -100,28 +100,28 @@
     },
     {
       "id": "P03-T10",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Stage C1 deployed: audited skill/certificate mapping, branch assignment, weekly shifts, dated overrides/time-off and basic admin editor. Concurrency/overlap/ownership/revocation/hours tests and browser PASS. This does not close service/legal/territory/quality or booking gates."
     },
     {
       "id": "P03-T11",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Stage C1 deployed: audited skill/certificate mapping, branch assignment, weekly shifts, dated overrides/time-off and basic admin editor. Concurrency/overlap/ownership/revocation/hours tests and browser PASS. This does not close service/legal/territory/quality or booking gates."
     },
     {
       "id": "P03-T12",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Stage C1 deployed: audited skill/certificate mapping, branch assignment, weekly shifts, dated overrides/time-off and basic admin editor. Concurrency/overlap/ownership/revocation/hours tests and browser PASS. This does not close service/legal/territory/quality or booking gates."
     },
     {
       "id": "P03-T13",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Stage C1 deployed: audited skill/certificate mapping, branch assignment, weekly shifts, dated overrides/time-off and basic admin editor. Concurrency/overlap/ownership/revocation/hours tests and browser PASS. This does not close service/legal/territory/quality or booking gates."
     },
     {
       "id": "P03-T14",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Stage C1 deployed: audited skill/certificate mapping, branch assignment, weekly shifts, dated overrides/time-off and basic admin editor. Concurrency/overlap/ownership/revocation/hours tests and browser PASS. This does not close service/legal/territory/quality or booking gates."
     },
     {
       "id": "P03-T15",
@@ -145,13 +145,13 @@
     },
     {
       "id": "P03-T19",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Stage C1 deployed: audited skill/certificate mapping, branch assignment, weekly shifts, dated overrides/time-off and basic admin editor. Concurrency/overlap/ownership/revocation/hours tests and browser PASS. This does not close service/legal/territory/quality or booking gates."
     },
     {
       "id": "P03-T20",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Stage C1 deployed: audited skill/certificate mapping, branch assignment, weekly shifts, dated overrides/time-off and basic admin editor. Concurrency/overlap/ownership/revocation/hours tests and browser PASS. This does not close service/legal/territory/quality or booking gates."
     },
     {
       "id": "P03-T21",
@@ -175,8 +175,8 @@
     },
     {
       "id": "P03-T25",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "Private internal planning windows implemented with branch hours, assignments, override priority and leave subtraction. Public/bookable slot read model depends on Phase04 and C2 eligibility."
     },
     {
       "id": "P03-T26",
@@ -1130,6 +1130,6 @@
     }
   ],
   "updatedAt": "2026-10-09",
-  "currentTask": "P03-T10",
-  "currentStage": "C"
+  "currentTask": "P03-T32",
+  "currentStage": "C2"
 }

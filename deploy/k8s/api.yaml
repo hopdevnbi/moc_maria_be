@@ -22,7 +22,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: api
-          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4
+          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:017cc71c5607016f3739253b97a7aa1f48e8f1c94e3c1cd6fe244830b4a2ad68
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
