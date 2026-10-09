@@ -1,0 +1,14 @@
+{
+  "source": "cd51766c6be91abf44da2d7bdf6b987291dddb7c",
+  "digest": "sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4",
+  "platforms": [
+    {
+      "architecture": "amd64",
+      "os": "linux"
+    },
+    {
+      "architecture": "unknown",
+      "os": "unknown"
+    }
+  ]
+}

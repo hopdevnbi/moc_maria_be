@@ -11,7 +11,7 @@ Nguồn trạng thái: Plan/99_PROJECT_STATUS.txt (đầu file), 13_TASK_LEDGER.
 
 ## Tích hợp và migration
 
-- GitHub main FE đang ở 99612d5; Desktop FE vẫn d27c1c0 để giữ checkout UI cũ. Code tích hợp nằm C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe. Không coi Desktop cũ là code hiện tại hoặc checkout/reset để đồng bộ.
+- GitHub main FE lấy SHA hiện tại từ 99_PROJECT_STATUS.txt; Desktop FE vẫn d27c1c0 để giữ checkout UI cũ. Code tích hợp nằm C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe. Không coi Desktop cũ là code hiện tại hoặc checkout/reset để đồng bộ.
 - BE active checkout C:/Users/User/Desktop/Mộc maria/moc_maria_be, branch codex/production-integration. Không chạy song song writer trên checkout này.
 - Một người tích hợp release/migrations tại một thời điểm. Trước push main: fetch, kiểm tra ancestry, review những commit mới; không force. Trước migration: isolated DB tests, backup/rollback và kiểm tra migrations đã chạy.
 - Thay đổi DTO/API thêm field bắt buộc phải có kế hoạch deploy BE/FE tương thích. Không để FE đang chạy gửi request bị từ chối vì backend mới.

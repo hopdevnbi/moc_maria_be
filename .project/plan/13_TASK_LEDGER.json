@@ -180,13 +180,13 @@
     },
     {
       "id": "P03-T26",
-      "status": "PARTIAL",
-      "note": "Nộp đơn/own status đã có; thiếu verified contact và consent lưu server."
+      "status": "DONE",
+      "note": "Stage B deployed: own application identity/intro/area, explicit versioned server consent, independently verified current account contact. Private document uploads/media consent remain P03-T39/Phase08; manual contact confirmation is not OTP delivery."
     },
     {
       "id": "P03-T27",
-      "status": "PARTIAL",
-      "note": "State machine/audit có; yêu cầu lý do chuyển trạng thái chưa bắt buộc backend."
+      "status": "DONE",
+      "note": "Stage B deployed: allowed state machine, mandatory review reason, admin-only decisions, self-review denied, audit and isolated integration/browser QA PASS."
     },
     {
       "id": "P03-T28",
@@ -1128,5 +1128,8 @@
       "status": "TODO",
       "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
     }
-  ]
+  ],
+  "updatedAt": "2026-10-09",
+  "currentTask": "P03-T10",
+  "currentStage": "C"
 }

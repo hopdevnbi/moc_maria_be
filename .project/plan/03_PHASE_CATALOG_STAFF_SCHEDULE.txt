@@ -5,14 +5,14 @@ AUDIT CHECKLIST 2026-10-09 — CURRENT
 ------------------------------------
 [x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
 Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
-Evidence: BE ffc89b3/API deployed, FE 99612d5/Vercel deployed; BE 17 unit+20 isolated integrations, FE quality/4 unit/build PASS; isolated browser admin/applicant QA PASS. Small QA fixes remain pending commit/deploy.
+Evidence current: Stage B BE cd51766 / FE fcb2b66 production; 17 BE unit + 21 isolated integrations; FE quality/4 unit/build; consent/contact browser QA; schema10. No booking gate complete.
 Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
 P03-T08: Mapping active và override cấp service có thật; còn chính sách override theo variant/audit giá rõ ràng.
 P03-T09: Identity/bio/avatar URL/visibility có thật; thiếu slug/title/experience/media consent/trust fields.
 P03-T17: Tạo/sửa/publish/disable và giá variant đã có; chưa đầy đủ media/audit giá.
 P03-T24: Public KTV list/detail có approval/certificate gate; expert và eligibility đầy đủ còn thiếu.
-P03-T26: Nộp đơn/own status đã có; thiếu verified contact và consent lưu server.
-P03-T27: State machine/audit có; yêu cầu lý do chuyển trạng thái chưa bắt buộc backend.
+P03-T26: DONE Stage B — hồ sơ riêng/own edit, consent version lưu server, liên hệ hiện tại xác minh độc lập. Không phải OTP; upload giấy tờ/media theo task riêng.
+P03-T27: DONE Stage B — state machine, lý do bắt buộc, audit và chặn tự duyệt đã test/deploy.
 P03-T28: Course/enrollment/assessment có; thiếu modules/sessions/instructor/attendance evidence.
 P03-T29: Pass/fail và attendance >=80% có; thiếu tiêu chí theo service và lịch sử đánh giá lại.
 P03-T30: Issue/revoke/expiry có; còn renewal/lịch sử; không phải giấy phép nhà nước.
@@ -125,9 +125,9 @@ Phase Gate
 
 G. KTV ONBOARDING, ĐÀO TẠO VÀ CHỨNG NHẬN (CORE MVP - bổ sung 2026-10-08)
 ---------------------------------------------------------------------------
-[-] P03-T26 KTV tự nộp đơn riêng (không tự cấp role THERAPIST):
+[x] P03-T26 KTV tự nộp đơn riêng (không tự cấp role THERAPIST):
     applicant identity, phone/email verified, khu vực phục vụ, kinh nghiệm, bộ hồ sơ có consent.
-[-] P03-T27 Workflow duyệt ứng viên: APPLIED -> REVIEWING -> TRAINING -> ASSESSMENT
+[x] P03-T27 Workflow duyệt ứng viên: APPLIED -> REVIEWING -> TRAINING -> ASSESSMENT
     -> APPROVED/REJECTED/SUSPENDED, có audit và lý do.
 [-] P03-T28 Khóa học Mộc Maria: courses, modules, sessions, attendance,
     instructor, training completion; không dùng dữ liệu bệnh án cho mục đích không cần thiết.

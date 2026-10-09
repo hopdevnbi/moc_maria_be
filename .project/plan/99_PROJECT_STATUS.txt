@@ -1,60 +1,59 @@
 MỘC MARIA — CURRENT PROJECT STATUS
 =================================
-SOURCE OF TRUTH: file này + task ledger; lịch sử riêng ở 15_STATUS_HISTORY_BEFORE_RECONCILIATION_2026-10-09.txt.
+SOURCE OF TRUTH: file này + 13_TASK_LEDGER.json. Lịch sử audit cũ ở file15.
 LAST_UPDATED: 2026-10-09
-TOTAL_PHASES: 8
 CURRENT_PHASE: 03
-CURRENT_TASK: P03-T26
-CURRENT_STAGE: B — Hồ sơ/eligibility, code/test/browser PASS; migration/deploy pending
+CURRENT_TASK: P03-T10
+CURRENT_STAGE: C — skills / assignment / shifts / time-off / eligibility
 OVERALL_STATUS: IMPLEMENTING
 MVP_STATUS: IN_PROGRESS_NOT_OPERATIONAL
 
 PHASE STATUS
 ------------
 [x] 01 Foundation: DONE.
-[x] 02 Auth/RBAC identity foundation: DONE. Email/SMS reset delivery chưa có, theo dõi Phase 08 notification.
-[-] 03 Catalog/branches/providers/schedules: IN_PROGRESS. Catalog/cơ sở nền tảng có source/test/deploy; thiếu verified contact/consent, skills/legal/quality, shifts/time-off/territory và training sessions.
-[ ] 04 Booking engine: TODO. Chưa module/migration/API booking/quote/concurrency.
-[-] 05 Public web/SEO/booking UX: PARTIAL. Homepage/catalog/provider UI API thật; booking/SEO đầy đủ chưa có.
-[-] 06 Customer/staff portal/chat: PARTIAL. Account/application/training có; chat/lịch/reviews chưa có.
-[-] 07 Admin command center/CMS: PARTIAL. Catalog/branch/training admin có; booking/CMS/report/moderation chưa có.
-[-] 08 Production/queue/hardening: PARTIAL. Hạ tầng deploy domain/API healthy; queue/CDN/backup restore/monitoring/full acceptance còn thiếu.
-Phases 05/07/08 được ưu tiên sớm theo owner; không có nghĩa đã qua Phase 03/04 gate.
+[x] 02 Auth/RBAC identity foundation: DONE. Email/SMS delivery theo Phase08.
+[-] 03 Catalog/branches/providers/schedules: IN_PROGRESS. Hồ sơ/consent/contact/workflow duyệt đã deploy; còn skills/legal/quality/schedule/territory/training sessions.
+[ ] 04 Booking engine: TODO. Chưa booking/quote/concurrency.
+[-] 05 Public web/SEO/booking UX: PARTIAL.
+[-] 06 Customer/staff portal/chat: PARTIAL.
+[-] 07 Admin command center/CMS: PARTIAL.
+[-] 08 Production/queue/hardening: PARTIAL. Manual backup + restore drill PASS; lịch backup tự động/retention chưa có.
+Không đóng Phase03-08 gate vì một nhóm code đã deploy.
 
 CHECKLIST
 ---------
-[x] DONE đúng phạm vi task; [-] PARTIAL (không viết lại phần có); [ ] TODO.
-Phase 02-08: 225 tasks, 36 DONE, 64 PARTIAL, 125 TODO tại mốc reconciliation. Đây là số task, KHÔNG là phần trăm sản phẩm. Phase 01 có 10 task nền tảng đã đóng riêng.
-Mỗi task trong 13_TASK_LEDGER.json; các file 02..08 đã đồng bộ marker.
-Không tự mark DONE vì build PASS; cần API/schema/UI đúng quyền/test/release theo scope.
+[x] DONE đúng task; [-] PARTIAL; [ ] TODO. Phase02-08: 225 tasks; 38 DONE, 62 PARTIAL, 125 TODO. Đây là số task, không là phần trăm sản phẩm.
+P03-T26/T27 đã đóng với source/API/UI/test/release. Contact là manual independent confirmation có bằng chứng, không OTP/SMS delivery.
+Các task khác theo 13_TASK_LEDGER.json và checklist từng phase.
 
-VERIFIED RELEASE
-----------------
-FE Stage A source 961c0d5 (QA fixes 6b0f3a3): https://mocmaria.com; Vercel dpl_7aBE3CnHZazqB7YfZJQiqy2gfrSh READY.
-BE source ffc89b3; release docs 67cfdd5. https://api.mocmaria.com/api/v1/health/ready HTTP 200/database up.
-Image sha256:4ec1e00d8521e01f52980cfe3a3fa85602f6482da817939bfb42a49d9d1e17b9. Deployment ready=1; TLS READY.
-9 production migrations applied; no new schema migration in latest release. No production fixture seed/reset.
-BE 17 unit + 20 isolated PostgreSQL integration PASS; FE quality/4 unit/build PASS. Isolated admin/applicant browser flows PASS; temporary DB/pod/Secret removed.
-Public services/providers empty: real catalog/prices/providers chưa công bố. GiangXa HTTPS HTTP 200; namespace unchanged.
-Audit documentation branches: BE eed2627, FE 17b2c70; product release unchanged.
+VERIFIED RELEASE — STAGE B
+-------------------------
+BE source cd51766c6be91abf44da2d7bdf6b987291dddb7c
+API https://api.mocmaria.com/api/v1/health/ready HTTP200/database up.
+Image sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4; deployment ready=1.
+Production schema10; migration ProviderConsentContact1791628000000 APPLIED (2 additive tables). No production fixtures/reset.
+FE source fcb2b66daa015f6cd52aa4d4c9359ad8a53e39cf
+https://mocmaria.com; Vercel dpl_HaZaKDoqbpQ3ZhmGrofGgXfePmJs READY, alias verified by browser.
+BE quality/17 unit + 21 isolated integrations PASS; FE quality/4 unit/build + CI PASS.
+Isolated browser consent/reload/withdraw/admin verification/revoke/mobile PASS; final own-edit guarded API assertions PASS.
+Private API anonymous401 + private/no-store; public providers no-store. Public catalog/providers empty, no fake business data published.
+Before migration: private public-schema dump109030 bytes; disposable restore PASS9 migrations/24 tables/7 roles/8 permissions; temporary pods/Secrets removed. See docs/DATABASE_BACKUP_RESTORE_DRILL_2026-10-09.md.
+GiangXa HTTPS200; only namespace moc-maria mutated.
 
 OWNERSHIP / NEXT
 ----------------
 Read 11_WORK_COORDINATION.md, 12_STAGE_ROADMAP.md, 14_ACTIVE_WORK.json before edits.
-Current Codex claims providers/training, related identity fields/migrations/tests, marketplace/auth QA, trackers/releases. No parallel writer in shared BE checkout. Other AI must claim isolated scope/worktree; coordinate shared DTO/schema/global CSS.
-FE Desktop checkout d27c1c0 preserved; current integration worktree C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe. Do not reset or overwrite other AI.
-Stage A: DONE — plan ownership/checklists pushed; QA fixes deployed, public browser verified. BE dff0f5f; FE 961c0d5.
-Stage B/C/D: consent/contact, eligibility, skills/schedules/legal/area and detailed training; do not enable bookings before gate.
-Stage E: Phase 04 engine + real FE booking; Stage F chat/reviews; G admin operations; H SEO/media/queue/production acceptance.
-Owner inputs pending: admin email and real catalog/prices/branches/providers; legal policy when applicable. Continue independent coding.
+Current Codex owns provider/training/capability/schedule + narrow catalog eligibility policy, migration/test/marketplace/trackers/release.
+No parallel BE checkout writer. Other AI must claim scope and isolated worktree; coordinated shared API/schema/globalCSS.
+FE Desktop d27c1c0 preserved; current worktree C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe. No reset/overwrite.
+Stage A DONE (Plan reconciliation + QA fixes); Stage B DONE (consent/contact/own profile + review guards).
+Stage C ACTIVE. D training sessions/assessment renewal; E booking+FE; F portal/chat/reviews; G operations/CMS; H SEO/media/queue/production acceptance.
+Owner inputs pending: admin email, real catalog/prices/branches/providers and applicable legal policy. Continue independent code; do not fabricate.
 
 ROLLBACK
 --------
-API prior digest sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb81029e419c7f.
-FE prior READY dpl_6QkFFnd7uF6EwLHGALEfTxs1k5nR. Schema unchanged in latest release.
+API Stage B prior digest sha256:4ec1e00d8521e01f52980cfe3a3fa85602f6482da817939bfb42a49d9d1e17b9.
+FE prior READY dpl_7aBE3CnHZazqB7YfZJQiqy2gfrSh.
+Schema is additive. Keep consent/contact tables on source rollback; do not DROP after live writes. Backup outside Git, restricted ACL.
 
-DETAILED AUDIT: 10_CURRENT_PROGRESS.md (snapshot 2026-10-09).
-
-STAGE B PRE-RELEASE
--------------------
-Consent/contact/owned application edit and private readiness UI implemented; 17 unit + 21 isolated integrations PASS, rollback/reapply of new migration PASS, browser consent/admin/mobile QA PASS. Public-schema backup and restore drill PASS (9 migrations, 24 tables) before live migration. Stage B migration/image/API/FE production verification pending. No Phase 03 completion claimed.
+AUDIT SNAPSHOT: 10_CURRENT_PROGRESS.md. Current truth is this file + ledger + release evidence.

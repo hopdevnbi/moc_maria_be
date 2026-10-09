@@ -4,11 +4,23 @@
     {
       "agent": "Codex current chat",
       "status": "ACTIVE",
-      "stage": "B — consent/contact release verification",
+      "stage": "C — skills / branch assignments / schedules",
       "taskIds": [
         "P03-T26",
         "P03-T27",
-        "P03-T32"
+        "P03-T32",
+        "P03-T09",
+        "P03-T10",
+        "P03-T11",
+        "P03-T12",
+        "P03-T13",
+        "P03-T14",
+        "P03-T18",
+        "P03-T19",
+        "P03-T20",
+        "P03-T25",
+        "P03-T31",
+        "P03-T33"
       ],
       "backendBranch": "codex/production-integration",
       "frontendBranch": "codex/platform-integration",
@@ -25,9 +37,18 @@
         "Plan/**",
         "repo docs/progress/state",
         "BE/src/modules/profiles/profiles.service.ts (invalidate contact verification)",
-        "BE/scripts/verify-backup-restore.cjs"
+        "BE/scripts/verify-backup-restore.cjs",
+        "BE/src/modules/catalog/** (service eligibility policy)",
+        "BE/src/modules/providers/** (capability/schedule foundation)"
       ],
-      "note": "Before any new writer, recheck live status and discuss overlaps. No other agent confirmed ownership here."
+      "note": "Before any new writer, recheck live status and discuss overlaps. No other agent confirmed ownership here.",
+      "releasedStageB": {
+        "backend": "cd51766c6be91abf44da2d7bdf6b987291dddb7c",
+        "frontend": "fcb2b66daa015f6cd52aa4d4c9359ad8a53e39cf",
+        "frontendDeployment": "dpl_HaZaKDoqbpQ3ZhmGrofGgXfePmJs",
+        "imageDigest": "sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4",
+        "migrations": 10
+      }
     }
   ]
 }

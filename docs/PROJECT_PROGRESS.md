@@ -86,3 +86,5 @@ Catalog/provider release ffc89b39ddaa2b37b70c337160c90778227d0ffd deployed succe
 - Stage A QA fixes deployed on Vercel dpl_7aBE3CnHZazqB7YfZJQiqy2gfrSh; public browser PASS.
 - Stage B contact/consent and own application edit implemented; actual private/admin/browser/mobile QA PASS; 21 integration tests; source build/quality checks PASS before final edit rerun. New additive migration deployment pending.
 - Application backup and disposable restore drill PASS; actual database never seeded by QA. Details in backend backup drill/contract docs.
+
+Stage B release verified: BE cd51766c6be91abf44da2d7bdf6b987291dddb7c, image sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4, schema10; FE fcb2b66daa015f6cd52aa4d4c9359ad8a53e39cf, dpl_HaZaKDoqbpQ3ZhmGrofGgXfePmJs. CI/quality PASS; health200, anonymous private401; isolated21 integration/browser flows and pre-migration restore PASS. Stage C starts next.
