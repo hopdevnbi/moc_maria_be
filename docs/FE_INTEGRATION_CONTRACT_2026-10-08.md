@@ -83,3 +83,13 @@ ratings, service prices or testimonials.
 - This is MANUAL_CONTACT_CONFIRMATION with actual admin evidence. It is not OTP or automatic email delivery. User contact updates permanently revoke old verification; changing back does not restore it.
 - Application review now requires a non-blank decision note. Approval requires profile completion, application consent and verified current contact, in addition to existing real training/certificate checks. Public listing additionally requires opt-in PUBLIC_PROFILE consent.
 - Admin/applicant interface must not imply approval/contact confirmation is legal credential verification or booking readiness. Full skill/legal/quality/service/territory gates still pending.
+
+## Stage C1 — skills and schedules (release pending)
+- GET /provider-applications/me/planning and /admin/provider-applications/:id/planning: private/no-store, provider-owned read; branch/service names, skills with live certificateValid, assignments/weekly/dated schedules. No reviewer IDs in own data.
+- POST admin :id/skills needs roles.manage; applicant-owned valid certificate, serviceId, certificateId, isActive, reason. No self assignment. Legal/service training policy gates remain separate.
+- POST :id/branch-assignments and /weekly-shifts and /dated-schedules require staff.manage. Reason required. Provider application lock serializes all schedule writes.
+- Weekly shifts: branchId, weekday0=Sunday..6, startsAtMinute, endsAtMinute. Intersections forbidden across branches; adjacent allowed. No overnight shift: split into calendar days.
+- Dated: date YYYY-MM-DD, kind OVERRIDE with branchId or TIME_OFF without branch; intervals0..1440. Overrides replace all weekly shifts for that provider/date; time off subtracts across all branches.
+- PATCH :id/weekly-shifts/:recordId/disable or dated-schedules/:recordId/disable soft-disables with reason and ownership check.
+- GET :id/planning/windows?branchId&date intersects branch hours/exception hours, assignment, provider shifts and time-off in Asia/Ho_Chi_Minh. Private planning only, never bookable slots.
+- bookable remains false until full service/legal/territory/quality and booking gates implemented. No fake production schedules or skill data.

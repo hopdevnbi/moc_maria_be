@@ -9,6 +9,11 @@ import { TrainingCourse } from './entities/training-course.entity';
 import { TrainingEnrollment } from './entities/training-enrollment.entity';
 import { TrainingService } from './training.service';
 import { ProviderTrustService } from './provider-trust.service';
+import { ProviderScheduleService } from './provider-schedule.service';
+import {
+  AdminProviderScheduleController,
+  OwnProviderScheduleController,
+} from './provider-schedule.controller';
 import { TrainingController } from './training.controller';
 import { ProvidersService } from './providers.service';
 import {
@@ -29,12 +34,14 @@ import {
     AuthModule,
     AccessControlModule,
   ],
-  providers: [ProvidersService, TrainingService, ProviderTrustService],
+  providers: [ProvidersService, TrainingService, ProviderTrustService, ProviderScheduleService],
   controllers: [
     PublicProvidersController,
     ProviderApplicationsController,
     AdminProvidersController,
     TrainingController,
+    AdminProviderScheduleController,
+    OwnProviderScheduleController,
   ],
 })
 export class ProvidersModule {}

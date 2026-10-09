@@ -39,7 +39,8 @@
         "BE/src/modules/profiles/profiles.service.ts (invalidate contact verification)",
         "BE/scripts/verify-backup-restore.cjs",
         "BE/src/modules/catalog/** (service eligibility policy)",
-        "BE/src/modules/providers/** (capability/schedule foundation)"
+        "BE/src/modules/providers/** (capability/schedule foundation)",
+        "BE/scripts/backup-public-schema.cjs (scoped release backups)"
       ],
       "note": "Before any new writer, recheck live status and discuss overlaps. No other agent confirmed ownership here.",
       "releasedStageB": {

@@ -57,3 +57,7 @@ FE prior READY dpl_7aBE3CnHZazqB7YfZJQiqy2gfrSh.
 Schema is additive. Keep consent/contact tables on source rollback; do not DROP after live writes. Backup outside Git, restricted ACL.
 
 AUDIT SNAPSHOT: 10_CURRENT_PROGRESS.md. Current truth is this file + ledger + release evidence.
+
+STAGE C1 PRE-RELEASE
+--------------------
+Skills/certificate mapping, branch assignments, weekly shifts, dated overrides/time-off and private planning UI implemented. 21 BE unit +26 isolated integrations, migration rollback/reapply PASS; FE quality/build PASS. Private planning is NOT booking availability. Browser create/overlap/leave/reload/mobile QA PASS. Before live migration: schema10 backup/restore PASS26 tables/7 roles/8 permissions. Source/image/migration11/FE deploy pending. Remaining C2: staff profiles/expert/territory/legal/quality/service training policies.
