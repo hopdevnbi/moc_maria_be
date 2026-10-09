@@ -12,6 +12,7 @@ import { Role } from '../src/modules/identity/entities/role.entity';
 import { UserRole } from '../src/modules/identity/entities/user-role.entity';
 import { ProviderCertificate } from '../src/modules/providers/entities/provider-certificate.entity';
 import { Appointment } from '../src/modules/bookings/entities/appointment.entity';
+import { AppointmentQuote } from '../src/modules/bookings/entities/appointment-details.entity';
 import { instant, localDate, plusDays } from '../src/modules/bookings/availability-rules';
 import { requireIsolatedDatabase } from './isolated-database';
 
@@ -27,7 +28,11 @@ describe('Booking availability in disposable database', () => {
     serviceId: string,
     variantId: string,
     certificateId: string,
-    resourceId: string;
+    resourceId: string,
+    courseId: string,
+    moduleId: string,
+    criterionId: string,
+    policyId: string;
   const suffix = randomUUID().slice(0, 8),
     password = randomBytes(32).toString('base64url') + '1!';
   const reason = 'Disposable booking QA evidence only';
@@ -192,10 +197,10 @@ describe('Booking availability in disposable database', () => {
     );
     const train = '/admin/provider-training',
       courseCode = 'QA_BOOK_' + suffix.toUpperCase();
-    const courseId = String(
+    courseId = String(
       (await post(train + '/courses', { code: courseCode, title: 'QA booking training only' })).id,
     );
-    const moduleId = String(
+    moduleId = String(
       (
         await post(train + '/courses/' + courseId + '/modules', {
           code: 'PRACTICE',
@@ -213,7 +218,7 @@ describe('Booking availability in disposable database', () => {
       requirementsConfirmed: true,
       reason,
     });
-    const criterionId = String(
+    criterionId = String(
       (
         await post(train + '/courses/' + courseId + '/criteria', {
           code: 'SERVICE',
@@ -301,7 +306,7 @@ describe('Booking availability in disposable database', () => {
       endsAtMinute: 1080,
       reason,
     });
-    const policyId = String(
+    policyId = String(
       (
         await post('/admin/service-provider-policies', {
           serviceId,
@@ -359,7 +364,7 @@ describe('Booking availability in disposable database', () => {
     expect(preview.headers['cache-control']).toBe('no-store');
     expect(preview.body.timezone).toBe('Asia/Ho_Chi_Minh');
     expect(preview.body.reservation).toBe(false);
-    expect(preview.body.requestEnabled).toBe(false);
+    expect(preview.body.requestEnabled).toBe(true);
     expect(preview.body.slots[0]).toMatchObject({
       startsAt: instant(date, 555).toISOString(),
       endsAt: instant(date, 615).toISOString(),
@@ -446,7 +451,7 @@ describe('Booking availability in disposable database', () => {
       })
       .expect(200);
   });
-  // Existing reservations are seeded only in disposable QA until E2 exposes request writes.
+  // Historical occupancy fixtures are disposable QA only; E2 requests below use the actual API.
   async function reserve(status: Appointment['status'], expiresAt: Date): Promise<string> {
     const row = await database.manager.save(Appointment, {
       customerUserId: adminId,
@@ -466,6 +471,20 @@ describe('Booking availability in disposable database', () => {
       source: 'ADMIN',
       notes: null,
       destination: null,
+    });
+    await database.manager.save(AppointmentQuote, {
+      appointmentId: row.id,
+      revision: 1,
+      servicePriceVnd: '123456',
+      travelFeeVnd: '0',
+      extraFeeVnd: '0',
+      discountVnd: '0',
+      totalVnd: '123456',
+      snapshot: { serviceName: 'QA occupancy fixture' },
+      reason,
+      createdBy: adminId,
+      acceptedBy: null,
+      acceptedAt: null,
     });
     return row.id;
   }
@@ -510,5 +529,449 @@ describe('Booking availability in disposable database', () => {
       [],
     );
     await post('/admin/booking-settings', settings());
+  });
+  describe('branch booking transactions', () => {
+    let customer: string, otherCustomer: string;
+    const created: string[] = [];
+    const body = (minute = 555): Record<string, unknown> => ({
+      variantId,
+      branchId,
+      startsAt: instant(date, minute).toISOString(),
+      providerApplicationId: providerId,
+      idempotencyKey: randomUUID(),
+      expectedTotalVnd: '123456',
+      quoteAcknowledged: true,
+      notes: 'Private customer QA note',
+    });
+    async function create(payload = body(), token = customer): Promise<request.Response> {
+      const response = await api(token).post('/api/v1/bookings/requests').send(payload).expect(201);
+      created.push(String(response.body.id));
+      return response;
+    }
+    beforeAll(async () => {
+      for (let index = 0; index < 2; index++) {
+        const response = await api()
+          .post('/api/v1/auth/register')
+          .send({
+            email: `booking-customer-${suffix}-${index}@mocmaria.test`,
+            displayName: 'Disposable booking customer',
+            password,
+          })
+          .expect(201);
+        if (index === 0) customer = response.body.accessToken;
+        else otherCustomer = response.body.accessToken;
+      }
+    });
+    afterEach(async () => {
+      for (const id of created.splice(0))
+        await database.manager.update(Appointment, id, { status: 'CANCELLED' });
+      await patch('/admin/services/' + serviceId + '/variants/' + variantId, {
+        priceVnd: '123456',
+      });
+    });
+    async function readyProvider(index: number): Promise<string> {
+      const email = `booking-provider-${suffix}-${index}@mocmaria.test`;
+      const registered = await api()
+        .post('/api/v1/auth/register')
+        .send({ email, displayName: 'QA capacity provider', password })
+        .expect(201);
+      const token = String(registered.body.accessToken);
+      const id = (
+        await post(
+          '/provider-applications',
+          {
+            publicName: 'QA capacity provider ' + index,
+            introduction: reason,
+            serviceArea: 'QA area',
+            applicationConsentVersion: 'provider-consent-v1',
+          },
+          token,
+        )
+      ).id;
+      const path = '/admin/provider-applications/' + id;
+      await post(
+        '/provider-applications/me/consent',
+        { scope: 'PUBLIC_PROFILE', version: 'provider-consent-v1', granted: true },
+        token,
+      );
+      await post(path + '/contact-verifications', {
+        channel: 'EMAIL',
+        contactValue: email,
+        evidenceReference: 'QA_CAP_CONTACT',
+        confirmedByContact: true,
+      });
+      await patch(path + '/review', { status: 'REVIEWING', note: reason });
+      await patch(path + '/review', { status: 'TRAINING', note: reason });
+      const train = '/admin/provider-training';
+      const enrollment = (
+        await post(train + '/enrollments', { providerApplicationId: id, courseId })
+      ).id;
+      const session = (
+        await post(train + '/courses/' + courseId + '/sessions', {
+          moduleId,
+          instructorUserId: adminId,
+          startsAt: new Date(Date.now() - 8 * 86400000 + index * 7200000).toISOString(),
+          endsAt: new Date(Date.now() - 8 * 86400000 + index * 7200000 + 3600000).toISOString(),
+          reason,
+        })
+      ).id;
+      await post(train + '/enrollments/' + enrollment + '/sessions', {
+        sessionId: session,
+        isActive: true,
+        reason,
+      });
+      await patch(train + '/sessions/' + session + '/state', {
+        status: 'COMPLETED',
+        completionReference: 'QA_CAP_CLASS',
+        recordConfirmed: true,
+        reason,
+      });
+      await post(train + '/enrollments/' + enrollment + '/sessions/' + session + '/attendance', {
+        status: 'PRESENT',
+        attendedMinutes: 60,
+        evidenceReference: 'QA_CAP_ATTEND',
+        attendanceConfirmed: true,
+        reason,
+      });
+      await post(train + '/enrollments/' + enrollment + '/assessments', {
+        scores: [{ criterionId, score: 95 }],
+        evidenceReference: 'QA_CAP_ASSESS',
+        validUntil: expiry,
+        practicalConfirmed: true,
+        reason,
+      });
+      const certificate = (
+        await post(path + '/certificates', {
+          courseCode: 'QA_BOOK_' + suffix.toUpperCase(),
+          title: 'QA capacity cert',
+          certificateNumber: 'QA_CAP_' + suffix.toUpperCase() + '_' + index,
+          expiresAt: expiry,
+          issuedConfirmed: true,
+          reason,
+        })
+      ).id;
+      await patch(path + '/review', { status: 'ASSESSMENT', note: reason });
+      await patch(path + '/review', { status: 'APPROVED', note: reason });
+      await post(path + '/public-profile', {
+        slug: `qa-cap-${suffix}-${index}`,
+        title: 'QA capacity provider only',
+        isPublished: true,
+        accuracyConfirmed: true,
+        reason,
+      });
+      await post(path + '/operating-review', {
+        providerKind: 'WELLNESS',
+        qualityStatus: 'ACTIVE',
+        reason,
+      });
+      await post(path + '/skills', { serviceId, certificateId: certificate, reason });
+      await post(path + '/branch-assignments', { branchId, reason });
+      await post(path + '/weekly-shifts', {
+        branchId,
+        weekday,
+        startsAtMinute: 540,
+        endsAtMinute: 1080,
+        reason,
+      });
+      await post(path + '/service-grants', {
+        policyId,
+        travelBufferMinutes: 0,
+        travelFeeVnd: 0,
+        isActive: true,
+        conditionsConfirmed: true,
+        reason,
+      });
+      return id;
+    }
+    it('serializes the same provider across two different branches', async () => {
+      const secondBranch = (
+        await post('/admin/branches', {
+          code: 'qa-cross-' + suffix,
+          name: 'QA second branch',
+          address: 'QA only',
+          isActive: true,
+        })
+      ).id;
+      await api(admin)
+        .put('/api/v1/admin/branches/' + secondBranch + '/hours')
+        .send({ hours: [{ weekday, opensAtMinute: 540, closesAtMinute: 1080 }] })
+        .expect(200);
+      await post('/admin/branches/' + secondBranch + '/services', { serviceId, isActive: true });
+      await post('/admin/booking-settings', {
+        ...settings(),
+        branchId: secondBranch,
+        resourceRequirements: [],
+      });
+      await post(providerPath() + '/branch-assignments', { branchId: secondBranch, reason });
+      await post(providerPath() + '/weekly-shifts', {
+        branchId: secondBranch,
+        weekday,
+        startsAtMinute: 540,
+        endsAtMinute: 1080,
+        reason,
+      });
+      const policy = (
+        await post('/admin/service-provider-policies', {
+          serviceId,
+          branchId: secondBranch,
+          courseId,
+          mode: 'ON_SITE',
+          jurisdictionCode: 'QA_REGION',
+          territoryLabel: 'QA cross only',
+          legalRequirement: 'NOT_REQUIRED',
+          legalReviewReference: 'QA_CROSS_LEGAL',
+          validUntil: expiry,
+          isActive: true,
+          legalReviewConfirmed: true,
+          reason,
+        })
+      ).id;
+      await post(providerPath() + '/service-grants', {
+        policyId: policy,
+        travelBufferMinutes: 0,
+        travelFeeVnd: 0,
+        isActive: true,
+        conditionsConfirmed: true,
+        reason,
+      });
+      const responses = await Promise.all([
+        api(customer).post('/api/v1/bookings/requests').send(body()),
+        api(otherCustomer)
+          .post('/api/v1/bookings/requests')
+          .send({ ...body(), branchId: secondBranch }),
+      ]);
+      expect(responses.map((r) => r.status).sort()).toEqual([201, 409]);
+      for (const r of responses) if (r.status === 201) created.push(String(r.body.id));
+    });
+    it('allows exactly two concurrent allocations in a capacity-two room with three qualified providers', async () => {
+      const secondProvider = await readyProvider(1),
+        thirdProvider = await readyProvider(2);
+      const responses = await Promise.all([
+        api(customer).post('/api/v1/bookings/requests').send(body()),
+        api(otherCustomer)
+          .post('/api/v1/bookings/requests')
+          .send({ ...body(), providerApplicationId: secondProvider }),
+        api(customer)
+          .post('/api/v1/bookings/requests')
+          .send({ ...body(), providerApplicationId: thirdProvider }),
+      ]);
+      for (const r of responses) if (r.status === 201) created.push(String(r.body.id));
+      expect(responses.map((r) => r.status).sort()).toEqual([201, 201, 409]);
+      const rows = await database.manager.query<Array<{ units: string }>>(
+        'SELECT sum(r.units)::text AS units FROM appointment_resources r JOIN appointments a ON a.id=r.appointment_id WHERE r.resource_id=$1 AND a.status=$2',
+        [resourceId, 'REQUESTED'],
+      );
+      expect(rows[0].units).toBe('2');
+    });
+    it('requires authentication and an explicitly acknowledged current price', async () => {
+      await api().post('/api/v1/bookings/requests').send(body()).expect(401);
+      await api(customer)
+        .post('/api/v1/bookings/requests')
+        .send({ ...body(), quoteAcknowledged: false })
+        .expect(400);
+      await api(customer)
+        .post('/api/v1/bookings/requests')
+        .send({ ...body(), expectedTotalVnd: '1' })
+        .expect(409);
+      await api(customer)
+        .post('/api/v1/bookings/requests')
+        .send({ ...body(), customerUserId: adminId })
+        .expect(400);
+      await api(applicant).post('/api/v1/bookings/requests').send(body()).expect(400);
+    });
+    it('serializes identical concurrent retries and rejects reuse with a changed payload', async () => {
+      const payload = body();
+      const responses = await Promise.all([create(payload), create(payload)]);
+      expect(responses[0].body.id).toBe(responses[1].body.id);
+      expect(responses[0].body.status).toBe('REQUESTED');
+      await api(customer)
+        .post('/api/v1/bookings/requests')
+        .send({ ...payload, notes: 'Different request' })
+        .expect(409);
+      expect(
+        await database.manager.count(Appointment, {
+          where: { idempotencyKey: String(payload['idempotencyKey']) },
+        }),
+      ).toBe(1);
+    });
+    it('allows only one provider reservation under concurrent different customers', async () => {
+      const responses = await Promise.all([
+        api(customer).post('/api/v1/bookings/requests').send(body()),
+        api(otherCustomer).post('/api/v1/bookings/requests').send(body()),
+      ]);
+      expect(responses.map((r) => r.status).sort()).toEqual([201, 409]);
+      for (const r of responses) if (r.status === 201) created.push(String(r.body.id));
+      expect(
+        (await api().get('/api/v1/availability').query(query()).expect(200)).body.slots[0].startsAt,
+      ).toBe(instant(date, 645).toISOString());
+    });
+    it('requires the assigned provider and the owning customer to confirm in order, keeps history and retry-safe confirmation', async () => {
+      const response = await create(),
+        id = String(response.body.id);
+      await api(customer)
+        .post(`/api/v1/bookings/${id}/confirm-quote`)
+        .send({ quoteRevision: 1, expectedTotalVnd: '123456', accepted: true })
+        .expect(409);
+      await api(admin)
+        .post(`/api/v1/bookings/${id}/provider-decision`)
+        .send({ decision: 'ACCEPT', expectedVersion: 1, reason })
+        .expect(404);
+      const accepted = await api(applicant)
+        .post(`/api/v1/bookings/${id}/provider-decision`)
+        .send({ decision: 'ACCEPT', expectedVersion: 1, reason })
+        .expect(201);
+      expect(accepted.body.status).toBe('ACCEPTED');
+      expect(accepted.body.notes).toBeNull();
+      await api(otherCustomer)
+        .post(`/api/v1/bookings/${id}/confirm-quote`)
+        .send({ quoteRevision: 1, expectedTotalVnd: '123456', accepted: true })
+        .expect(404);
+      const confirmed = await api(customer)
+        .post(`/api/v1/bookings/${id}/confirm-quote`)
+        .send({ quoteRevision: 1, expectedTotalVnd: '123456', accepted: true })
+        .expect(201);
+      expect(confirmed.body.status).toBe('CONFIRMED');
+      expect(confirmed.body.quote.acceptedAt).toBeTruthy();
+      expect(
+        (confirmed.body.history as Array<{ nextStatus: string }>).map((h) => h.nextStatus),
+      ).toEqual(['REQUESTED', 'ACCEPTED', 'CUSTOMER_CONFIRMED', 'CONFIRMED']);
+      const retry = await api(customer)
+        .post(`/api/v1/bookings/${id}/confirm-quote`)
+        .send({ quoteRevision: 1, expectedTotalVnd: '123456', accepted: true })
+        .expect(201);
+      expect(retry.body.version).toBe(confirmed.body.version);
+      const mine = await api(customer).get('/api/v1/bookings/me').expect(200);
+      expect(mine.headers['cache-control']).toContain('no-store');
+      expect((mine.body as Array<{ id: string }>).some((r) => r.id === id)).toBe(true);
+      expect(JSON.stringify(mine.body)).not.toMatch(
+        /requestFingerprint|idempotencyKey|contactHash|passwordHash|resourceId|actorUserId/,
+      );
+    });
+    it('requires a fresh customer acknowledgment when actual catalog price changes', async () => {
+      const response = await create(),
+        id = String(response.body.id);
+      await api(applicant)
+        .post(`/api/v1/bookings/${id}/provider-decision`)
+        .send({ decision: 'ACCEPT', expectedVersion: 1, reason })
+        .expect(201);
+      await patch('/admin/services/' + serviceId + '/variants/' + variantId, {
+        priceVnd: '150000',
+      });
+      const changed = await api(customer)
+        .post(`/api/v1/bookings/${id}/confirm-quote`)
+        .send({ quoteRevision: 1, expectedTotalVnd: '123456', accepted: true })
+        .expect(201);
+      expect(changed.body.status).toBe('ACCEPTED');
+      expect(changed.body.quote.revision).toBe(2);
+      expect(changed.body.quote.totalVnd).toBe('150000');
+      await api(customer)
+        .post(`/api/v1/bookings/${id}/confirm-quote`)
+        .send({ quoteRevision: 1, expectedTotalVnd: '123456', accepted: true })
+        .expect(409);
+      expect(
+        (
+          await api(customer)
+            .post(`/api/v1/bookings/${id}/confirm-quote`)
+            .send({ quoteRevision: 2, expectedTotalVnd: '150000', accepted: true })
+            .expect(201)
+        ).body.status,
+      ).toBe('CONFIRMED');
+    });
+    it('versions audited administration fees and prevents customer or provider price overrides', async () => {
+      const response = await create(),
+        id = String(response.body.id);
+      await api(customer)
+        .post(`/api/v1/admin/bookings/${id}/quote`)
+        .send({ expectedVersion: 1, extraFeeVnd: '20000', discountVnd: '10000', reason })
+        .expect(403);
+      const revised = await api(admin)
+        .post(`/api/v1/admin/bookings/${id}/quote`)
+        .send({ expectedVersion: 1, extraFeeVnd: '20000', discountVnd: '10000', reason })
+        .expect(201);
+      expect(revised.body.quote.totalVnd).toBe('133456');
+      expect(revised.body.quote.revision).toBe(2);
+      await api(admin)
+        .post(`/api/v1/admin/bookings/${id}/quote`)
+        .send({ expectedVersion: 1, extraFeeVnd: '0', discountVnd: '0', reason })
+        .expect(409);
+      await api(applicant)
+        .post(`/api/v1/bookings/${id}/provider-decision`)
+        .send({ decision: 'ACCEPT', expectedVersion: revised.body.version, reason })
+        .expect(201);
+      await api(customer)
+        .post(`/api/v1/bookings/${id}/confirm-quote`)
+        .send({ quoteRevision: 1, expectedTotalVnd: '123456', accepted: true })
+        .expect(409);
+      expect(
+        (
+          await api(customer)
+            .post(`/api/v1/bookings/${id}/confirm-quote`)
+            .send({ quoteRevision: 2, expectedTotalVnd: '133456', accepted: true })
+            .expect(201)
+        ).body.status,
+      ).toBe('CONFIRMED');
+    });
+    it('declining or expiring requests frees capacity without a confirmed booking', async () => {
+      const first = await create(),
+        id = String(first.body.id);
+      expect(
+        (
+          await api(applicant)
+            .post(`/api/v1/bookings/${id}/provider-decision`)
+            .send({ decision: 'DECLINE', expectedVersion: 1, reason })
+            .expect(201)
+        ).body.status,
+      ).toBe('DECLINED');
+      const second = await create(),
+        secondId = String(second.body.id);
+      await database.manager.update(Appointment, secondId, {
+        requestExpiresAt: new Date(Date.now() - 1000),
+      });
+      expect(
+        (
+          await api(applicant)
+            .post(`/api/v1/bookings/${secondId}/provider-decision`)
+            .send({ decision: 'ACCEPT', expectedVersion: 1, reason })
+            .expect(201)
+        ).body.status,
+      ).toBe('EXPIRED');
+      await create();
+    });
+    it('rechecks quality after request and after provider acceptance', async () => {
+      const response = await create(),
+        id = String(response.body.id);
+      await post(providerPath() + '/operating-review', {
+        providerKind: 'WELLNESS',
+        qualityStatus: 'SUSPENDED',
+        reason,
+      });
+      await api(applicant)
+        .post(`/api/v1/bookings/${id}/provider-decision`)
+        .send({ decision: 'ACCEPT', expectedVersion: 1, reason })
+        .expect(409);
+      await post(providerPath() + '/operating-review', {
+        providerKind: 'WELLNESS',
+        qualityStatus: 'ACTIVE',
+        reason,
+      });
+      await api(applicant)
+        .post(`/api/v1/bookings/${id}/provider-decision`)
+        .send({ decision: 'ACCEPT', expectedVersion: 1, reason })
+        .expect(201);
+      await post(providerPath() + '/operating-review', {
+        providerKind: 'WELLNESS',
+        qualityStatus: 'SUSPENDED',
+        reason,
+      });
+      await api(customer)
+        .post(`/api/v1/bookings/${id}/confirm-quote`)
+        .send({ quoteRevision: 1, expectedTotalVnd: '123456', accepted: true })
+        .expect(409);
+      await post(providerPath() + '/operating-review', {
+        providerKind: 'WELLNESS',
+        qualityStatus: 'ACTIVE',
+        reason,
+      });
+    });
   });
 });

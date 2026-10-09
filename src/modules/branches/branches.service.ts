@@ -41,19 +41,26 @@ export class BranchesService {
     ) {
       throw new BadRequestException('Ngày hoặc thời gian ngoại lệ không hợp lệ.');
     }
-    const branch = await this.branches.findOne({ where: { id } });
-    if (!branch) throw new NotFoundException('Không tìm thấy chi nhánh.');
-    const existing = await this.exceptions.findOne({ where: { branchId: id, date: dto.date } });
-    const row = this.exceptions.create({
-      ...existing,
-      branchId: id,
-      date: dto.date,
-      isClosed: dto.isClosed,
-      opensAtMinute: dto.isClosed ? null : dto.opensAtMinute,
-      closesAtMinute: dto.isClosed ? null : dto.closesAtMinute,
-      note: dto.note?.trim() || null,
+    return this.dataSource.transaction(async (manager) => {
+      const branch = await manager.findOne(Branch, {
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!branch) throw new NotFoundException('Không tìm thấy chi nhánh.');
+      const existing = await manager.findOneBy(BranchExceptionHour, {
+        branchId: id,
+        date: dto.date,
+      });
+      return manager.save(BranchExceptionHour, {
+        ...existing,
+        branchId: id,
+        date: dto.date,
+        isClosed: dto.isClosed,
+        opensAtMinute: dto.isClosed ? null : dto.opensAtMinute,
+        closesAtMinute: dto.isClosed ? null : dto.closesAtMinute,
+        note: dto.note?.trim() || null,
+      });
     });
-    return this.exceptions.save(row);
   }
 
   async listHours(id: string, admin = false): Promise<BranchBusinessHour[]> {

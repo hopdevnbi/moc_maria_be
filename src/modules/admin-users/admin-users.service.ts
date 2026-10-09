@@ -15,6 +15,7 @@ import { Role } from '../identity/entities/role.entity';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
 import { UserRole } from '../identity/entities/user-role.entity';
 import { User } from '../identity/entities/user.entity';
+import { ProviderApplication } from '../providers/entities/provider-application.entity';
 import { normalizeEmail, normalizePhone } from '../identity/identity-normalization';
 import { IdentityService } from '../identity/identity.service';
 import type { AuthUserContext } from '../identity/identity.types';
@@ -48,8 +49,6 @@ export class AdminUsersService {
     private readonly users: Repository<User>,
     @InjectRepository(Role)
     private readonly roles: Repository<Role>,
-    @InjectRepository(StaffProfile)
-    private readonly staffProfiles: Repository<StaffProfile>,
     @InjectRepository(RefreshSession)
     private readonly sessions: Repository<RefreshSession>,
   ) {}
@@ -167,20 +166,31 @@ export class AdminUsersService {
       throw new BadRequestException('Không thể tự vô hiệu hóa tài khoản đang sử dụng.');
     }
 
-    user.isActive = isActive;
-    await this.users.save(user);
-    const staff = await this.staffProfiles.findOne({ where: { userId } });
-    if (staff) {
-      staff.isActive = isActive;
-      await this.staffProfiles.save(staff);
-    }
-    if (!isActive) {
-      await this.sessions.update({ userId, revokedAt: IsNull() }, { revokedAt: new Date() });
-    }
-    await this.identityService.writeAudit({
-      event: isActive ? 'ADMIN_ACCOUNT_ENABLED' : 'ADMIN_ACCOUNT_DISABLED',
-      actorUserId: actor.id,
-      targetUserId: userId,
+    await this.dataSource.transaction(async (manager) => {
+      await manager.findOne(ProviderApplication, {
+        where: { userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const target = await manager.findOne(User, {
+        where: { id: userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!target) throw new NotFoundException('Không tìm thấy tài khoản.');
+      target.isActive = isActive;
+      await manager.save(User, target);
+      await manager.update(StaffProfile, { userId }, { isActive });
+      if (!isActive)
+        await manager.update(
+          RefreshSession,
+          { userId, revokedAt: IsNull() },
+          { revokedAt: new Date() },
+        );
+      await manager.save(AuditLog, {
+        event: isActive ? 'ADMIN_ACCOUNT_ENABLED' : 'ADMIN_ACCOUNT_DISABLED',
+        actorUserId: actor.id,
+        targetUserId: userId,
+        metadata: {},
+      });
     });
     return { id: userId, isActive };
   }

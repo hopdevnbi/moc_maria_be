@@ -166,8 +166,19 @@ async function main() {
     );
     if (process.env.QA_CHECK_LATEST_ROLLBACK === 'true') {
       for (const command of ['migration:revert', 'migration:run']) {
-        await runNode(['-r', 'ts-node/register', '-r', 'tsconfig-paths/register',
-          require.resolve('typeorm/cli.js'), command, '-d', 'src/database/data-source.ts'], env);
+        await runNode(
+          [
+            '-r',
+            'ts-node/register',
+            '-r',
+            'tsconfig-paths/register',
+            require.resolve('typeorm/cli.js'),
+            command,
+            '-d',
+            'src/database/data-source.ts',
+          ],
+          env,
+        );
       }
       console.log('Latest migration rollback/reapply in isolated database PASS.');
     }
@@ -182,6 +193,7 @@ async function main() {
         throw new Error('QA browser frontend directory is unavailable');
       const browserPassword = randomBytes(32).toString('base64url') + '1!';
       const email = `browser-admin-${suffix}@mocmaria.test`;
+      let bookingAccounts = [];
       const client = new Client({ connectionString: url, ssl: false });
       await client.connect();
       try {
@@ -193,6 +205,19 @@ async function main() {
           'INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name=$2',
           [created.rows[0].id, 'SUPER_ADMIN'],
         );
+        // Credentials for actual API-created booking fixtures, only in this disposable database.
+        const accounts = await client.query(
+          "SELECT id,email FROM users WHERE email LIKE 'booking-customer-%@mocmaria.test' OR email LIKE 'booking-provider-%@mocmaria.test' ORDER BY email",
+        );
+        bookingAccounts = accounts.rows.map((account) => ({
+          email: account.email,
+          role: account.email.startsWith('booking-customer-') ? 'CUSTOMER' : 'PROVIDER',
+        }));
+        if (accounts.rows.length)
+          await client.query(
+            'UPDATE users SET password_hash=$1,must_change_password=false WHERE id=ANY($2::uuid[])',
+            [await argon2.hash(browserPassword), accounts.rows.map((account) => account.id)],
+          );
       } finally {
         await client.end();
       }
@@ -235,7 +260,12 @@ async function main() {
       browserFixtureFile = path.join(os.tmpdir(), name + '-browser.json');
       fs.writeFileSync(
         browserFixtureFile,
-        JSON.stringify({ email, password: browserPassword, url: 'http://localhost:3016' }),
+        JSON.stringify({
+          email,
+          password: browserPassword,
+          url: 'http://localhost:3016',
+          bookingAccounts,
+        }),
         { mode: 0o600 },
       );
       console.log(

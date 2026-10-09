@@ -51,7 +51,7 @@ export interface AvailabilityResult {
   date: string;
   mode: 'AT_BRANCH';
   reservation: false;
-  requestEnabled: false;
+  requestEnabled: true;
   search?: { fromDate: string; throughDate: string; hasMoreDates: boolean };
   blockers: string[];
   slots: Array<
@@ -111,6 +111,7 @@ export class AvailabilityService {
     manager: EntityManager,
     at = new Date(),
     limit = 120,
+    selection: { startsAt?: string; excludeAppointmentId?: string } = {},
   ): Promise<{ context: AvailabilityContext | null; slots: PlannedSlot[]; blockers: string[] }> {
     if (!validCalendarDate(query.date)) throw new BadRequestException('Ngày không hợp lệ.');
     const context = await this.context(query, manager);
@@ -167,8 +168,14 @@ export class AvailabilityService {
       `SELECT s.provider_application_id AS owner_id,a.blocked_starts_at,a.blocked_ends_at,1::integer AS units
    FROM appointment_staff s JOIN appointments a ON a.id=s.appointment_id
    WHERE a.blocked_starts_at<$2 AND a.blocked_ends_at>$1 AND ${OCCUPYING_APPOINTMENT_SQL}
-   AND s.provider_application_id=ANY($4::uuid[])`,
-      [dayStart, dayEnd, at, providers.map((p) => p.app.id)],
+   AND s.provider_application_id=ANY($4::uuid[]) AND ($5::uuid IS NULL OR a.id<>$5)`,
+      [
+        dayStart,
+        dayEnd,
+        at,
+        providers.map((p) => p.app.id),
+        selection.excludeAppointmentId ?? null,
+      ],
     );
     const resources = await manager.find(BranchResource, {
       where: { branchId: branch.id, isActive: true },
@@ -179,8 +186,14 @@ export class AvailabilityService {
           `SELECT r.resource_id AS owner_id,a.blocked_starts_at,a.blocked_ends_at,r.units
    FROM appointment_resources r JOIN appointments a ON a.id=r.appointment_id
    WHERE a.blocked_starts_at<$2 AND a.blocked_ends_at>$1 AND ${OCCUPYING_APPOINTMENT_SQL}
-   AND r.resource_id=ANY($4::uuid[])`,
-          [dayStart, dayEnd, at, resources.map((r) => r.id)],
+   AND r.resource_id=ANY($4::uuid[]) AND ($5::uuid IS NULL OR a.id<>$5)`,
+          [
+            dayStart,
+            dayEnd,
+            at,
+            resources.map((r) => r.id),
+            selection.excludeAppointmentId ?? null,
+          ],
         )
       : [];
     const resourceBusy = new Map<string, Occupancy[]>();
@@ -205,6 +218,7 @@ export class AvailabilityService {
         ) {
           const start = instant(query.date, minute),
             end = new Date(start.getTime() + variant.durationMinutes * MINUTE_MS);
+          if (selection.startsAt && start.toISOString() !== selection.startsAt) continue;
           const blockedStart = new Date(start.getTime() - variant.bufferBeforeMinutes * MINUTE_MS),
             blockedEnd = new Date(end.getTime() + variant.bufferAfterMinutes * MINUTE_MS);
           if (
@@ -267,7 +281,7 @@ export class AvailabilityService {
         date: query.date,
         mode: 'AT_BRANCH',
         reservation: false,
-        requestEnabled: false,
+        requestEnabled: true,
         blockers: result.blockers,
         slots: result.slots.map((slot) => ({
           startsAt: slot.startsAt,
@@ -312,7 +326,7 @@ export class AvailabilityService {
         },
         mode: 'AT_BRANCH',
         reservation: false,
-        requestEnabled: false,
+        requestEnabled: true,
         blockers: result.blockers,
         slots: result.slots.map((slot) => ({
           startsAt: slot.startsAt,

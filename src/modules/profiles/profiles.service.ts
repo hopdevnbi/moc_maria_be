@@ -45,6 +45,10 @@ export class ProfilesService {
       await this.dataSource.transaction(async (manager) => {
         const users = manager.getRepository(User);
         const customers = manager.getRepository(Customer);
+        const application = await manager.findOne(ProviderApplication, {
+          where: { userId },
+          lock: { mode: 'pessimistic_write' },
+        });
         const user = await users.findOne({
           where: { id: userId },
           lock: { mode: 'pessimistic_write' },
@@ -68,7 +72,6 @@ export class ProfilesService {
         }
 
         await users.save(user);
-        const application = await manager.findOneBy(ProviderApplication, { userId });
         if (application) {
           for (const channel of ['EMAIL', 'PHONE'] as const) {
             if (channel === 'EMAIL' ? previousEmail === user.email : previousPhone === user.phone)

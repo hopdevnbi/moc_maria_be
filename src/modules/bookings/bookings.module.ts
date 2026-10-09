@@ -4,11 +4,22 @@ import { AccessControlModule } from '../access-control/access-control.module';
 import { ProvidersModule } from '../providers/providers.module';
 import { AvailabilityService } from './availability.service';
 import { BookingSettingsService } from './booking-settings.service';
-import { AvailabilityController, BookingSettingsController } from './bookings.controller';
+import {
+  AvailabilityController,
+  BookingSettingsController,
+  BookingsController,
+  AdminBookingsController,
+} from './bookings.controller';
+import { BookingTransactionsService } from './booking-transactions.service';
 @Module({
   imports: [AuthModule, AccessControlModule, ProvidersModule],
-  providers: [AvailabilityService, BookingSettingsService],
-  controllers: [AvailabilityController, BookingSettingsController],
+  providers: [AvailabilityService, BookingSettingsService, BookingTransactionsService],
+  controllers: [
+    AvailabilityController,
+    BookingSettingsController,
+    BookingsController,
+    AdminBookingsController,
+  ],
   exports: [AvailabilityService],
 })
 export class BookingsModule {}
