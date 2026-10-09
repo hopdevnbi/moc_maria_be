@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { ProvidersService } from './providers.service';
+import { ProviderTrustService } from './provider-trust.service';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
@@ -24,8 +25,13 @@ describe('Provider eligibility', () => {
   };
   const courses = { findOneBy: jest.fn() };
   const enrollments = { findOneBy: jest.fn() };
+  const trust = {
+    assertApprovalReady: jest.fn(),
+    publicEligibleIds: jest.fn(() => Promise.resolve(new Set<string>())),
+  };
   const service = new ProvidersService(
     dataSource as unknown as DataSource,
+    trust as unknown as ProviderTrustService,
     applications as unknown as Repository<ProviderApplication>,
     certificates as unknown as Repository<ProviderCertificate>,
     profiles as unknown as Repository<StaffProfile>,
@@ -55,7 +61,7 @@ describe('Provider eligibility', () => {
     });
     manager.find.mockResolvedValue([]);
     await expect(
-      service.review('application-1', 'manager', { status: 'APPROVED' }),
+      service.review('application-1', 'manager', { status: 'APPROVED', note: 'QA decision' }),
     ).rejects.toThrow(BadRequestException);
   });
 
@@ -87,7 +93,7 @@ describe('Provider eligibility', () => {
       status: 'ASSESSMENT',
     });
     await expect(
-      service.review('application-1', 'applicant', { status: 'APPROVED' }),
+      service.review('application-1', 'applicant', { status: 'APPROVED', note: 'QA decision' }),
     ).rejects.toThrow(BadRequestException);
   });
 

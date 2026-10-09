@@ -12,6 +12,8 @@ import { StaffProfile } from '../identity/entities/staff-profile.entity';
 import { User } from '../identity/entities/user.entity';
 import { normalizeEmail, normalizePhone } from '../identity/identity-normalization';
 import { IdentityService } from '../identity/identity.service';
+import { ProviderApplication } from '../providers/entities/provider-application.entity';
+import { ProviderContactVerification } from '../providers/entities/provider-contact-verification.entity';
 import type { AuthUserContext } from '../identity/identity.types';
 import type { UpdateCustomerProfileDto } from './dto/update-customer-profile.dto';
 import type { UpdateStaffProfileDto } from './dto/update-staff-profile.dto';
@@ -43,10 +45,15 @@ export class ProfilesService {
       await this.dataSource.transaction(async (manager) => {
         const users = manager.getRepository(User);
         const customers = manager.getRepository(Customer);
-        const user = await users.findOne({ where: { id: userId } });
+        const user = await users.findOne({
+          where: { id: userId },
+          lock: { mode: 'pessimistic_write' },
+        });
         const customer = await customers.findOne({ where: { userId } });
         if (!user || !customer) throw new NotFoundException('Không tìm thấy hồ sơ khách hàng.');
 
+        const previousEmail = user.email;
+        const previousPhone = user.phone;
         if (dto.displayName !== undefined) user.displayName = dto.displayName.trim();
         if (dto.email !== undefined) user.email = normalizeEmail(dto.email);
         if (dto.phone !== undefined) user.phone = normalizePhone(dto.phone);
@@ -61,6 +68,24 @@ export class ProfilesService {
         }
 
         await users.save(user);
+        const application = await manager.findOneBy(ProviderApplication, { userId });
+        if (application) {
+          for (const channel of ['EMAIL', 'PHONE'] as const) {
+            if (channel === 'EMAIL' ? previousEmail === user.email : previousPhone === user.phone)
+              continue;
+            await manager.update(
+              ProviderContactVerification,
+              { providerApplicationId: application.id, channel },
+              { revokedAt: new Date() },
+            );
+            await manager.save(AuditLog, {
+              event: 'provider.contact.invalidated',
+              actorUserId: userId,
+              targetUserId: userId,
+              metadata: { applicationId: application.id, channel, reason: 'CONTACT_CHANGED' },
+            });
+          }
+        }
         await customers.save(customer);
         await manager.getRepository(AuditLog).insert({
           event: 'CUSTOMER_PROFILE_UPDATED',

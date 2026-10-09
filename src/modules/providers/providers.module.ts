@@ -8,6 +8,7 @@ import { ProviderCertificate } from './entities/provider-certificate.entity';
 import { TrainingCourse } from './entities/training-course.entity';
 import { TrainingEnrollment } from './entities/training-enrollment.entity';
 import { TrainingService } from './training.service';
+import { ProviderTrustService } from './provider-trust.service';
 import { TrainingController } from './training.controller';
 import { ProvidersService } from './providers.service';
 import {
@@ -28,7 +29,7 @@ import {
     AuthModule,
     AccessControlModule,
   ],
-  providers: [ProvidersService, TrainingService],
+  providers: [ProvidersService, TrainingService, ProviderTrustService],
   controllers: [
     PublicProvidersController,
     ProviderApplicationsController,

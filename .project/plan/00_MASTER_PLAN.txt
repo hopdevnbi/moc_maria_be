@@ -297,7 +297,7 @@ Phase 08: Queue / Production / Domain / Hardening
 Chi tiết nằm trong các file 01..08.
 
 
- 
+
 16. MÔ HÌNH KTV ĐÀO TẠO VÀ DỊCH VỤ TẠI NHÀ (PRIORITY: CORE MVP)
 ----------------------------------------------------------------
 Mộc Maria là nền tảng wellness kết hợp dịch vụ tại cơ sở và tại địa chỉ khách yêu cầu.

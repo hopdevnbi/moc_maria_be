@@ -15,13 +15,19 @@ import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
 import { TrainingCourse } from './entities/training-course.entity';
 import { TrainingEnrollment } from './entities/training-enrollment.entity';
-import { ApplyProviderDto, ReviewProviderDto } from './dto/provider-application.dto';
+import {
+  ApplyProviderDto,
+  ReviewProviderDto,
+  UpdateOwnApplicationDto,
+} from './dto/provider-application.dto';
 import { IssueCertificateDto } from './dto/certificate.dto';
+import { ProviderTrustService } from './provider-trust.service';
 
 @Injectable()
 export class ProvidersService {
   constructor(
     private readonly dataSource: DataSource,
+    private readonly trust: ProviderTrustService,
     @InjectRepository(ProviderApplication)
     private readonly applications: Repository<ProviderApplication>,
     @InjectRepository(ProviderCertificate)
@@ -36,15 +42,24 @@ export class ProvidersService {
     if (await this.applications.findOneBy({ userId }))
       throw new ConflictException('Đã có hồ sơ ứng tuyển KTV.');
     try {
-      return await this.applications.save(
-        this.applications.create({
-          userId,
-          publicName: dto.publicName.trim(),
-          introduction: dto.introduction?.trim() ?? null,
-          serviceArea: dto.serviceArea?.trim() ?? null,
-          status: 'APPLIED',
-        }),
-      );
+      const record = this.applications.create({
+        userId,
+        publicName: dto.publicName.trim(),
+        introduction: dto.introduction?.trim() ?? null,
+        serviceArea: dto.serviceArea?.trim() ?? null,
+        status: 'APPLIED',
+      });
+      if (dto.applicationConsentVersion)
+        return await this.dataSource.transaction(async (manager) => {
+          const application = await manager.save(ProviderApplication, record);
+          await this.trust.recordConsent(manager, application, {
+            scope: 'APPLICATION_REVIEW',
+            version: dto.applicationConsentVersion!,
+            granted: true,
+          });
+          return application;
+        });
+      return await this.applications.save(record);
     } catch (error) {
       if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505')
         throw new ConflictException('Đã có hồ sơ ứng tuyển KTV.');
@@ -54,6 +69,34 @@ export class ProvidersService {
 
   myApplication(userId: string): Promise<ProviderApplication | null> {
     return this.applications.findOneBy({ userId });
+  }
+
+  async updateMyApplication(
+    userId: string,
+    dto: UpdateOwnApplicationDto,
+  ): Promise<ProviderApplication> {
+    return this.dataSource.transaction(async (manager) => {
+      const application = await manager.findOne(ProviderApplication, {
+        where: { userId },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!application) throw new NotFoundException('Bạn chưa có hồ sơ ứng tuyển.');
+      if (application.status === 'APPROVED')
+        throw new BadRequestException('Hồ sơ đã duyệt cần được Mộc xem xét trước khi thay đổi.');
+      if (dto.publicName.trim().length < 2 || !dto.introduction.trim() || !dto.serviceArea.trim())
+        throw new BadRequestException('Cần tên, giới thiệu kinh nghiệm và khu vực phục vụ hợp lệ.');
+      application.publicName = dto.publicName.trim();
+      application.introduction = dto.introduction.trim();
+      application.serviceArea = dto.serviceArea.trim();
+      const saved = await manager.save(application);
+      await manager.save(AuditLog, {
+        event: 'provider.application.updated',
+        actorUserId: userId,
+        targetUserId: userId,
+        metadata: { applicationId: application.id },
+      });
+      return saved;
+    });
   }
 
   async myTraining(userId: string): Promise<{
@@ -225,6 +268,7 @@ export class ProvidersService {
       });
       if (!app) throw new NotFoundException('Không tìm thấy hồ sơ KTV.');
       if (actorId === app.userId) throw new BadRequestException('Không được tự duyệt hồ sơ.');
+      if (!dto.note?.trim()) throw new BadRequestException('Cần ghi rõ lý do/phản hồi quyết định.');
       const transitions: Record<string, string[]> = {
         APPLIED: ['REVIEWING', 'REJECTED'],
         REVIEWING: ['TRAINING', 'REJECTED'],
@@ -245,6 +289,7 @@ export class ProvidersService {
         if (!certs.some((c) => !c.revokedAt && (!c.expiresAt || c.expiresAt.getTime() > now))) {
           throw new BadRequestException('KTV chưa có chứng nhận đào tạo nội bộ hợp lệ.');
         }
+        await this.trust.assertApprovalReady(id, manager);
         if (!(await manager.findOneBy(User, { id: app.userId, isActive: true })))
           throw new BadRequestException('Tài khoản KTV không hoạt động.');
         const role = await manager.findOneByOrFail(Role, { name: 'THERAPIST' });
@@ -293,10 +338,11 @@ export class ProvidersService {
         where: { providerApplicationId: In(approved.map((app) => app.id)) },
       }),
       this.dataSource.getRepository(User).find({
-        select: ['id'],
+        select: ['id', 'email', 'phone'],
         where: { id: In(approved.map((app) => app.userId)), isActive: true },
       }),
     ]);
+    const trustedIds = await this.trust.publicEligibleIds(approved, users);
     const result: Array<{
       id: string;
       publicName: string;
@@ -305,6 +351,7 @@ export class ProvidersService {
       avatarUrl: string | null;
     }> = [];
     for (const app of approved) {
+      if (!trustedIds.has(app.id)) continue;
       const profile = profiles.find((profile) => profile.userId === app.userId);
       if (!profile || !users.some((user) => user.id === app.userId)) continue;
       if (

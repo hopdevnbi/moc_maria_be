@@ -5,7 +5,7 @@ LAST_UPDATED: 2026-10-09
 TOTAL_PHASES: 8
 CURRENT_PHASE: 03
 CURRENT_TASK: P03-T26
-CURRENT_STAGE: A — Chốt QA fixes, tiếp theo B — Hồ sơ/eligibility
+CURRENT_STAGE: B — Hồ sơ/eligibility, code/test/browser PASS; migration/deploy pending
 OVERALL_STATUS: IMPLEMENTING
 MVP_STATUS: IN_PROGRESS_NOT_OPERATIONAL
 
@@ -30,7 +30,7 @@ Không tự mark DONE vì build PASS; cần API/schema/UI đúng quyền/test/re
 
 VERIFIED RELEASE
 ----------------
-FE source 99612d5: https://mocmaria.com; Vercel dpl_743MiiREwFh3gvt6U8RmTdN7eM1d READY.
+FE Stage A source 961c0d5 (QA fixes 6b0f3a3): https://mocmaria.com; Vercel dpl_7aBE3CnHZazqB7YfZJQiqy2gfrSh READY.
 BE source ffc89b3; release docs 67cfdd5. https://api.mocmaria.com/api/v1/health/ready HTTP 200/database up.
 Image sha256:4ec1e00d8521e01f52980cfe3a3fa85602f6482da817939bfb42a49d9d1e17b9. Deployment ready=1; TLS READY.
 9 production migrations applied; no new schema migration in latest release. No production fixture seed/reset.
@@ -43,7 +43,7 @@ OWNERSHIP / NEXT
 Read 11_WORK_COORDINATION.md, 12_STAGE_ROADMAP.md, 14_ACTIVE_WORK.json before edits.
 Current Codex claims providers/training, related identity fields/migrations/tests, marketplace/auth QA, trackers/releases. No parallel writer in shared BE checkout. Other AI must claim isolated scope/worktree; coordinate shared DTO/schema/global CSS.
 FE Desktop checkout d27c1c0 preserved; current integration worktree C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe. Do not reset or overwrite other AI.
-Stage A: commit/deploy tested small QA fixes/helper and planning reconciliation.
+Stage A: DONE — plan ownership/checklists pushed; QA fixes deployed, public browser verified. BE dff0f5f; FE 961c0d5.
 Stage B/C/D: consent/contact, eligibility, skills/schedules/legal/area and detailed training; do not enable bookings before gate.
 Stage E: Phase 04 engine + real FE booking; Stage F chat/reviews; G admin operations; H SEO/media/queue/production acceptance.
 Owner inputs pending: admin email and real catalog/prices/branches/providers; legal policy when applicable. Continue independent coding.
@@ -54,3 +54,7 @@ API prior digest sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb8102
 FE prior READY dpl_6QkFFnd7uF6EwLHGALEfTxs1k5nR. Schema unchanged in latest release.
 
 DETAILED AUDIT: 10_CURRENT_PROGRESS.md (snapshot 2026-10-09).
+
+STAGE B PRE-RELEASE
+-------------------
+Consent/contact/owned application edit and private readiness UI implemented; 17 unit + 21 isolated integrations PASS, rollback/reapply of new migration PASS, browser consent/admin/mobile QA PASS. Public-schema backup and restore drill PASS (9 migrations, 24 tables) before live migration. Stage B migration/image/API/FE production verification pending. No Phase 03 completion claimed.

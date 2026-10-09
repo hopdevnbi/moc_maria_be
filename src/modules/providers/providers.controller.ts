@@ -16,11 +16,17 @@ import { PermissionsGuard } from '../access-control/guards/permissions.guard';
 import { RequirePermissions } from '../access-control/decorators/require-permissions.decorator';
 import { PERMISSIONS } from '../identity/identity.constants';
 import type { AuthUserContext } from '../identity/identity.types';
-import { ApplyProviderDto, ReviewProviderDto } from './dto/provider-application.dto';
+import {
+  ApplyProviderDto,
+  ReviewProviderDto,
+  UpdateOwnApplicationDto,
+} from './dto/provider-application.dto';
 import { IssueCertificateDto } from './dto/certificate.dto';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
 import { ProvidersService } from './providers.service';
+import { ProviderTrustService } from './provider-trust.service';
+import { SaveProviderConsentDto, VerifyProviderContactDto } from './dto/provider-trust.dto';
 
 @ApiTags('providers')
 @Controller('providers')
@@ -46,7 +52,24 @@ export class PublicProvidersController {
 @Controller('provider-applications')
 @UseGuards(AccessTokenGuard)
 export class ProviderApplicationsController {
-  constructor(private readonly service: ProvidersService) {}
+  constructor(
+    private readonly service: ProvidersService,
+    private readonly trust: ProviderTrustService,
+  ) {}
+  @Get('me/eligibility')
+  @Header('Cache-Control', 'private, no-store')
+  eligibility(
+    @CurrentUser() actor: AuthUserContext,
+  ): ReturnType<ProviderTrustService['mySummary']> {
+    return this.trust.mySummary(actor.id);
+  }
+  @Post('me/consent')
+  consent(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: SaveProviderConsentDto,
+  ): ReturnType<ProviderTrustService['saveConsent']> {
+    return this.trust.saveConsent(actor.id, dto);
+  }
   @Post()
   apply(
     @CurrentUser() actor: AuthUserContext,
@@ -57,6 +80,13 @@ export class ProviderApplicationsController {
   @Get('me')
   mine(@CurrentUser() actor: AuthUserContext): Promise<ProviderApplication | null> {
     return this.service.myApplication(actor.id);
+  }
+  @Patch('me')
+  update(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: UpdateOwnApplicationDto,
+  ): Promise<ProviderApplication> {
+    return this.service.updateMyApplication(actor.id, dto);
   }
 
   @Get('me/training')
@@ -71,7 +101,36 @@ export class ProviderApplicationsController {
 @Controller('admin/provider-applications')
 @UseGuards(AccessTokenGuard, PermissionsGuard)
 export class AdminProvidersController {
-  constructor(private readonly service: ProvidersService) {}
+  constructor(
+    private readonly service: ProvidersService,
+    private readonly trust: ProviderTrustService,
+  ) {}
+  @Get(':id/eligibility')
+  @Header('Cache-Control', 'private, no-store')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  eligibility(
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): ReturnType<ProviderTrustService['summary']> {
+    return this.trust.summary(id, undefined, true);
+  }
+  @Post(':id/contact-verifications')
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
+  verifyContact(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: VerifyProviderContactDto,
+  ): ReturnType<ProviderTrustService['verifyContact']> {
+    return this.trust.verifyContact(id, actor.id, dto);
+  }
+  @Patch(':id/contact-verifications/:verificationId/revoke')
+  @RequirePermissions(PERMISSIONS.ROLE_MANAGE)
+  revokeContact(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('verificationId', new ParseUUIDPipe()) verificationId: string,
+  ): ReturnType<ProviderTrustService['revokeContact']> {
+    return this.trust.revokeContact(id, verificationId, actor.id);
+  }
   @Get()
   @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
   list(): Promise<ProviderApplication[]> {

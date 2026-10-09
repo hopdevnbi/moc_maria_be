@@ -4,7 +4,7 @@
     {
       "agent": "Codex current chat",
       "status": "ACTIVE",
-      "stage": "A then B",
+      "stage": "B — consent/contact release verification",
       "taskIds": [
         "P03-T26",
         "P03-T27",
@@ -23,7 +23,9 @@
         "FE/src/features/auth/components/ChangePasswordForm.tsx",
         "FE/src/app/tai-khoan/page.tsx",
         "Plan/**",
-        "repo docs/progress/state"
+        "repo docs/progress/state",
+        "BE/src/modules/profiles/profiles.service.ts (invalidate contact verification)",
+        "BE/scripts/verify-backup-restore.cjs"
       ],
       "note": "Before any new writer, recheck live status and discuss overlaps. No other agent confirmed ownership here."
     }

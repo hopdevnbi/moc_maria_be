@@ -164,6 +164,13 @@ async function main() {
       ],
       env,
     );
+    if (process.env.QA_CHECK_LATEST_ROLLBACK === 'true') {
+      for (const command of ['migration:revert', 'migration:run']) {
+        await runNode(['-r', 'ts-node/register', '-r', 'tsconfig-paths/register',
+          require.resolve('typeorm/cli.js'), command, '-d', 'src/database/data-source.ts'], env);
+      }
+      console.log('Latest migration rollback/reapply in isolated database PASS.');
+    }
     await runNode(
       [require.resolve('jest/bin/jest'), '--config', 'test/jest-e2e.json', '--runInBand'],
       env,

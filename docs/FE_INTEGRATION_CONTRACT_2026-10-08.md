@@ -69,3 +69,17 @@ ratings, service prices or testimonials.
 - Provider public cache is now no-store to avoid stale eligibility. Private APIs are private/no-store.
 - Application review follows APPLIED→REVIEWING→TRAINING→ASSESSMENT→APPROVED with rejection, remediation and suspension transitions; invalid jumps fail. Approval creates THERAPIST identity/profile with isPublic=false; it does not imply bookable eligibility.
 - Catalog/provider lifecycle integration suite now exercises PostgreSQL constraints and HTTP RBAC in an isolated ephemeral QA database.
+
+## Stage B — provider contact/consent (2026-10-09)
+
+- Additive migration ProviderConsentContact1791628000000; legacy applications receive no assumed consent or verification.
+- Existing POST application body stays compatible. Optional applicationConsentVersion=provider-consent-v1 records application-review consent atomically with the application.
+- PATCH /provider-applications/me updates owned non-approved application name/introduction/area only; rejects state/identity forgery. APPROVED profile edits require review.
+- GET /provider-applications/me/eligibility: private,no-store; current contact verification and two consent scopes; no contact hashes/evidence/actor identifiers. bookable=false until skills/schedule/service gates are implemented.
+- POST /provider-applications/me/consent: {scope:APPLICATION_REVIEW|PUBLIC_PROFILE,version:provider-consent-v1,granted:boolean}. Versioned audit. Withdrawal excludes public profile immediately.
+- GET /admin/provider-applications/:id/eligibility needs staff.manage; administration sees evidence references and verifier ID.
+- POST /admin/provider-applications/:id/contact-verifications needs roles.manage; {channel:EMAIL|PHONE,contactValue,evidenceReference,confirmedByContact:true}. Existing active account contact must match. References allow only letters/numbers/dash/underscore. No self-verification.
+- PATCH /admin/provider-applications/:id/contact-verifications/:verificationId/revoke needs roles.manage, checks application ownership, no self-action.
+- This is MANUAL_CONTACT_CONFIRMATION with actual admin evidence. It is not OTP or automatic email delivery. User contact updates permanently revoke old verification; changing back does not restore it.
+- Application review now requires a non-blank decision note. Approval requires profile completion, application consent and verified current contact, in addition to existing real training/certificate checks. Public listing additionally requires opt-in PUBLIC_PROFILE consent.
+- Admin/applicant interface must not imply approval/contact confirmation is legal credential verification or booking readiness. Full skill/legal/quality/service/territory gates still pending.

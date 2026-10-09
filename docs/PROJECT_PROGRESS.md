@@ -80,3 +80,9 @@ Catalog/provider release ffc89b39ddaa2b37b70c337160c90778227d0ffd deployed succe
 - FE companion 99612d5 deployed via Vercel dpl_743MiiREwFh3gvt6U8RmTdN7eM1d and aliased https://mocmaria.com. Public page reads actual empty production catalog/providers.
 - Rollback API: reapply previous digest sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb81029e419c7f. Schema unchanged, no database rollback needed. FE rollback: prior READY deployment dpl_6QkFFnd7uF6EwLHGALEfTxs1k5nR.
 - Broader marketplace scope remains unfinished; isolated private admin browser QA continues next.
+
+## Stage A/B — 2026-10-09
+- Reconciled task-level phase checklists and ownership registry; safe Plan mirror committed in .project/plan. Stages A-H defined; current Phase 03 remains open.
+- Stage A QA fixes deployed on Vercel dpl_7aBE3CnHZazqB7YfZJQiqy2gfrSh; public browser PASS.
+- Stage B contact/consent and own application edit implemented; actual private/admin/browser/mobile QA PASS; 21 integration tests; source build/quality checks PASS before final edit rerun. New additive migration deployment pending.
+- Application backup and disposable restore drill PASS; actual database never seeded by QA. Details in backend backup drill/contract docs.

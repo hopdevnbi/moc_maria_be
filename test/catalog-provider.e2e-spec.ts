@@ -213,6 +213,28 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       })
       .expect(201);
     applicationId = applied.body.id;
+    await api(otherCustomer)
+      .patch('/api/v1/provider-applications/me')
+      .send({ publicName: 'Other QA', introduction: 'QA', serviceArea: 'QA' })
+      .expect(404);
+    await api(applicant)
+      .patch('/api/v1/provider-applications/me')
+      .send({
+        publicName: 'QA provider',
+        introduction: 'QA',
+        serviceArea: 'QA',
+        status: 'APPROVED',
+      })
+      .expect(400);
+    await api(applicant)
+      .patch('/api/v1/provider-applications/me')
+      .send({
+        publicName: 'QA provider',
+        introduction: 'Isolated QA fixture only',
+        serviceArea: 'QA area only',
+      })
+      .expect(200);
+
     expect(applied.body.status).toBe('APPLIED');
     await api(applicant)
       .post('/api/v1/provider-applications')
@@ -229,7 +251,7 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       .expect(403);
     await api(applicant)
       .patch(`/api/v1/admin/provider-applications/${applicationId}/review`)
-      .send({ status: 'APPROVED' })
+      .send({ status: 'APPROVED', note: 'Isolated QA decision' })
       .expect(403);
     await api().get(`/api/v1/providers/${applicationId}`).expect(404);
   });
@@ -237,11 +259,11 @@ describe('Catalog and provider lifecycle in isolated database', () => {
   it('requires reviewed application, real training completion and practical assessment before certification', async () => {
     await api(admin)
       .patch(`/api/v1/admin/provider-applications/${applicationId}/review`)
-      .send({ status: 'APPROVED' })
+      .send({ status: 'APPROVED', note: 'Isolated QA decision' })
       .expect(400);
     await api(admin)
       .patch(`/api/v1/admin/provider-applications/${applicationId}/review`)
-      .send({ status: 'REVIEWING' })
+      .send({ status: 'REVIEWING', note: 'Isolated QA decision' })
       .expect(200);
     const course = await api(admin)
       .post('/api/v1/admin/provider-training/courses')
@@ -258,7 +280,7 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       .expect(400);
     await api(admin)
       .patch(`/api/v1/admin/provider-applications/${applicationId}/review`)
-      .send({ status: 'TRAINING' })
+      .send({ status: 'TRAINING', note: 'Isolated QA decision' })
       .expect(200);
     await api(admin)
       .patch(`/api/v1/admin/provider-training/enrollments/${enrollmentId}/assessment`)
@@ -288,14 +310,113 @@ describe('Catalog and provider lifecycle in isolated database', () => {
     expect(own.body.enrollments[0].enrollment.assessedBy).toBeUndefined();
   });
 
+  it('requires explicit versioned consent and verified current contact, without exposing private evidence', async () => {
+    await api(admin)
+      .patch('/api/v1/admin/provider-applications/' + applicationId + '/review')
+      .send({ status: 'ASSESSMENT', note: 'QA assessment ready' })
+      .expect(200);
+    await api(admin)
+      .patch('/api/v1/admin/provider-applications/' + applicationId + '/review')
+      .send({ status: 'APPROVED', note: 'QA approval must fail' })
+      .expect(400);
+    await api(admin)
+      .patch('/api/v1/admin/provider-applications/' + applicationId + '/review')
+      .send({ status: 'TRAINING', note: 'QA return to training' })
+      .expect(200);
+
+    const selfApplication = await api(admin)
+      .post('/api/v1/provider-applications')
+      .send({ publicName: 'QA self reviewer', applicationConsentVersion: 'provider-consent-v1' })
+      .expect(201);
+    await api(admin)
+      .post(
+        '/api/v1/admin/provider-applications/' + selfApplication.body.id + '/contact-verifications',
+      )
+      .send({
+        channel: 'EMAIL',
+        contactValue: 'admin-' + suffix + '@mocmaria.test',
+        evidenceReference: 'QA_SELF',
+        confirmedByContact: true,
+      })
+      .expect(400);
+    await api(admin)
+      .patch('/api/v1/admin/provider-applications/' + selfApplication.body.id + '/review')
+      .send({ status: 'REVIEWING', note: 'QA forbidden self decision' })
+      .expect(400);
+    const ownPath = '/api/v1/provider-applications/me/eligibility';
+    const adminPath = '/api/v1/admin/provider-applications/' + applicationId;
+    let own = await api(applicant)
+      .get(ownPath)
+      .expect(200)
+      .expect('Cache-Control', 'private, no-store');
+    expect(own.body.applicationConsent).toBe(false);
+    expect(own.body.contactVerified).toBe(false);
+    await api(otherCustomer)
+      .post(adminPath + '/contact-verifications')
+      .send({})
+      .expect(403);
+    await api(applicant)
+      .post('/api/v1/provider-applications/me/consent')
+      .send({ scope: 'APPLICATION_REVIEW', version: 'forged', granted: true })
+      .expect(400);
+    for (const scope of ['APPLICATION_REVIEW', 'PUBLIC_PROFILE']) {
+      await api(applicant)
+        .post('/api/v1/provider-applications/me/consent')
+        .send({ scope, version: 'provider-consent-v1', granted: true })
+        .expect(201);
+    }
+    const contactValue = 'applicant-' + suffix + '@mocmaria.test';
+    const verification = {
+      channel: 'EMAIL',
+      contactValue,
+      evidenceReference: 'QA_CONTACT_001',
+      confirmedByContact: true,
+    };
+    await api(admin)
+      .post(adminPath + '/contact-verifications')
+      .send({ ...verification, confirmedByContact: false })
+      .expect(400);
+    await api(admin)
+      .post(adminPath + '/contact-verifications')
+      .send({ ...verification, contactValue: 'wrong@mocmaria.test' })
+      .expect(400);
+    await api(admin)
+      .post(adminPath + '/contact-verifications')
+      .send(verification)
+      .expect(201);
+    own = await api(applicant).get(ownPath).expect(200);
+    expect(own.body.reviewReady).toBe(true);
+    expect(own.body.bookable).toBe(false);
+    expect(own.body.contacts[0].contactHash).toBeUndefined();
+    expect(own.body.contacts[0].evidenceReference).toBeUndefined();
+    expect(own.body.contacts[0].verifiedBy).toBeUndefined();
+    await api(applicant)
+      .patch('/api/v1/customers/me')
+      .send({ email: 'changed-' + suffix + '@mocmaria.test' })
+      .expect(200);
+    own = await api(applicant).get(ownPath).expect(200);
+    expect(own.body.contactVerified).toBe(false);
+    await api(applicant).patch('/api/v1/customers/me').send({ email: contactValue }).expect(200);
+    own = await api(applicant).get(ownPath).expect(200);
+    expect(own.body.contactVerified).toBe(false);
+    await api(admin)
+      .post(adminPath + '/contact-verifications')
+      .send(verification)
+      .expect(201);
+    await api(admin)
+      .patch(adminPath + '/review')
+      .send({ status: 'ASSESSMENT' })
+      .expect(400);
+  });
+
   it('approves without automatically publishing and excludes expired/inactive/revoked providers immediately', async () => {
     await api(admin)
       .patch(`/api/v1/admin/provider-applications/${applicationId}/review`)
-      .send({ status: 'ASSESSMENT' })
+      .send({ status: 'ASSESSMENT', note: 'Isolated QA decision' })
       .expect(200);
     await api(admin)
       .patch(`/api/v1/admin/provider-applications/${applicationId}/review`)
-      .send({ status: 'APPROVED' })
+      .send({ status: 'APPROVED', note: 'Isolated QA decision' })
       .expect(200);
     const profile = await database
       .getRepository(StaffProfile)
@@ -309,6 +430,52 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       .expect('Cache-Control', 'no-store');
     expect(publicProfile.body.userId).toBeUndefined();
     expect(publicProfile.body.email).toBeUndefined();
+    await api(applicant)
+      .patch('/api/v1/provider-applications/me')
+      .send({ publicName: 'Unreviewed new name', introduction: 'QA', serviceArea: 'QA' })
+      .expect(400);
+
+    await api(applicant)
+      .post('/api/v1/provider-applications/me/consent')
+      .send({ scope: 'PUBLIC_PROFILE', version: 'provider-consent-v1', granted: false })
+      .expect(201);
+    await api()
+      .get('/api/v1/providers/' + applicationId)
+      .expect(404);
+    await api(applicant)
+      .post('/api/v1/provider-applications/me/consent')
+      .send({ scope: 'PUBLIC_PROFILE', version: 'provider-consent-v1', granted: true })
+      .expect(201);
+    await api()
+      .get('/api/v1/providers/' + applicationId)
+      .expect(200);
+    const trust = await api(admin)
+      .get('/api/v1/admin/provider-applications/' + applicationId + '/eligibility')
+      .expect(200);
+    const contacts: Array<{ id: string; isCurrent: boolean }> = trust.body.contacts;
+    const currentVerification = contacts.find((c: { isCurrent: boolean }) => c.isCurrent);
+    await api(admin)
+      .patch(
+        '/api/v1/admin/provider-applications/' +
+          applicationId +
+          '/contact-verifications/' +
+          currentVerification!.id +
+          '/revoke',
+      )
+      .expect(200);
+    await api()
+      .get('/api/v1/providers/' + applicationId)
+      .expect(404);
+    await api(admin)
+      .post('/api/v1/admin/provider-applications/' + applicationId + '/contact-verifications')
+      .send({
+        channel: 'EMAIL',
+        contactValue: 'applicant-' + suffix + '@mocmaria.test',
+        evidenceReference: 'QA_RECHECK_002',
+        confirmedByContact: true,
+      })
+      .expect(201);
+
     await database.getRepository(ProviderCertificate).update(certificateId, {
       issuedAt: new Date(Date.now() - 172800000),
       expiresAt: new Date(Date.now() - 86400000),

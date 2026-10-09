@@ -123,4 +123,3 @@ Phase Gate
 [x] Staff/customer identity usable
 [x] Tracker cập nhật
 [x] Commit SHA ghi vào status
-

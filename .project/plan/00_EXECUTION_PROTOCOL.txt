@@ -122,4 +122,3 @@ Trong source, docs/DECISIONS.md ghi kỹ thuật cụ thể theo commit.
 Không được "nhớ bằng chat".
 Trạng thái dự án phải tồn tại trong file được Git track.
 Chat chỉ hỗ trợ triển khai; source + tracker mới là nguồn sự thật bền vững.
-
