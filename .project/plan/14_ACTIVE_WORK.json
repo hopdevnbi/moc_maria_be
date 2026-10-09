@@ -250,7 +250,7 @@
     },
     {
       "agent": "Codex KTV accounts photos schedules 2026-10-09",
-      "status": "ACTIVE",
+      "status": "RELEASED",
       "frontendBranch": "codex/ktv-accounts-photos",
       "backendBranch": "codex/ktv-accounts-photos",
       "ownedPaths": [
@@ -259,7 +259,17 @@
         "BE seed-owned identity/application/branch-assignment/weekly-shift rows only",
         "Plan own claim and release evidence"
       ],
-      "note": "User explicitly authorizes ten persistent KTV accounts and five configured schedules, plus local photo publication. Existing E2a modules remain unchanged; no invented certificates/contact verification/assessment results or appointment writes."
+      "note": "User explicitly authorizes ten persistent KTV accounts and five configured schedules, plus local photo publication. Existing E2a modules remain unchanged; no invented certificates/contact verification/assessment results or appointment writes.",
+      "release": {
+        "frontend": "4e7b58abe0ea286878c8e8985d40fdc5569c1ef5",
+        "backend": "e14fe0c7db88905d836eb3381594aef8dfb2ccfd",
+        "frontendDeployment": "6966198505",
+        "accounts": 10,
+        "scheduled": 5,
+        "unset": 5,
+        "test": "Disposable seed integration PASS; all ten production logins/planning/logout PASS; FE23 tests/lint/typecheck/build and CI PASS; production mobile390 no overflow, detail hours, ten WebP HTTP200; no new migrations/API deployment",
+        "businessData": "Owner-authorized ten THERAPIST accounts and APPLIED provider applications, thirty weekly shifts for first five. No certifications, contact verification, customer reservations or reviews."
+      }
     }
   ]
 }

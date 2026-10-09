@@ -1,3 +1,10 @@
+KTV ACCOUNTS / REAL ACTIVITY PHOTOS / SCHEDULE RELEASE — 2026-10-09
+FE4e7b58a; BE onboarding scripts e14fe0c; Vercel6966198505 SUCCESS, mocmaria.com verified.
+10 persistent KTV logins verified; 5 with Monday–Saturday09:00–18:00 shifts; 5 unset.
+10 local owner-selected activity photos replace drawn avatars. Profiles APPLIED; public reservation/chat gates still require operational review.
+Private credentials TXT exported to owner photo folder; never committed. Existing E2a ownership preserved.
+See docs/KTV_ACCOUNT_PHOTOS_SCHEDULES.md.
+
 CHAT BLOCKS + VERIFIED RATINGS RELEASE — 2026-10-09
 BE c213cc1; FE5f12ecb; schema17; Vercel production6960250016 successful.
 Reciprocal timed/permanent blocking, own unblock, private history; real KTV stars/comments and completed-service review form RELEASED.
