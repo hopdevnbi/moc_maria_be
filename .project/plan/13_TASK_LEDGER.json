@@ -215,17 +215,17 @@
     {
       "id": "P03-T28",
       "status": "PARTIAL",
-      "note": "Course/enrollment/assessment có; thiếu modules/sessions/instructor/attendance evidence."
+      "note": "D1 deployed: course/module/session/instructor/roster/attendance + immutable correction history. Course completion remains manual; computed attendance/required volume D2 pending."
     },
     {
       "id": "P03-T29",
       "status": "PARTIAL",
-      "note": "Pass/fail và attendance >=80% có; thiếu tiêu chí theo service và lịch sử đánh giá lại."
+      "note": "Basic pass/fail >=80% still manual; D1 session evidence ready. Detailed practical criteria, derived attendance, reassessment/expiry and assessment history D2 pending."
     },
     {
       "id": "P03-T30",
       "status": "PARTIAL",
-      "note": "Issue/revoke/expiry có; còn renewal/lịch sử; không phải giấy phép nhà nước."
+      "note": "Issue/revoke/expiry deployed; certificate renewal/issuance history and assessment-bound validity D2 pending; internal certificate is not government licence."
     },
     {
       "id": "P03-T31",

@@ -55,7 +55,7 @@
         "imageDigest": "sha256:d3863e3403ad0e7cc2e9b7158e2f9f0eba04c55def94c19d9098b062020565c4",
         "migrations": 10
       },
-      "next": "C2 service training/legal/territory/quality and reviewed profile, then D/E/F/G/H",
+      "next": "Read active claim; B/C1/C2 are release history.",
       "releasedStageC1": {
         "backend": "4544c60663cf6d4f5e3876106a599d48e101eadf",
         "frontend": "07cdc199b111d7f8d350ba45cf2963ddb2db0183",
@@ -74,12 +74,8 @@
     {
       "agent": "Codex current chat",
       "status": "ACTIVE",
-      "stage": "D1/D2 — detailed training and renewal",
-      "taskIds": [
-        "P03-T28",
-        "P03-T29",
-        "P03-T30"
-      ],
+      "stage": "D2 — practical criteria / derived attendance / assessment history / renewal",
+      "taskIds": ["P03-T28", "P03-T29", "P03-T30"],
       "backendBranch": "codex/production-integration",
       "frontendBranch": "codex/platform-integration",
       "frontendWorktree": "C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe",
@@ -92,7 +88,14 @@
         "Plan/**",
         "repo docs/progress/state and scoped release manifests"
       ],
-      "next": "D1 sessions/instructor/attendance then D2 criteria/history/renewal; E/F/G/H follow"
+      "next": "D2 then E booking/quote, F portal/chat/reviews, G operations/CMS, H production acceptance",
+      "releasedStageD1": {
+        "backend": "516ad558d309631d842bbd739fb2f2dfea4c1f19",
+        "frontend": "0d2e43d38733d64b508ebf8fed75b4159a94227a",
+        "frontendDeployment": "dpl_92tjoXBcRK1wPHDZMiYe5hfs6cze",
+        "imageDigest": "sha256:91821eb0d761c1714e293b587252d9adfcd606d00c42150c54838647536c4a19",
+        "migrations": 13
+      }
     }
   ]
 }

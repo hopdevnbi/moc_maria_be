@@ -3,8 +3,8 @@ MỘC MARIA — CURRENT PROJECT STATUS
 SOURCE OF TRUTH: file này + 13_TASK_LEDGER.json; lịch sử audit ở15/16.
 LAST_UPDATED: 2026-10-09
 CURRENT_PHASE: 03
-CURRENT_TASK: P03-T28
-CURRENT_STAGE: D1 — training modules/sessions/instructor/attendance
+CURRENT_TASK: P03-T29
+CURRENT_STAGE: D2 — practical criteria/derived attendance/assessment history/renewal
 OVERALL_STATUS: IMPLEMENTING
 MVP_STATUS: IN_PROGRESS_NOT_OPERATIONAL
 
@@ -12,7 +12,7 @@ PHASE STATUS
 ------------
 [x]01 Foundation DONE.
 [x]02 Identity/auth/RBAC foundation DONE; delivery Phase08.
-[-]03 IN_PROGRESS: A/B/C1/C2 deployed; detailed training/renewal/media/quality aggregates/full gate open.
+[-]03 IN_PROGRESS: A/B/C1/C2/D1 deployed; detailed assessment/renewal/media/quality aggregates/full gate open.
 [ ]04 Booking TODO.
 [-]05 Public web/SEO PARTIAL.
 [-]06 Portals/chat PARTIAL.
@@ -20,29 +20,29 @@ PHASE STATUS
 [-]08 Production PARTIAL. Manual backup/restore PASS; automated retention not implemented.
 Phase02–08:225 tasks;46 DONE,66 PARTIAL,113 TODO. Not product percentage.
 
-VERIFIED RELEASE — C2
+VERIFIED RELEASE — D1
 ---------------------
-BE source 3a069e66dd1ccc44de175cd7a507fa4b01a76e10
-API https://api.mocmaria.com/api/v1; health live/ready HTTP200, deployment ready1.
-Image sha256:e85611a9a09eb56ee1467320b45c82538f8e4604cb7721e9a1b0287c106735ea
-Production schema12, ProviderServiceEligibility1791635200000 applied11→12,4 additive tables.
-FE source eab0a4e2a192e9b408ad580e8306fb90f037844f
-https://mocmaria.com; Vercel dpl_9qeeBbZLUCnKQAtmLSJinRvDMXoZ READY; browser alias verified.
-21 BE unit+26 isolated integrations/rollback+reapply PASS; BE/FE CI PASS; FE4 unit/22-route build PASS.
-Isolated browser profile Vietnamese/quality pause/expired policy disable/grant disable/reload/mobile390 PASS, no horizontal overflow.
-Public providers HTTP200/no-store/empty. Own readiness/admin policies anonymous401/private,no-store.
-Private schema11 backup73690 bytes SHA25654a88d739a61e2b8d560f833e63155815c0f85ff533aa8fdb3db8b7fe85023fe; disposable restore PASS11 migrations/30 tables/7 roles/8 permissions; QA pods/Secrets/credential file removed.
-GiangXa HTTPS200, only namespace moc-maria mutated. No production business fixtures.
+BE source516ad558d309631d842bbd739fb2f2dfea4c1f19; API health live/ready200, deployment ready1.
+Image sha256:91821eb0d761c1714e293b587252d9adfcd606d00c42150c54838647536c4a19.
+Production schema13, TrainingSessionsAttendance1791638800000 applied12→13;5 additive tables.
+FE source0d2e43d38733d64b508ebf8fed75b4159a94227a; https://mocmaria.com; Vercel dpl_92tjoXBcRK1wPHDZMiYe5hfs6cze READY, browser alias verified.
+21 BE unit+32 isolated integrations, latest rollback/reapply, BE/FE quality/build/CI PASS; FE4 unit/22 routes.
+Browser Vietnamese module/session create, attendance correction with4 history events, reload/mobile390 PASS.
+Public providers200/no-store/empty. Private training routes anonymous401/private,no-store.
+Private schema12 backup89146 bytes SHA256b6a0d56b885c340e32c727675dc6f1f436fbde6323f5f729ddfffe77e2e0a781; isolated restore PASS12 migrations/34 tables/7 roles/8 permissions. QA pod/Secret/credential file removed.
+GiangXa HTTPS200. No production business fixtures. Course-level attendance/completion still manual until D2.
 
 OWNERSHIP / NEXT
 ----------------
-Read11/12/13/14 and current code before writing. C2 claim RELEASED; D1/D2 active under current Codex. One BE checkout writer; isolated FE worktree. No confirmed other AI claim. Coordinate shared API/schema/globalCSS and migration release.
-D1 sessions/instructor/attendance → D2 practical criteria/history/renewal → E booking/quote → F portal/chat/reviews → G operations/CMS → H SEO/media/queue/production acceptance.
+Read11/12/13/14 and current code before writing. C2 released; D1 release recorded under active D2 claim of current Codex. One BE checkout writer; isolated FE worktree. No confirmed other AI claim. Coordinate shared API/schema/globalCSS and migration release.
+D1 released → D2 practical criteria/history/renewal → E booking/quote → F portal/chat/reviews → G operations/CMS → H SEO/media/queue/production acceptance.
 Pending owner inputs: official admin email, actual catalog/prices/branches/providers and actual scoped legal review. Continue independent code.
 
 ROLLBACK
 --------
-API previous C1 image sha256:017cc71c5607016f3739253b97a7aa1f48e8f1c94e3c1cd6fe244830b4a2ad68.
-FE previous READY dpl_BPkUaftignL4U8NpGYtUZPHeLoJm.
+API previous C2 image sha256:e85611a9a09eb56ee1467320b45c82538f8e4604cb7721e9a1b0287c106735ea.
+FE previous C2 READY dpl_9qeeBbZLUCnKQAtmLSJinRvDMXoZ.
 Retain additive tables on source rollback; no DROP after live writes. Backup outside Git/restricted ACL.
 Detailed API boundaries: docs/PROVIDER_SERVICE_ELIGIBILITY_C2.md. All bookable=false until Phase04, capability/readiness not slot availability.
+
+D1 boundaries: docs/TRAINING_SESSIONS_D1.md; D2 assessment/renewal open. Do not mark Phase03 complete.

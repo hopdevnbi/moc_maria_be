@@ -13,9 +13,9 @@ P03-T17: Tạo/sửa/publish/disable và giá variant đã có; chưa đầy đ�
 P03-T24: C2 public practitioner/specialist safe profile plus eligible services gates deployed; ratings/media/dedicated expert acceptance still pending.
 P03-T26: DONE Stage B — hồ sơ riêng/own edit, consent version lưu server, liên hệ hiện tại xác minh độc lập. Không phải OTP; upload giấy tờ/media theo task riêng.
 P03-T27: DONE Stage B — state machine, lý do bắt buộc, audit và chặn tự duyệt đã test/deploy.
-P03-T28: Course/enrollment/assessment có; thiếu modules/sessions/instructor/attendance evidence.
-P03-T29: Pass/fail và attendance >=80% có; thiếu tiêu chí theo service và lịch sử đánh giá lại.
-P03-T30: Issue/revoke/expiry có; còn renewal/lịch sử; không phải giấy phép nhà nước.
+P03-T28: D1 deployed: course/module/session/instructor/roster/attendance + immutable correction history. Course completion remains manual; computed attendance/required volume D2 pending.
+P03-T29: Basic pass/fail >=80% still manual; D1 session evidence ready. Detailed practical criteria, derived attendance, reassessment/expiry and assessment history D2 pending.
+P03-T30: Issue/revoke/expiry deployed; certificate renewal/issuance history and assessment-bound validity D2 pending; internal certificate is not government licence.
 P03-T32: C2 public gate checks course-specific valid skill/cert/enrollment, service/category/variant/branch/policy/consent/contact/quality/territory/schedule. Transactional booking/chat gate still Phase04/06.
 P03-T33: C2 ON_SITE/AT_HOME, structured jurisdiction/territory, travel buffer/fee/optional radius with branch-coordinate validation deployed. Actual destination/distance validation at booking still Phase04.
 P03-T34: Variant price and C2 travel fee configuration/read model deployed. Immutable quote snapshot/customer acceptance still Phase04.

@@ -18,11 +18,11 @@ spec:
       dnsConfig:
         options:
           - name: ndots
-            value: "1"
+            value: '1'
       terminationGracePeriodSeconds: 30
       containers:
         - name: api
-          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:e85611a9a09eb56ee1467320b45c82538f8e4604cb7721e9a1b0287c106735ea
+          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:91821eb0d761c1714e293b587252d9adfcd606d00c42150c54838647536c4a19
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
@@ -30,7 +30,7 @@ spec:
             - name: NODE_ENV
               value: production
             - name: PORT
-              value: "3000"
+              value: '3000'
             - name: APP_ID
               value: MOC_MARIA
             - name: CHAT_TENANT
@@ -38,19 +38,19 @@ spec:
             - name: QUEUE_SOURCE
               value: MOC_MARIA
             - name: DATABASE_POOL_MAX
-              value: "3"
+              value: '3'
             - name: NODE_EXTRA_CA_CERTS
               value: /etc/moc-maria-ca/supabase.crt
             - name: DATABASE_SSL
-              value: "true"
+              value: 'true'
             - name: DATABASE_SSL_REJECT_UNAUTHORIZED
-              value: "true"
+              value: 'true'
             - name: CORS_ORIGINS
               value: https://mocmaria.com,https://www.mocmaria.com
             - name: AUTH_COOKIE_SECURE
-              value: "true"
+              value: 'true'
             - name: SWAGGER_ENABLED
-              value: "false"
+              value: 'false'
           envFrom:
             - secretRef:
                 name: moc-maria-api-secrets
@@ -87,7 +87,7 @@ spec:
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
-              drop: ["ALL"]
+              drop: ['ALL']
             runAsNonRoot: true
             runAsUser: 1000
             runAsGroup: 1000
