@@ -5,22 +5,22 @@ AUDIT CHECKLIST 2026-10-09 — CURRENT
 ------------------------------------
 [x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
 Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
-Evidence current: Stage C1 BE4544c60/FE07cdc19 production, schema11;21 BE unit+26 isolated integrations and browser schedule/create/conflict/leave/reload/mobile PASS. Full C2/booking gates remain open.
+Evidence đang chạy: đọc 99_PROJECT_STATUS.txt và 13_TASK_LEDGER.json. Không lấy snapshot lịch sử làm release hiện tại.
 Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
 P03-T08: Mapping active và override cấp service có thật; còn chính sách override theo variant/audit giá rõ ràng.
-P03-T09: Identity/bio/avatar URL/visibility có thật; thiếu slug/title/experience/media consent/trust fields.
+P03-T09: C2 reviewed slug/title/experience/public visibility deployed. Separate media consent/pipeline and rating fields still pending.
 P03-T17: Tạo/sửa/publish/disable và giá variant đã có; chưa đầy đủ media/audit giá.
-P03-T24: Public KTV list/detail có approval/certificate gate; expert và eligibility đầy đủ còn thiếu.
+P03-T24: C2 public practitioner/specialist safe profile plus eligible services gates deployed; ratings/media/dedicated expert acceptance still pending.
 P03-T26: DONE Stage B — hồ sơ riêng/own edit, consent version lưu server, liên hệ hiện tại xác minh độc lập. Không phải OTP; upload giấy tờ/media theo task riêng.
 P03-T27: DONE Stage B — state machine, lý do bắt buộc, audit và chặn tự duyệt đã test/deploy.
 P03-T28: Course/enrollment/assessment có; thiếu modules/sessions/instructor/attendance evidence.
 P03-T29: Pass/fail và attendance >=80% có; thiếu tiêu chí theo service và lịch sử đánh giá lại.
 P03-T30: Issue/revoke/expiry có; còn renewal/lịch sử; không phải giấy phép nhà nước.
-P03-T32: Approval+active+public+certificate gate có; thiếu skills/legal/quality/territory/schedule gates.
-P03-T33: Chỉ có serviceArea dạng text; chưa có vùng cấu trúc/mode/travel buffer.
-P03-T34: Variant price có; thiếu travel/fee policy và quote snapshot acceptance.
+P03-T32: C2 public gate checks course-specific valid skill/cert/enrollment, service/category/variant/branch/policy/consent/contact/quality/territory/schedule. Transactional booking/chat gate still Phase04/06.
+P03-T33: C2 ON_SITE/AT_HOME, structured jurisdiction/territory, travel buffer/fee/optional radius with branch-coordinate validation deployed. Actual destination/distance validation at booking still Phase04.
+P03-T34: Variant price and C2 travel fee configuration/read model deployed. Immutable quote snapshot/customer acceptance still Phase04.
 P03-T35: Self-approval/self-certification/revocation/expiry tests PASS; chưa có booking/chat tests.
-P03-T36: Public name/bio/area/avatar/badge có; thiếu skills/services/rating/read model.
+P03-T36: C2 reviewed title/experience/provider kind/eligible services/internal badge deployed. Verified review aggregate and consented images pending.
 P03-T39: Default avatar và local reviewed images có; chưa có pipeline upload/consent.
 
 
@@ -71,7 +71,7 @@ D. Staff schedule
 [x] P03-T12 one-off shift overrides
 [x] P03-T13 staff_time_off
 [x] P03-T14 branch assignment
-[ ] P03-T15 expert/doctor schedule model:
+[-] P03-T15 expert/doctor schedule model:
     expert profile
     weekly/one-off availability
 
@@ -79,7 +79,7 @@ E. Admin foundation UI
 ----------------------
 [x] P03-T16 CRUD branch
 [-] P03-T17 CRUD category/service/variant
-[ ] P03-T18 CRUD staff public profile
+[x] P03-T18 CRUD staff public profile
 [x] P03-T19 assign service/skill
 [x] P03-T20 schedule editor basic
 
@@ -135,7 +135,7 @@ G. KTV ONBOARDING, ĐÀO TẠO VÀ CHỨNG NHẬN (CORE MVP - bổ sung 2026-10-
     đánh giá lại và quá hạn.
 [-] P03-T30 Chứng nhận nội bộ: mã, người cấp, ngày cấp, hạn dùng, thu hồi,
     trạng thái công khai; KHÔNG được trình bày là giấy phép hành nghề nhà nước.
-[ ] P03-T31 Kiểm tra chứng chỉ/giấy phép chuyên ngành (nếu dịch vụ yêu cầu),
+[-] P03-T31 Kiểm tra chứng chỉ/giấy phép chuyên ngành (nếu dịch vụ yêu cầu),
     điều kiện pháp lý theo loại dịch vụ và địa phương; không tự suy diễn quyền hành nghề.
 [-] P03-T32 Chỉ APPROVED + active + đạt đào tạo + skill mapping + điều kiện hợp lệ
     mới được xuất hiện public, nhận booking/chat tương ứng.
@@ -151,6 +151,6 @@ H. KTV TRUST PROFILE & RATING READ MODEL (CORE MVP)
 ---------------------------------------------------
 [-] P03-T36 KTV public card fields: avatar, verified public name, short bio, specialties, area, completed training badge, eligible services, experience, rating average and verified review count.
 [ ] P03-T37 Provider quality aggregates: weighted recent trend, verified reviews, completion/cancellation/decline rates, complaints, moderation status and last evaluation time.
-[ ] P03-T38 Provider eligibility gate includes quality status ACTIVE/WATCHLIST/PAUSED/SUSPENDED; paused providers must not be bookable; do not falsely imply internal training is a state practice licence.
+[-] P03-T38 Provider eligibility gate includes quality status ACTIVE/WATCHLIST/PAUSED/SUSPENDED; paused providers must not be bookable; do not falsely imply internal training is a state practice licence.
 [-] P03-T39 Default avatars, image safety/consent, public profile visibility and no publication of private credential documents or home address.
 Phase 03 gate: public KTV cards and eligibility fields supported; rating aggregates remain sourced from verified booking reviews.

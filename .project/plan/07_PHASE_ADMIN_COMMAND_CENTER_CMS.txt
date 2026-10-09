@@ -5,7 +5,7 @@ AUDIT CHECKLIST 2026-10-09 — CURRENT
 ------------------------------------
 [x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
 Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
-Evidence: BE ffc89b3/API deployed, FE 99612d5/Vercel deployed; BE 17 unit+20 isolated integrations, FE quality/4 unit/build PASS; isolated browser admin/applicant QA PASS. Small QA fixes remain pending commit/deploy.
+Evidence đang chạy: đọc 99_PROJECT_STATUS.txt và 13_TASK_LEDGER.json. Không lấy snapshot lịch sử làm release hiện tại.
 Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
 P07-T01: Permission-aware nav/forbidden có; branch scoping còn thiếu.
 P07-T07: Có một phần implementation; chưa đạt toàn bộ acceptance của task.

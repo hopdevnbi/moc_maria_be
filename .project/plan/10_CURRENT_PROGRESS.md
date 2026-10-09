@@ -1,43 +1,33 @@
 # Mộc Maria — Tiến độ hiện tại (09/10/2026)
 
-**Đang làm Phase 03. Website/API đã chạy; chưa mở nền tảng booking hoàn chỉnh.**
+**Đang làm Phase 03. Website/API chạy; nền tảng booking chưa hoàn chỉnh.**
 
-## Mốc đã hoàn thành
+## Đã hoàn thành và deploy
+- Phase01/02: nền repo/database/CI và tài khoản/phân quyền. Email/SMS delivery theo Phase08.
+- A: đối chiếu Plan với source, sửa QA treo, ledger/ownership/worktree.
+- B: hồ sơ ứng tuyển riêng, consent server theo phiên bản, xác minh liên hệ hiện tại độc lập, lý do và audit; chặn tự xác minh/tự duyệt.
+- C1: skills gắn chứng nhận, phân công cơ sở, ca tuần, ca theo ngày và nghỉ phép; chặn ca chồng nhau.
+- C2: hồ sơ công khai đã rà soát, phân loại wellness/chuyên gia, chất lượng; chính sách đúng dịch vụ/khóa đào tạo/cơ sở/hình thức/khu vực, hiệu lực và mã rà soát; phí/buffer/bán kính tại nhà. Public chỉ trả dữ liệu an toàn khi đủ điều kiện. Chưa nhận booking.
 
-- Phase01: nền repo, database, migration, CI, health.
-- Phase02: tài khoản, login/refresh/logout, phân quyền và audit nền tảng. Gửi email/SMS thực tế theo Phase08.
-- Chặng A: sửa QA còn treo, đối chiếu checklist, tạo ledger và quy tắc nhận việc.
-- Chặng B: hồ sơ ứng tuyển riêng có thể bổ sung, consent lưu server theo phiên bản, xác minh liên hệ hiện tại bởi người có quyền và có bằng chứng; chặn tự xác minh/tự duyệt. Lý do xét duyệt bắt buộc, có audit. Đổi liên hệ hoặc rút consent vô hiệu hóa điều kiện tương ứng.
-- Production hiện tại C1: BE4544c60; FE07cdc19; schema11; Vercel dpl_BPkUaftignL4U8NpGYtUZPHeLoJm. Chi tiết và rollback trong 99_PROJECT_STATUS.txt.
-- Kiểm chứng B: 17 unit BE + 21 integration PostgreSQL cô lập; FE quality/4 test/build; browser consent/reload/thu hồi/xác minh/mobile; API HTTPS khỏe. Backup public schema và khôi phục vào DB tạm PASS.
+Production C2: BE 3a069e66dd1ccc44de175cd7a507fa4b01a76e10; FE eab0a4e2a192e9b408ad580e8306fb90f037844f; schema12; Vercel dpl_9qeeBbZLUCnKQAtmLSJinRvDMXoZ. Kiểm chứng:21 unit BE+26 integration PostgreSQL cô lập, FE quality/4 test/build/CI; browser lưu tiếng Việt/ngưng trạng thái/ngưng chính sách hết hạn/ngưng phạm vi/reload/mobile PASS. Backup schema11 khôi phục vào DB tạm PASS. Mã release/rollback ở 99_PROJECT_STATUS.txt.
 
-## Tám phase
-
-| Phase | Trạng thái | Còn thiếu |
+## Chưa hoàn thành
+| Phase | Trạng thái | Còn thiếu chính |
 |---|---|---|
-| 01 Nền móng | DONE phạm vi nền tảng | Vận hành lâu dài nằm Phase08 |
-| 02 Tài khoản/phân quyền | DONE phạm vi nền tảng | Email/SMS delivery và UI quản lý đầy đủ thuộc nhóm sau |
-| 03 Catalog/KTV/lịch | IN_PROGRESS | Profile/chuyên gia, service policy/legal/territory/quality, buổi đào tạo và gia hạn |
-| 04 Booking | TODO | Availability, quote snapshot, concurrency, request/accept/confirm/change/cancel/complete |
-| 05 Web public/SEO | PARTIAL | Booking UX, dữ liệu hồ sơ đủ, SEO động/trang còn thiếu/performance |
-| 06 Portal/chat | PARTIAL | Lịch khách/KTV, chat tenant riêng, review/khiếu nại |
-| 07 Admin/CMS | PARTIAL | Booking command center, CMS/media, CRM/report, audit/quyền/moderation |
-| 08 Production | PARTIAL | Queue/reminder, Bunny riêng, backup tự động/retention, monitoring/full acceptance |
+|03 Catalog/KTV/lịch|IN_PROGRESS|Buổi đào tạo/điểm danh/giảng viên, tiêu chí/lịch sử đánh giá lại/gia hạn, media consent, quality aggregates và full acceptance|
+|04 Booking|TODO|Availability/transaction/concurrency, request→KTV accept→khách duyệt quote, đổi/hủy/complete|
+|05 Public web/SEO|PARTIAL|Booking UX, SEO động/performance/trang còn thiếu|
+|06 Portal/chat|PARTIAL|Lịch khách/KTV, chat tenant riêng, review/khiếu nại|
+|07 Admin/CMS|PARTIAL|Booking command center, CMS/media/CRM/report/audit/quyền/moderation|
+|08 Production|PARTIAL|Queue/reminder, Bunny riêng, backup tự động/retention, monitoring/full acceptance|
 
-## Chặng đang làm và chặng tiếp theo
+## Việc đang làm
+D1: buổi đào tạo, người phụ trách, điểm danh có bằng chứng. D2: tiêu chí thực hành/lịch sử đánh giá/gia hạn. Sau D mới đến E booking; tiếp đó F portal/chat/reviews, G vận hành/CMS, H SEO/media/queue/production acceptance. Các phase chưa đóng không được coi là đã xong.
 
-C1 đã deploy skills/phân công/ca tuần/ca riêng/nghỉ phép:21 unit+26 integration, browser/mobile PASS. C2 đang làm profile/service policy/legal/territory/quality. D hoàn thiện đào tạo. E làm booking. F portal/chat/reviews. G vận hành/CMS. H hardening/SEO/media/queue và nghiệm thu production.
+Không có giá/KTV/booking/review giả trên production. Public catalog/providers đang trống; dữ liệu kinh doanh thật và quyết định pháp lý cần chủ cung cấp hoặc nhập admin. Chứng nhận nội bộ không phải giấy phép hành nghề nhà nước.
 
-Không đánh dấu DONE chỉ vì có code. 99_PROJECT_STATUS.txt ghi release đang chạy; 13_TASK_LEDGER.json ghi từng task. Chặng C mới có code/test thì vẫn ghi chưa deploy. Hệ thống chưa có giá/KTV giả; dữ liệu kinh doanh thật do chủ cung cấp hoặc nhập admin.
+## Cách theo dõi và phối hợp
+Bạn đọc file này để biết mốc. AI đọc 99 status + 13 ledger + 11_WORK_COORDINATION.md, nhận phạm vi trong 14_ACTIVE_WORK.json, dùng branch/worktree riêng và phối hợp API/schema/global CSS. Không reset/clean/force push hay stage toàn repo.
+FE làm ở C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe; checkout Desktop cũ được giữ. BE C:/Users/User/Desktop/Mộc maria/moc_maria_be có một writer. File15/16 là lịch sử.
 
-## AI khác tham gia như thế nào?
-
-Đọc 99 status + task ledger + 11_WORK_COORDINATION.md, rồi nhận phạm vi trong 14_ACTIVE_WORK.json. Dùng branch/worktree riêng, không viết chung checkout đang có người sửa. API/schema/global CSS phải phối hợp. Trước push main cần fetch và kiểm tra commit mới; không reset/clean/force push, không stage toàn bộ.
-
-FE hiện làm tại C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe. Checkout Desktop cũ được giữ để không ghi đè AI khác. BE tại C:/Users/User/Desktop/Mộc maria/moc_maria_be, có một writer theo claim.
-
-Lịch sử audit trước B được giữ ở 16_AUDIT_SNAPSHOT_BEFORE_STAGE_B_2026-10-09.md; không dùng lịch sử đó làm trạng thái hiện tại.
-
-## Cần dữ liệu từ chủ khi đến phần phụ thuộc
-
-Email admin chính thức; danh mục/giá/cơ sở/KTV thật; chính sách pháp lý tương ứng dịch vụ; cấu hình nhà cung cấp email/SMS/media/chat nếu chưa có. Tiếp tục phần code độc lập trong khi chờ, không tự suy diễn hay công bố dữ liệu mẫu.
+Đang chờ: email admin chính thức, danh mục/giá/cơ sở/KTV thật, chính sách pháp lý từng dịch vụ, cấu hình email/SMS/media/chat khi cần. Tiếp tục code độc lập; không tự suy diễn hoặc công bố mẫu.

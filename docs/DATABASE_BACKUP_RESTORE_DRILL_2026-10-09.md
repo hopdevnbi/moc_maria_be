@@ -9,3 +9,6 @@ Restore verified with scripts/verify-backup-restore.cjs <absolute-private-dump-p
 Scope: Mộc Maria application public schema. Supabase platform-managed schemas and ownership/ACL configuration are excluded and must be handled by the provider's separate backup policy. This manual drill does not satisfy automated backup/retention and monitoring tasks P08-T14/T36.
 
 New migration rollback/reapply tested on disposable QA PostgreSQL before production. Production rollback priority: restore prior API image and keep additive tables; do not drop consent/evidence data after release. Reverting migration destroys these new tables and is appropriate only before live writes or after a separately reviewed recovery plan. A full production restore must be scheduled/reviewed and never target a running database without backup and explicit recovery scope.
+
+## Before C2 migration12
+Private public-schema backup73690 bytes, SHA25654a88d739a61e2b8d560f833e63155815c0f85ff533aa8fdb3db8b7fe85023fe. Fresh disposable restore PASS11 migrations/30 tables/7 roles/8 permissions before apply11→12; pod and Secret removed. Manual rehearsal only; automated schedule/retention remains open.

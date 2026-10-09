@@ -3,7 +3,7 @@
   "claims": [
     {
       "agent": "Codex current chat",
-      "status": "ACTIVE",
+      "status": "RELEASED",
       "stage": "C2 — reviewed profile / service policy / legal / territory / quality",
       "taskIds": [
         "P03-T26",
@@ -47,7 +47,7 @@
         "BE/src/modules/providers/** (capability/schedule foundation)",
         "BE/scripts/backup-public-schema.cjs (scoped release backups)"
       ],
-      "note": "Before any new writer, recheck live status and discuss overlaps. No other agent confirmed ownership here.",
+      "note": "A/B/C1/C2 released. Read subsequent active training claim before writing providers/training.",
       "releasedStageB": {
         "backend": "cd51766c6be91abf44da2d7bdf6b987291dddb7c",
         "frontend": "fcb2b66daa015f6cd52aa4d4c9359ad8a53e39cf",
@@ -62,7 +62,37 @@
         "frontendDeployment": "dpl_BPkUaftignL4U8NpGYtUZPHeLoJm",
         "imageDigest": "sha256:017cc71c5607016f3739253b97a7aa1f48e8f1c94e3c1cd6fe244830b4a2ad68",
         "migrations": 11
+      },
+      "releasedStageC2": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "frontendDeployment": "dpl_9qeeBbZLUCnKQAtmLSJinRvDMXoZ",
+        "imageDigest": "sha256:e85611a9a09eb56ee1467320b45c82538f8e4604cb7721e9a1b0287c106735ea",
+        "migrations": 12
       }
+    },
+    {
+      "agent": "Codex current chat",
+      "status": "ACTIVE",
+      "stage": "D1/D2 — detailed training and renewal",
+      "taskIds": [
+        "P03-T28",
+        "P03-T29",
+        "P03-T30"
+      ],
+      "backendBranch": "codex/production-integration",
+      "frontendBranch": "codex/platform-integration",
+      "frontendWorktree": "C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe",
+      "ownedPaths": [
+        "BE/src/modules/providers/** (training and eligibility integration)",
+        "BE/src/database/migrations/** (single release owner)",
+        "BE/test/** (isolated fixtures/tests)",
+        "BE/scripts/isolated-integration-test.cjs",
+        "FE/src/features/marketplace/** (training and own eligibility)",
+        "Plan/**",
+        "repo docs/progress/state and scoped release manifests"
+      ],
+      "next": "D1 sessions/instructor/attendance then D2 criteria/history/renewal; E/F/G/H follow"
     }
   ]
 }

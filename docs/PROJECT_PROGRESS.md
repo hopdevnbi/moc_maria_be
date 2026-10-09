@@ -1,12 +1,12 @@
 # Mộc Maria Project Progress - Backend
 
 ## Current — 2026-10-09
-- Phase 01/02 foundation closed; Phase 03 IN_PROGRESS, P03-T32. MVP not operational.
-- Stage A/B/C1 deployed and verified. Skills/branch assignments/weekly shifts/date overrides/time-off and independent consent/contact checks are available.
-- C2 reviewed profiles/service-training/legal/territory/quality code is in QA; production stays on schema11 until release verification.
-- Production: BE4544c60 / FE07cdc19 / schema11. Public catalog/providers empty; owner data pending.
-- Latest released validation: 21 BE unit + 26 isolated integration tests; FE quality + 4 unit + build, isolated schedule/mobile QA PASS.
-- Read CURRENT_PROGRESS_2026-10-09.md and .project/plan/99_PROJECT_STATUS.txt for current release evidence. Sections below are historical, not current pending work.
+- Phase01/02 foundation DONE; Phase03 IN_PROGRESS, D1/P03-T28. MVP not operational.
+- A/B/C1/C2 deployed and verified; current BE3a069e6 / FEeab0a4e / schema12 / dpl_9qeeBbZLUCnKQAtmLSJinRvDMXoZ.
+- C2 adds reviewed public profile, scoped course/legal/territory/quality gate and private admin editors. Public providers/catalog empty.
+- Validation:21 BE unit+26 isolated integration, FE quality/4 unit/build/CI; browser save/reload/mobile and schema11 backup restore PASS.
+- Next: detailed sessions/attendance/assessment history/renewal, then booking/chat/CMS/production acceptance.
+- Current details: CURRENT_PROGRESS_2026-10-09.md and .project/plan/99_PROJECT_STATUS.txt. Sections below are historical evidence.
 
 ## Phase 01 completed
 - [x] Acutis backend/frontend/chat/queue fresh audit

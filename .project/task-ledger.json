@@ -96,7 +96,13 @@
     {
       "id": "P03-T09",
       "status": "PARTIAL",
-      "note": "Identity/bio/avatar URL/visibility có thật; thiếu slug/title/experience/media consent/trust fields."
+      "note": "C2 reviewed slug/title/experience/public visibility deployed. Separate media consent/pipeline and rating fields still pending.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T10",
@@ -125,8 +131,14 @@
     },
     {
       "id": "P03-T15",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "C2 SPECIALIST profile shares weekly/date schedules and always requires specialist verification. Dedicated doctor-role/acceptance still pending; not a practice authorization.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T16",
@@ -140,8 +152,14 @@
     },
     {
       "id": "P03-T18",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "C2 private admin reviewed public-profile editor: title/slug/experience/visibility, accuracy confirmation/reason, self-review guard and consent gate. API/browser save/reload/mobile PASS, deployed.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T19",
@@ -171,7 +189,13 @@
     {
       "id": "P03-T24",
       "status": "PARTIAL",
-      "note": "Public KTV list/detail có approval/certificate gate; expert và eligibility đầy đủ còn thiếu."
+      "note": "C2 public practitioner/specialist safe profile plus eligible services gates deployed; ratings/media/dedicated expert acceptance still pending.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T25",
@@ -205,23 +229,47 @@
     },
     {
       "id": "P03-T31",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "C2 scoped owner-reviewed legal policy and private practitioner verification references/expiry implemented and deployed. Real legal review/business policy must come from owner; no automatic legal inference.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T32",
       "status": "PARTIAL",
-      "note": "Approval+active+public+certificate gate có; thiếu skills/legal/quality/territory/schedule gates."
+      "note": "C2 public gate checks course-specific valid skill/cert/enrollment, service/category/variant/branch/policy/consent/contact/quality/territory/schedule. Transactional booking/chat gate still Phase04/06.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T33",
       "status": "PARTIAL",
-      "note": "Chỉ có serviceArea dạng text; chưa có vùng cấu trúc/mode/travel buffer."
+      "note": "C2 ON_SITE/AT_HOME, structured jurisdiction/territory, travel buffer/fee/optional radius with branch-coordinate validation deployed. Actual destination/distance validation at booking still Phase04.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T34",
       "status": "PARTIAL",
-      "note": "Variant price có; thiếu travel/fee policy và quote snapshot acceptance."
+      "note": "Variant price and C2 travel fee configuration/read model deployed. Immutable quote snapshot/customer acceptance still Phase04.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T35",
@@ -231,7 +279,13 @@
     {
       "id": "P03-T36",
       "status": "PARTIAL",
-      "note": "Public name/bio/area/avatar/badge có; thiếu skills/services/rating/read model."
+      "note": "C2 reviewed title/experience/provider kind/eligible services/internal badge deployed. Verified review aggregate and consented images pending.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T37",
@@ -240,8 +294,14 @@
     },
     {
       "id": "P03-T38",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "C2 ACTIVE-only public service gate deployed; WATCHLIST/PAUSED/SUSPENDED fail closed. Atomic hold/confirmation check remains Phase04.",
+      "evidence": {
+        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
+        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
+        "migration": "ProviderServiceEligibility1791635200000",
+        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+      }
     },
     {
       "id": "P03-T39",
