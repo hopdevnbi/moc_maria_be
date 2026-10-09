@@ -1,18 +1,11 @@
 # Mộc Maria Project Progress - Backend
 
-## Current
-- Phase 01 Foundation: DONE
-- Phase 02 Auth / RBAC / Customer / Staff Identity: DONE (e2e 3/3 PASS; migration applied)
-- Phase 03: IN PROGRESS - P03-T01 branch entity and migration authored, not yet applied
-- Phase 03 branch API added: GET /api/v1/branches (active only), and protected GET/POST/PATCH /api/v1/admin/branches. Quality PASS; branch integration e2e and new migration application pending.
-- Product plan extended 2026-10-08: KTV self-application, in-house courses and assessment,
-  admin eligibility, at-home booking, public prices, customer address and direct KTV chat
-  are now mandatory MVP requirements. See docs/KTV_MARKETPLACE_REQUIREMENTS.md.
-- KTV Quality & Trust requirements added to Phases 03-08: verified customer reviews,
-  premium KTV public cards, monitoring, risk pauses, fair moderation, reinstatement and appeals.
-  See docs/KTV_QUALITY_TRUST_REQUIREMENTS.md. PLANNED, not implemented.
-- Next step: validate branch migration on an isolated DB, then branch CRUD and public read APIs
-- Phase 01 implementation commit: 8a87b44
+## Current — audited 2026-10-09
+- Phase 01/02 foundation closed; Phase 03 IN_PROGRESS, P03-T26. MVP not operational.
+- Production API/database/TLS and Vercel frontend healthy. Catalog/providers currently empty.
+- Catalog/branch/applicant/training/admin foundation deployed; isolated private browser QA PASS. Booking/chat/reviews/media/queue and full schedule/eligibility remain missing.
+- Detailed current status: [CURRENT_PROGRESS_2026-10-09.md](CURRENT_PROGRESS_2026-10-09.md). Sections below preserve historical evidence; old pending labels may be superseded.
+- Latest validation: BE 17 unit + 20 isolated integrations; FE quality + 4 unit + 22-route build PASS. Small QA fixes/helper remain uncommitted and undeployed.
 
 ## Phase 01 completed
 - [x] Acutis backend/frontend/chat/queue fresh audit

@@ -62,15 +62,20 @@
     "imageDigest": "sha256:4ec1e00d8521e01f52980cfe3a3fa85602f6482da817939bfb42a49d9d1e17b9",
     "backendSourceCommit": "ffc89b39ddaa2b37b70c337160c90778227d0ffd",
     "authSmoke": "PASS_12_CHECKS_FIXTURE_REMOVED",
-    "frontendIntegration": "LIVE_AUTH_BROWSER_PASS",
+    "frontendIntegration": "LIVE_AUTH_AND_PUBLIC_API_PASS_PRIVATE_QA_ISOLATED_PASS",
     "frontendSourceCommit": "99612d5",
     "frontendDeployment": "https://mocmaria.com"
   },
   "catalogProviderIntegration": {
-    "status": "DEPLOYED_HEALTHY_PRIVATE_BROWSER_QA_PENDING",
+    "status": "DEPLOYED_PRIVATE_BROWSER_QA_PASS_SMALL_FIXES_PENDING",
     "unitTests": 17,
     "integrationTests": 20,
     "qaDatabase": "EPHEMERAL_ISOLATED_POSTGRES",
-    "productionMigration": "NO_NEW_MIGRATION_REQUIRED"
-  }
+    "productionMigration": "NO_NEW_MIGRATION_REQUIRED",
+    "release": "DEPLOYED_99612D5_FFC89B3",
+    "businessData": "PUBLIC_SERVICES_AND_PROVIDERS_EMPTY"
+  },
+  "lastAuditedAt": "2026-10-09",
+  "mvpStatus": "IN_PROGRESS_NOT_OPERATIONAL",
+  "statusReport": "docs/CURRENT_PROGRESS_2026-10-09.md"
 }
