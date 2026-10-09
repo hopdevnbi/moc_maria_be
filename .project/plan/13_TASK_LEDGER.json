@@ -1,6 +1,6 @@
 {
   "auditedAt": "2026-10-09",
-  "currentPhase": 3,
+  "currentPhase": 4,
   "mvpStatus": "NOT_OPERATIONAL",
   "tasks": [
     {
@@ -214,18 +214,18 @@
     },
     {
       "id": "P03-T28",
-      "status": "PARTIAL",
-      "note": "D1 deployed: course/module/session/instructor/roster/attendance + immutable correction history. Course completion remains manual; computed attendance/required volume D2 pending."
+      "status": "DONE",
+      "note": "D1/D2 deployed: modules, sessions, instructors, roster, attendance/correction history; required volume and per-module >=80% derived attendance, current completion evidence."
     },
     {
       "id": "P03-T29",
-      "status": "PARTIAL",
-      "note": "Basic pass/fail >=80% still manual; D1 session evidence ready. Detailed practical criteria, derived attendance, reassessment/expiry and assessment history D2 pending."
+      "status": "DONE",
+      "note": "D2 deployed: service-linked practical criteria, server-derived pass/fail, immutable attempts/snapshots, reassessment/expiry; self and manual-percent bypass denied."
     },
     {
       "id": "P03-T30",
-      "status": "PARTIAL",
-      "note": "Issue/revoke/expiry deployed; certificate renewal/issuance history and assessment-bound validity D2 pending; internal certificate is not government licence."
+      "status": "DONE",
+      "note": "D2 deployed: assessment-bound issue/renew/revoke/expiry, immutable issuance history, never-reused numbers, current evidence gating; internal certificate is not government licence."
     },
     {
       "id": "P03-T31",

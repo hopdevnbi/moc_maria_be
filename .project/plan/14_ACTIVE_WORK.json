@@ -73,9 +73,13 @@
     },
     {
       "agent": "Codex current chat",
-      "status": "ACTIVE",
+      "status": "RELEASED",
       "stage": "D2 — practical criteria / derived attendance / assessment history / renewal",
-      "taskIds": ["P03-T28", "P03-T29", "P03-T30"],
+      "taskIds": [
+        "P03-T28",
+        "P03-T29",
+        "P03-T30"
+      ],
       "backendBranch": "codex/production-integration",
       "frontendBranch": "codex/platform-integration",
       "frontendWorktree": "C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe",
@@ -88,14 +92,50 @@
         "Plan/**",
         "repo docs/progress/state and scoped release manifests"
       ],
-      "next": "D2 then E booking/quote, F portal/chat/reviews, G operations/CMS, H production acceptance",
+      "next": "E1 availability/schema, E2 request/quote transactions, then F/G/H",
       "releasedStageD1": {
         "backend": "516ad558d309631d842bbd739fb2f2dfea4c1f19",
         "frontend": "0d2e43d38733d64b508ebf8fed75b4159a94227a",
         "frontendDeployment": "dpl_92tjoXBcRK1wPHDZMiYe5hfs6cze",
         "imageDigest": "sha256:91821eb0d761c1714e293b587252d9adfcd606d00c42150c54838647536c4a19",
         "migrations": 13
+      },
+      "releasedStageD2": {
+        "backend": "d6d05000c38df841dc971c1ebe13f4911c3483a4",
+        "frontend": "68b40f33fde3dc5812d6668d57a1684eec3274a5",
+        "frontendDeployment": "dpl_E7NmxqBXmWC8DMGPRWWQQ4duAaXi",
+        "imageDigest": "sha256:39354480ae727110bcca756fe215858baa7aaebf8a172ac1086d258869a0f37f",
+        "migrations": 14
       }
+    },
+    {
+      "agent": "Codex current chat",
+      "status": "ACTIVE",
+      "stage": "E1 — availability/schema and booking transaction contract",
+      "taskIds": [
+        "P04-T01",
+        "P04-T03",
+        "P04-T04",
+        "P04-T11",
+        "P04-T13",
+        "P04-T14",
+        "P04-T25"
+      ],
+      "backendBranch": "codex/production-integration",
+      "frontendBranch": "codex/platform-integration",
+      "frontendWorktree": "C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe",
+      "ownedPaths": [
+        "BE/src/modules/bookings/**",
+        "BE/src/modules/providers/** (transaction eligibility/schedule reads)",
+        "BE/src/modules/catalog/** and branches/** (booking coordination only)",
+        "BE/src/database/migrations/** (single release owner)",
+        "BE/src/app.module.ts",
+        "BE/test/** and scripts/isolated-integration-test.cjs",
+        "FE/src/features/marketplace/** and booking/portal routes",
+        "Plan/** and repo docs/state/scoped release manifests"
+      ],
+      "next": "E1 availability/schema → E2 request/accept/quote/confirm/concurrency → E3 reschedule/cancel/complete/quality; F/G/H remain open",
+      "note": "No other writer in shared modules; do not mark availability as a reservation before request/quote transaction acceptance."
     }
   ]
 }

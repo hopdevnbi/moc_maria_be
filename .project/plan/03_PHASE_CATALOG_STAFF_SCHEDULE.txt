@@ -13,9 +13,9 @@ P03-T17: Tạo/sửa/publish/disable và giá variant đã có; chưa đầy đ�
 P03-T24: C2 public practitioner/specialist safe profile plus eligible services gates deployed; ratings/media/dedicated expert acceptance still pending.
 P03-T26: DONE Stage B — hồ sơ riêng/own edit, consent version lưu server, liên hệ hiện tại xác minh độc lập. Không phải OTP; upload giấy tờ/media theo task riêng.
 P03-T27: DONE Stage B — state machine, lý do bắt buộc, audit và chặn tự duyệt đã test/deploy.
-P03-T28: D1 deployed: course/module/session/instructor/roster/attendance + immutable correction history. Course completion remains manual; computed attendance/required volume D2 pending.
-P03-T29: Basic pass/fail >=80% still manual; D1 session evidence ready. Detailed practical criteria, derived attendance, reassessment/expiry and assessment history D2 pending.
-P03-T30: Issue/revoke/expiry deployed; certificate renewal/issuance history and assessment-bound validity D2 pending; internal certificate is not government licence.
+P03-T28: D1/D2 deployed: modules, sessions, instructors, roster, attendance/correction history; required volume and per-module >=80% derived attendance, current completion evidence.
+P03-T29: D2 deployed: service-linked practical criteria, server-derived pass/fail, immutable attempts/snapshots, reassessment/expiry; self and manual-percent bypass denied.
+P03-T30: D2 deployed: assessment-bound issue/renew/revoke/expiry, immutable issuance history, never-reused numbers, current evidence gating; internal certificate is not government licence.
 P03-T32: C2 public gate checks course-specific valid skill/cert/enrollment, service/category/variant/branch/policy/consent/contact/quality/territory/schedule. Transactional booking/chat gate still Phase04/06.
 P03-T33: C2 ON_SITE/AT_HOME, structured jurisdiction/territory, travel buffer/fee/optional radius with branch-coordinate validation deployed. Actual destination/distance validation at booking still Phase04.
 P03-T34: Variant price and C2 travel fee configuration/read model deployed. Immutable quote snapshot/customer acceptance still Phase04.
@@ -129,11 +129,11 @@ G. KTV ONBOARDING, ĐÀO TẠO VÀ CHỨNG NHẬN (CORE MVP - bổ sung 2026-10-
     applicant identity, phone/email verified, khu vực phục vụ, kinh nghiệm, bộ hồ sơ có consent.
 [x] P03-T27 Workflow duyệt ứng viên: APPLIED -> REVIEWING -> TRAINING -> ASSESSMENT
     -> APPROVED/REJECTED/SUSPENDED, có audit và lý do.
-[-] P03-T28 Khóa học Mộc Maria: courses, modules, sessions, attendance,
+[x] P03-T28 Khóa học Mộc Maria: courses, modules, sessions, attendance,
     instructor, training completion; không dùng dữ liệu bệnh án cho mục đích không cần thiết.
-[-] P03-T29 Đánh giá KTV: thực hành, kỹ năng theo từng dịch vụ, tiêu chí đạt/rớt,
+[x] P03-T29 Đánh giá KTV: thực hành, kỹ năng theo từng dịch vụ, tiêu chí đạt/rớt,
     đánh giá lại và quá hạn.
-[-] P03-T30 Chứng nhận nội bộ: mã, người cấp, ngày cấp, hạn dùng, thu hồi,
+[x] P03-T30 Chứng nhận nội bộ: mã, người cấp, ngày cấp, hạn dùng, thu hồi,
     trạng thái công khai; KHÔNG được trình bày là giấy phép hành nghề nhà nước.
 [-] P03-T31 Kiểm tra chứng chỉ/giấy phép chuyên ngành (nếu dịch vụ yêu cầu),
     điều kiện pháp lý theo loại dịch vụ và địa phương; không tự suy diễn quyền hành nghề.

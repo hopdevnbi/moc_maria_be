@@ -1,0 +1,105 @@
+{
+  "apiVersion": "batch/v1",
+  "kind": "Job",
+  "metadata": {
+    "name": "moc-maria-training-assessment-v2-20261009",
+    "namespace": "moc-maria"
+  },
+  "spec": {
+    "backoffLimit": 0,
+    "activeDeadlineSeconds": 180,
+    "ttlSecondsAfterFinished": 86400,
+    "template": {
+      "spec": {
+        "dnsConfig": {
+          "options": [
+            {
+              "name": "ndots",
+              "value": "1"
+            }
+          ]
+        },
+        "restartPolicy": "Never",
+        "containers": [
+          {
+            "name": "migrate",
+            "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:39354480ae727110bcca756fe215858baa7aaebf8a172ac1086d258869a0f37f",
+            "command": [
+              "node",
+              "-e"
+            ],
+            "args": [
+              "const ds=require('./dist/database/data-source').default;(async()=>{await ds.initialize();const before=await ds.query('SELECT name FROM migrations ORDER BY id');const available=ds.migrations.map(m=>m.name||m.constructor.name).sort((a,b)=>Number(a.slice(-13))-Number(b.slice(-13)));const expected='TrainingAssessmentEvidence1791642400000';if(available.length!==14||available[13]!==expected||![13,14].includes(before.length)||JSON.stringify(before.map(m=>m.name))!==JSON.stringify(available.slice(0,before.length)))throw Error('UNEXPECTED_SCHEMA_STATE');const applied=await ds.runMigrations({transaction:'all'});const after=await ds.query('SELECT name FROM migrations ORDER BY id');if(after.length!==14||after[13].name!==expected)throw Error('VERIFY_FAILED');console.log(JSON.stringify({before:before.length,after:after.length,applied:applied.map(m=>m.name)}));await ds.destroy()})().catch(async()=>{console.error('Migration failed; inspect schema before retry');if(ds.isInitialized)await ds.destroy();process.exitCode=1})"
+            ],
+            "env": [
+              {
+                "name": "NODE_EXTRA_CA_CERTS",
+                "value": "/etc/moc-maria-ca/supabase.crt"
+              },
+              {
+                "name": "DATABASE_SSL",
+                "value": "true"
+              },
+              {
+                "name": "DATABASE_SSL_REJECT_UNAUTHORIZED",
+                "value": "true"
+              },
+              {
+                "name": "DATABASE_POOL_MAX",
+                "value": "1"
+              },
+              {
+                "name": "DATABASE_URL",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-api-secrets",
+                    "key": "DATABASE_URL"
+                  }
+                }
+              }
+            ],
+            "volumeMounts": [
+              {
+                "name": "database-ca",
+                "mountPath": "/etc/moc-maria-ca",
+                "readOnly": true
+              }
+            ],
+            "resources": {
+              "requests": {
+                "cpu": "50m",
+                "memory": "128Mi"
+              },
+              "limits": {
+                "cpu": "300m",
+                "memory": "256Mi"
+              }
+            },
+            "securityContext": {
+              "runAsNonRoot": true,
+              "runAsUser": 1000,
+              "runAsGroup": 1000,
+              "allowPrivilegeEscalation": false,
+              "capabilities": {
+                "drop": [
+                  "ALL"
+                ]
+              },
+              "seccompProfile": {
+                "type": "RuntimeDefault"
+              }
+            }
+          }
+        ],
+        "volumes": [
+          {
+            "name": "database-ca",
+            "configMap": {
+              "name": "moc-maria-database-ca"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

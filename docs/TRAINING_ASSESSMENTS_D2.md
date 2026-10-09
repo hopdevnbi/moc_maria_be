@@ -1,5 +1,5 @@
 # Detailed training / assessments / renewal — D2
-Status: implementation under active D2 claim; production remains D1 until release evidence is recorded.
+Status: D2 deployed and verified on2026-10-09; E1 is now active.
 
 Migration14 TrainingAssessmentEvidence1791642400000 adds required module minutes, a monotonic course requirements revision, practical criteria, immutable assessment attempts, current-assessment pointers and immutable certificate issuance/renewal history. Existing certificate facts are copied as IMPORTED history; no evidence is invented and those facts do not automatically satisfy detailed training validity.
 
@@ -13,7 +13,10 @@ Certificate validity is re-evaluated against current module/criterion requiremen
 
 Admin GET routes are staff.manage and private,no-store; mutations are roles.manage. Self-assessment, self-issue and self-renew are denied. Own training returns only owned enrollment/current summary/certificate data, omits assessor/issuer identities and never returns assessment evidence references, reason/history or score snapshots. Admin-only history remains private. No production training/customer/provider fixtures are added; actual business data and professional/legal review remain owner responsibilities.
 
-Validation: 21 BE unit tests, 37 isolated integration tests across five suites, latest migration14 rollback/reapply, BE/FE formatting/lint/typecheck/build and FE4 tests/22 routes PASS. Browser QA saved Vietnamese criteria, a new practical assessment and certificate renewal; reload preserved the current certificate number and all five issuance records. Mobile390 viewport had no document overflow. The private service-list response shape was corrected during browser QA and the FE quality suite passed again. Production rollout remains pending until its release record is appended. Pre-release production schema13 backup106514 bytes SHA25698777e56f627857e7a99f0ddaa7d851d1e1934fd4db2fc20018d35176ab21947 restored successfully to a fresh disposable database (13 migrations,39 tables,7 roles,8 permissions). Manual drill does not satisfy automated backup/retention tasks.
+Validation: 21 BE unit tests, 37 isolated integration tests across five suites, latest migration14 rollback/reapply, BE/FE formatting/lint/typecheck/build and FE4 tests/22 routes PASS. Browser QA saved Vietnamese criteria, a new practical assessment and certificate renewal; reload preserved the current certificate number and all five issuance records. Mobile390 viewport had no document overflow. The private service-list response shape was corrected during browser QA and the FE quality suite passed again. Production rollout PASS: schema13→14, pinned digest and API ready1/health200; Vercel READY and browser alias verified. Pre-release production schema13 backup106514 bytes SHA25698777e56f627857e7a99f0ddaa7d851d1e1934fd4db2fc20018d35176ab21947 restored successfully to a fresh disposable database (13 migrations,39 tables,7 roles,8 permissions). Manual drill does not satisfy automated backup/retention tasks.
 
 Phase03 media consent, review aggregates, specialist full acceptance and booking/chat remain open. Internal certificates must never be represented as government professional licences.
 
+
+
+Release: BE d6d05000c38df841dc971c1ebe13f4911c3483a4; FE 68b40f33fde3dc5812d6668d57a1684eec3274a5; image sha256:39354480ae727110bcca756fe215858baa7aaebf8a172ac1086d258869a0f37f; FE deployment dpl_E7NmxqBXmWC8DMGPRWWQQ4duAaXi. Initial guard failed before writes on optional migration name; read-only schema13 verified, TypeORM class-name fallback v2 succeeded. Anonymous private routes401/private,no-store; public providers empty/no-store; GiangXa200. Rollback to D1 source keeps additive tables/history.
