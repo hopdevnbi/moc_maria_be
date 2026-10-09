@@ -270,6 +270,34 @@
         "test": "Disposable seed integration PASS; all ten production logins/planning/logout PASS; FE23 tests/lint/typecheck/build and CI PASS; production mobile390 no overflow, detail hours, ten WebP HTTP200; no new migrations/API deployment",
         "businessData": "Owner-authorized ten THERAPIST accounts and APPLIED provider applications, thirty weekly shifts for first five. No certifications, contact verification, customer reservations or reviews."
       }
+    },
+    {
+      "agent": "Codex customer KTV consultation flow 2026-10-10",
+      "status": "RELEASED",
+      "frontendBranch": "codex/customer-ktv-chat-flow",
+      "backendBranch": "codex/customer-ktv-chat-flow",
+      "ownedPaths": [
+        "BE/src/modules/ktv-chat/** and scoped chat consultation tests",
+        "BE/scripts/enable-seeded-ktv-chat.cjs and owner seed chat flag only",
+        "FE/src/features/mobile/chat*, data, KTV profile/card/service chat actions",
+        "FE/src/app/tin-nhan/page.tsx and tai-khoan/page.tsx (role navigation)",
+        "FE auth returnTo preservation in registration/login",
+        "Plan own claim and scoped release docs"
+      ],
+      "note": "Explicit owner request activates introductory one-to-one chat for existing ten seeded THERAPIST identities and creates an enduser through normal registration. No provider approval/certification/booking-policy writes; separately owned E2a booking/provider modules unchanged.",
+      "release": {
+        "date": "2026-10-10",
+        "frontend": "dc99e8e2f2eeb53b64b219612c80c8c9bd950252",
+        "frontendCore": "b9e11b81e56187accece7c6c0d6c33b768d50edc",
+        "backend": "d65b2a7486c89505b20283a7267819170422e217",
+        "imageDigest": "sha256:9183dd6df3eca3f3f1e0e1e1c6d1ba575e227575ea59daab1ae4be831ddb5f68",
+        "frontendDeployment": "6972380799",
+        "migrations": 17,
+        "chatEnabledKtv": 10,
+        "customerAccountsCreated": 1,
+        "test": "25 BE unit, 71 disposable PostgreSQL integrations/all17 migrations, 27 FE tests/full quality/build PASS; source PR/main CI and Vercel PASS; live browser registration preserves KTV/service, customer emoji send and KTV UI reply, reciprocal block/unblock; live API outsider404, distinct private KTV conversations, denied blocked writes/history preservation; mobile320/390, reduced500px height and desktop1440 checked",
+        "businessData": "Owner opt-in flags for existing ten THERAPIST accounts; one ordinary CUSTOMER registered through production UI. Five scheduled/five unset remain. No provider approvals, certificates, customer reservations or public ratings seeded."
+      }
     }
   ]
 }
