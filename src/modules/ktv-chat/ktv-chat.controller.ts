@@ -24,6 +24,17 @@ import {
 } from './ktv-chat.dto';
 
 @ApiTags('ktv-chat')
+@Controller('ktv-chat/providers')
+export class KtvChatDirectoryController {
+  constructor(private readonly chat: KtvChatService) {}
+  @Get()
+  @Header('Cache-Control', 'no-store')
+  directory(): ReturnType<KtvChatService['directory']> {
+    return this.chat.directory();
+  }
+}
+
+@ApiTags('ktv-chat')
 @ApiBearerAuth()
 @Controller('ktv-chat/threads')
 @UseGuards(AccessTokenGuard)

@@ -33,6 +33,24 @@ export interface KtvMessage {
   body: string;
   created_at: string;
 }
+export interface ChatProvider {
+  id: string;
+  publicName: string;
+  title: string;
+  serviceArea: string | null;
+  avatarUrl: string | null;
+  publicAlias?: string;
+  services: Array<{ id: string; name: string }>;
+}
+interface SeedChatProvider {
+  id: string;
+  user_id: string;
+  public_name: string;
+  service_area: string | null;
+  avatar_url: string | null;
+  public_alias: string;
+  services: Array<{ id: string; name: string }>;
+}
 
 @Injectable()
 export class KtvChatService {
@@ -41,10 +59,77 @@ export class KtvChatService {
     private readonly providers: ProvidersService,
   ) {}
 
+  private seededProviders(manager: EntityManager = this.db.manager): Promise<SeedChatProvider[]> {
+    // Owner opt-in is separate from approval to perform/book a service. Never mint training evidence.
+    return manager.query(
+      `SELECT p.id,p.user_id,p.public_name,p.service_area,s.avatar_url,
+        a->>'seedId' AS public_alias,profile->'demoServices' AS services
+       FROM app_metadata m
+       CROSS JOIN LATERAL jsonb_array_elements(COALESCE(m.value->'accounts','[]')) a
+       JOIN provider_applications p ON p.id::text=a->>'applicationId' AND p.user_id::text=a->>'userId'
+       JOIN users u ON u.id=p.user_id AND u.is_active
+       JOIN staff_profiles s ON s.user_id=u.id AND s.is_active
+       JOIN app_metadata catalog ON catalog.key='mocmaria.demo.ktv.v1'
+       CROSS JOIN LATERAL jsonb_array_elements(COALESCE(catalog.value->'profiles','[]')) profile
+       WHERE m.key='mocmaria.ktv.accounts.v1' AND a->>'chatEnabled'='true'
+         AND profile->>'id'=a->>'seedId' AND p.status NOT IN ('REJECTED','SUSPENDED')
+         AND EXISTS(SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id
+                    WHERE ur.user_id=u.id AND r.name='THERAPIST')
+       ORDER BY public_alias`,
+    );
+  }
+
+  async directory(): Promise<ChatProvider[]> {
+    const [publicProviders, seeded] = await Promise.all([
+      this.providers.publicProviders(),
+      this.seededProviders(),
+    ]);
+    const cards: ChatProvider[] = publicProviders.map((p) => ({
+      id: p.id,
+      publicName: p.publicName,
+      title: p.title,
+      serviceArea: p.serviceArea,
+      avatarUrl: p.avatarUrl,
+      services: [
+        ...new Map(
+          p.eligibleServices.map((s) => [s.serviceId, { id: s.serviceId, name: s.serviceName }]),
+        ).values(),
+      ],
+    }));
+    for (const p of seeded) {
+      if (cards.some((c) => c.id === p.id)) continue;
+      cards.push({
+        id: p.id,
+        publicName: p.public_name,
+        title: 'Kỹ thuật viên Mộc Maria',
+        serviceArea: p.service_area,
+        avatarUrl:
+          p.avatar_url && /^\/media\/ktv\/[a-zA-Z0-9._-]+\.webp$/.test(p.avatar_url)
+            ? p.avatar_url
+            : null,
+        publicAlias: p.public_alias,
+        services: (Array.isArray(p.services) ? p.services : []).map((s) => ({
+          id: s.id,
+          name: s.name,
+        })),
+      });
+    }
+    return cards;
+  }
+
   async list(actor: AuthUserContext): Promise<KtvThread[]> {
-    return this.db.query(
+    const rows = await this.db.query<
+      Array<
+        KtvThread & {
+          provider_status: string;
+          provider_active: boolean;
+          customer_active: boolean;
+        }
+      >
+    >(
       `SELECT t.id,t.customer_user_id,t.provider_user_id,t.provider_application_id,
       t.updated_at,p.public_name AS provider_name,u.display_name AS customer_name,
+      p.status AS provider_status,provider.is_active AS provider_active,u.is_active AS customer_active,
       EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id=$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS blocked_by_me,
       EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id<>$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS blocked_by_other,
       (SELECT expires_at FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id=$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS my_block_expires_at,
@@ -54,21 +139,31 @@ export class KtvChatService {
         AND m.seq>CASE WHEN t.customer_user_id=$1 THEN t.customer_read_seq ELSE t.provider_read_seq END) AS unread_count
       FROM ktv_chat_threads t JOIN provider_applications p ON p.id=t.provider_application_id
       JOIN users u ON u.id=t.customer_user_id
+      JOIN users provider ON provider.id=t.provider_user_id
       WHERE t.customer_user_id=$1 OR t.provider_user_id=$1 ORDER BY t.updated_at DESC,t.id`,
       [actor.id],
     );
+    const seeded = new Set((await this.seededProviders()).map((p) => p.id));
+    return rows.map(({ provider_status, provider_active, customer_active, ...thread }) => ({
+      ...thread,
+      can_send:
+        thread.can_send &&
+        provider_active &&
+        customer_active &&
+        (provider_status === 'APPROVED' || seeded.has(thread.provider_application_id)),
+    }));
   }
 
   async open(actor: AuthUserContext, applicationId: string): Promise<KtvThread> {
     if (!actor.permissions.includes('customer.portal'))
       throw new ForbiddenException('Tài khoản khách hàng mới có thể bắt đầu hội thoại.');
-    // Reuse the public directory's existing approval, consent and service eligibility gates.
-    const provider = await this.providers.publicProvider(applicationId);
-    if (!provider) throw new NotFoundException('KTV hiện không nhận hội thoại mới.');
+    const seeded = (await this.seededProviders()).some((p) => p.id === applicationId);
+    if (!seeded) await this.providers.publicProvider(applicationId);
     const [app] = await this.db.query<{ user_id: string }[]>(
       `SELECT p.user_id FROM provider_applications p JOIN users u ON u.id=p.user_id
-       WHERE p.id=$1 AND p.status='APPROVED' AND u.is_active`,
-      [applicationId],
+       WHERE p.id=$1 AND u.is_active AND
+       (p.status='APPROVED' OR ($2::boolean AND p.status NOT IN ('REJECTED','SUSPENDED')))`,
+      [applicationId, seeded],
     );
     if (!app) throw new NotFoundException('KTV hiện không nhận hội thoại mới.');
     if (app.user_id === actor.id)
@@ -153,11 +248,15 @@ export class KtvChatService {
       );
       if (blocked)
         throw new ForbiddenException('Hội thoại đang bị chặn. Chỉ có thể xem lịch sử tin nhắn.');
+      const seeded = (await this.seededProviders(manager)).some(
+        (p) => p.id === thread.provider_application_id,
+      );
       const [active] = await manager.query<{ id: string }[]>(
         `SELECT p.id FROM provider_applications p
         JOIN users provider ON provider.id=p.user_id JOIN users customer ON customer.id=$2
-        WHERE p.id=$1 AND p.status='APPROVED' AND provider.is_active AND customer.is_active`,
-        [thread.provider_application_id, thread.customer_user_id],
+        WHERE p.id=$1 AND provider.is_active AND customer.is_active AND
+        (p.status='APPROVED' OR ($3::boolean AND p.status NOT IN ('REJECTED','SUSPENDED')))`,
+        [thread.provider_application_id, thread.customer_user_id, seeded],
       );
       if (!active) throw new ForbiddenException('Hội thoại hiện chỉ cho phép xem lịch sử.');
       const [rate] = await manager.query<{ count: number }[]>(
