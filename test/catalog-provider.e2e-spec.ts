@@ -13,6 +13,9 @@ import { UserRole } from '../src/modules/identity/entities/user-role.entity';
 import { StaffProfile } from '../src/modules/identity/entities/staff-profile.entity';
 import { ProviderCertificate } from '../src/modules/providers/entities/provider-certificate.entity';
 import { AuditLog } from '../src/modules/identity/entities/audit-log.entity';
+import { ServiceProviderPolicy } from '../src/modules/providers/entities/service-provider-policy.entity';
+import { ProviderServiceGrant } from '../src/modules/providers/entities/provider-service-grant.entity';
+import { Branch } from '../src/modules/catalog/entities/branch.entity';
 import { requireIsolatedDatabase } from './isolated-database';
 
 describe('Catalog and provider lifecycle in isolated database', () => {
@@ -28,6 +31,9 @@ describe('Catalog and provider lifecycle in isolated database', () => {
   let variantId: string;
   let enrollmentId: string;
   let certificateId: string;
+  let branchId: string;
+  let courseId: string;
+  let selfApplicationId: string;
   const suffix = randomUUID();
   const slug = 'qa-care-' + suffix;
   const password = randomBytes(32).toString('base64url') + '1!';
@@ -157,6 +163,7 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       })
       .expect(201);
     const id: string = branch.body.id;
+    branchId = id;
     await api().get(`/api/v1/branches/${id}/hours`).expect(404);
     await api(admin)
       .put(`/api/v1/admin/branches/${id}/hours`)
@@ -269,6 +276,7 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       .post('/api/v1/admin/provider-training/courses')
       .send({ code: courseCode, title: 'QA internal training only' })
       .expect(201);
+    courseId = course.body.id;
     const enrollment = await api(admin)
       .post('/api/v1/admin/provider-training/enrollments')
       .send({ courseId: course.body.id, providerApplicationId: applicationId })
@@ -328,6 +336,7 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       .post('/api/v1/provider-applications')
       .send({ publicName: 'QA self reviewer', applicationConsentVersion: 'provider-consent-v1' })
       .expect(201);
+    selfApplicationId = selfApplication.body.id;
     await api(admin)
       .post(
         '/api/v1/admin/provider-applications/' + selfApplication.body.id + '/contact-verifications',
@@ -423,13 +432,275 @@ describe('Catalog and provider lifecycle in isolated database', () => {
       .findOneByOrFail({ userId: applicantUserId });
     expect(profile.isPublic).toBe(false);
     await api().get(`/api/v1/providers/${applicationId}`).expect(404);
-    await database.getRepository(StaffProfile).update(profile.id, { isPublic: true });
+    // Complete actual C2 admin configuration in disposable QA; no implicit legal policy for production.
+    const operationPath = `/api/v1/admin/provider-applications/${applicationId}`;
+    const reason = 'Isolated C2 eligibility evidence';
+    const expiry = new Date(Date.now() + 86400000 * 365).toISOString();
+    const publicDto = {
+      slug: 'qa-provider-' + suffix,
+      title: 'QA wellness practitioner',
+      yearsExperience: 3,
+      isPublished: true,
+      accuracyConfirmed: true,
+      reason,
+    };
+    await api(applicant)
+      .post(operationPath + '/public-profile')
+      .send(publicDto)
+      .expect(403);
+    await api(admin)
+      .post(operationPath + '/public-profile')
+      .send({ ...publicDto, accuracyConfirmed: false })
+      .expect(400);
+    await api(admin)
+      .post(operationPath + '/public-profile')
+      .send(publicDto)
+      .expect(201);
+    await api(admin)
+      .post(operationPath + '/operating-review')
+      .send({ providerKind: 'WELLNESS', qualityStatus: 'ACTIVE', reason })
+      .expect(201);
+    await api(admin)
+      .post(operationPath + '/skills')
+      .send({ serviceId, certificateId, reason })
+      .expect(201);
+    await api(admin)
+      .post(operationPath + '/branch-assignments')
+      .send({ branchId, reason })
+      .expect(201);
+    await api(admin)
+      .post(operationPath + '/weekly-shifts')
+      .send({ branchId, weekday: 1, startsAtMinute: 540, endsAtMinute: 1020, reason })
+      .expect(201);
+    await api(admin)
+      .patch(`/api/v1/admin/services/${serviceId}/variants/${variantId}`)
+      .send({ isActive: true })
+      .expect(200);
+    await api().get(`/api/v1/providers/${applicationId}`).expect(404);
+    const policyDto = {
+      serviceId,
+      branchId,
+      courseId,
+      mode: 'ON_SITE',
+      jurisdictionCode: 'QA_REGION',
+      territoryLabel: 'QA territory only',
+      legalRequirement: 'NOT_REQUIRED',
+      legalReviewReference: 'QA_POLICY_REVIEW_001',
+      validUntil: expiry,
+      isActive: true,
+      legalReviewConfirmed: true,
+      reason,
+    };
+    await api(applicant)
+      .post('/api/v1/admin/service-provider-policies')
+      .send(policyDto)
+      .expect(403);
+    const policy = await api(admin)
+      .post('/api/v1/admin/service-provider-policies')
+      .send(policyDto)
+      .expect(201);
+    const policyId: string = policy.body.id;
+    const grantDto = {
+      policyId,
+      travelBufferMinutes: 0,
+      travelFeeVnd: 0,
+      isActive: true,
+      conditionsConfirmed: true,
+      reason,
+    };
+    const grant = await api(admin)
+      .post(operationPath + '/service-grants')
+      .send(grantDto)
+      .expect(201);
+    const grantId: string = grant.body.id;
+    await api(applicant)
+      .get(operationPath + '/service-configuration')
+      .expect(403);
+    await api()
+      .get(operationPath + '/service-configuration')
+      .expect(401);
+    const config = await api(admin)
+      .get(operationPath + '/service-configuration')
+      .expect(200)
+      .expect('Cache-Control', 'private, no-store');
+    expect(config.body.grants[0].policyId).toBe(policyId);
+    const selfPath = '/api/v1/admin/provider-applications/' + selfApplicationId;
+    await api(admin)
+      .post(selfPath + '/public-profile')
+      .send({
+        slug: 'qa-self-review',
+        title: 'QA title',
+        isPublished: false,
+        accuracyConfirmed: true,
+        reason,
+      })
+      .expect(400);
+    await api(admin)
+      .post(selfPath + '/operating-review')
+      .send({ providerKind: 'WELLNESS', qualityStatus: 'PAUSED', reason })
+      .expect(400);
+    await api(admin)
+      .post(selfPath + '/service-grants')
+      .send({ ...grantDto, isActive: false })
+      .expect(400);
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send({ ...grantDto, travelFeeVnd: 50000 })
+      .expect(400);
+    const homePolicy = await api(admin)
+      .post('/api/v1/admin/service-provider-policies')
+      .send({ ...policyDto, mode: 'AT_HOME' })
+      .expect(201);
+    const homeGrant = {
+      ...grantDto,
+      policyId: homePolicy.body.id,
+      travelFeeVnd: 50000,
+      travelBufferMinutes: 30,
+      maxRadiusKm: 10,
+    };
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send(homeGrant)
+      .expect(400);
+    await database.getRepository(Branch).update(branchId, { latitude: 10.777, longitude: 106.7 });
+    const savedHome = await api(admin)
+      .post(operationPath + '/service-grants')
+      .send(homeGrant)
+      .expect(201);
+    const homeReady = await api(applicant)
+      .get('/api/v1/provider-applications/me/service-readiness')
+      .expect(200);
+    expect(homeReady.body.services).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          mode: 'AT_HOME',
+          travelFeeVnd: '50000',
+          maxRadiusKm: 10,
+          travelBufferMinutes: 30,
+        }),
+      ]),
+    );
+    await database.getRepository(Branch).update(branchId, { latitude: null, longitude: null });
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send({ ...homeGrant, isActive: false })
+      .expect(201);
+    expect(
+      (
+        await api(admin)
+          .get(operationPath + '/service-configuration')
+          .expect(200)
+      ).body.grants,
+    ).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: savedHome.body.id, isActive: false })]),
+    );
     const publicProfile = await api()
       .get(`/api/v1/providers/${applicationId}`)
       .expect(200)
       .expect('Cache-Control', 'no-store');
     expect(publicProfile.body.userId).toBeUndefined();
     expect(publicProfile.body.email).toBeUndefined();
+    expect(publicProfile.body.avatarUrl).toBeNull();
+    expect(publicProfile.body.bookable).toBe(false);
+    expect(publicProfile.body.eligibleServices[0].serviceId).toBe(serviceId);
+    expect(JSON.stringify(publicProfile.body)).not.toContain('QA_POLICY_REVIEW_001');
+    await api(admin)
+      .post(operationPath + '/operating-review')
+      .send({ providerKind: 'WELLNESS', qualityStatus: 'PAUSED', reason })
+      .expect(201);
+    await api().get(`/api/v1/providers/${applicationId}`).expect(404);
+    await api(admin)
+      .post(operationPath + '/operating-review')
+      .send({ providerKind: 'SPECIALIST', qualityStatus: 'ACTIVE', reason })
+      .expect(201);
+    await api().get(`/api/v1/providers/${applicationId}`).expect(404);
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send(grantDto)
+      .expect(400);
+    await api(admin)
+      .post(operationPath + '/operating-review')
+      .send({ providerKind: 'WELLNESS', qualityStatus: 'ACTIVE', reason })
+      .expect(201);
+    await api(admin)
+      .post('/api/v1/admin/service-provider-policies')
+      .send({ ...policyDto, legalRequirement: 'LICENSE_REQUIRED' })
+      .expect(201);
+    await api().get(`/api/v1/providers/${applicationId}`).expect(404);
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send(grantDto)
+      .expect(400);
+    const credentialGrant = {
+      ...grantDto,
+      credentialReference: 'QA_PRIVATE_LEGAL_REFERENCE',
+      credentialValidUntil: expiry,
+    };
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send({ ...credentialGrant, conditionsConfirmed: false })
+      .expect(400);
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send(credentialGrant)
+      .expect(201);
+    await api().get(`/api/v1/providers/${applicationId}`).expect(200);
+    const ready = await api(applicant)
+      .get('/api/v1/provider-applications/me/service-readiness')
+      .expect(200);
+    expect(ready.body.serviceReady).toBe(true);
+    expect(ready.body.bookable).toBe(false);
+    expect(JSON.stringify(ready.body)).not.toContain('QA_PRIVATE_LEGAL_REFERENCE');
+    await database
+      .getRepository(ProviderServiceGrant)
+      .update(grantId, { credentialValidUntil: new Date(Date.now() - 1000) });
+    await api().get(`/api/v1/providers/${applicationId}`).expect(404);
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send({
+        ...credentialGrant,
+        credentialValidUntil: new Date(Date.now() - 1000).toISOString(),
+        isActive: false,
+      })
+      .expect(201);
+    await api(admin)
+      .post(operationPath + '/service-grants')
+      .send(credentialGrant)
+      .expect(201);
+    await database
+      .getRepository(ServiceProviderPolicy)
+      .update(policyId, { validUntil: new Date(Date.now() - 1000) });
+    await api().get(`/api/v1/providers/${applicationId}`).expect(404);
+    await api(admin)
+      .post('/api/v1/admin/service-provider-policies')
+      .send({
+        ...policyDto,
+        validUntil: new Date(Date.now() - 1000).toISOString(),
+        isActive: false,
+      })
+      .expect(201);
+    await api(admin)
+      .post('/api/v1/admin/service-provider-policies')
+      .send({ ...policyDto, legalRequirement: 'LICENSE_REQUIRED' })
+      .expect(201);
+    const unrelatedCourse = await api(admin)
+      .post('/api/v1/admin/provider-training/courses')
+      .send({ code: 'QA_OTHER_' + suffix.slice(0, 8).toUpperCase(), title: 'QA unrelated course' })
+      .expect(201);
+    await api(admin)
+      .post('/api/v1/admin/service-provider-policies')
+      .send({
+        ...policyDto,
+        courseId: unrelatedCourse.body.id,
+        legalRequirement: 'LICENSE_REQUIRED',
+      })
+      .expect(201);
+    await api().get(`/api/v1/providers/${applicationId}`).expect(404);
+    await api(admin)
+      .post('/api/v1/admin/service-provider-policies')
+      .send({ ...policyDto, legalRequirement: 'LICENSE_REQUIRED' })
+      .expect(201);
+    await api().get(`/api/v1/providers/${applicationId}`).expect(200);
     await api(applicant)
       .patch('/api/v1/provider-applications/me')
       .send({ publicName: 'Unreviewed new name', introduction: 'QA', serviceArea: 'QA' })

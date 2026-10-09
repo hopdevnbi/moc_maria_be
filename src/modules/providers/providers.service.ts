@@ -22,12 +22,30 @@ import {
 } from './dto/provider-application.dto';
 import { IssueCertificateDto } from './dto/certificate.dto';
 import { ProviderTrustService } from './provider-trust.service';
+import { ProviderEligibilityService } from './provider-eligibility.service';
+import type { EligibleProviderService } from './provider-eligibility.service';
+
+export interface PublicProviderCard {
+  id: string;
+  publicName: string;
+  introduction: string | null;
+  serviceArea: string | null;
+  avatarUrl: string | null;
+  slug: string;
+  title: string;
+  yearsExperience: number | null;
+  providerKind: string;
+  eligibleServices: EligibleProviderService[];
+  trainingBadge: 'MOC_MARIA_INTERNAL';
+  bookable: false;
+}
 
 @Injectable()
 export class ProvidersService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly trust: ProviderTrustService,
+    private readonly eligibility: ProviderEligibilityService,
     @InjectRepository(ProviderApplication)
     private readonly applications: Repository<ProviderApplication>,
     @InjectRepository(ProviderCertificate)
@@ -319,18 +337,10 @@ export class ProvidersService {
     });
   }
 
-  async publicProviders(): Promise<
-    Array<{
-      id: string;
-      publicName: string;
-      introduction: string | null;
-      serviceArea: string | null;
-      avatarUrl: string | null;
-    }>
-  > {
+  async publicProviders(): Promise<PublicProviderCard[]> {
     const approved = await this.applications.find({ where: { status: 'APPROVED' } });
     if (!approved.length) return [];
-    const [profiles, certs, users] = await Promise.all([
+    const [profiles, certs, users, readiness] = await Promise.all([
       this.profiles.find({
         where: { userId: In(approved.map((app) => app.userId)), isActive: true, isPublic: true },
       }),
@@ -341,17 +351,14 @@ export class ProvidersService {
         select: ['id', 'email', 'phone'],
         where: { id: In(approved.map((app) => app.userId)), isActive: true },
       }),
+      this.eligibility.readinessBatch(approved.map((app) => app.id)),
     ]);
     const trustedIds = await this.trust.publicEligibleIds(approved, users);
-    const result: Array<{
-      id: string;
-      publicName: string;
-      introduction: string | null;
-      serviceArea: string | null;
-      avatarUrl: string | null;
-    }> = [];
+    const result: PublicProviderCard[] = [];
     for (const app of approved) {
       if (!trustedIds.has(app.id)) continue;
+      const ready = readiness.get(app.id);
+      if (!ready?.serviceReady || !ready.profile || !ready.providerKind) continue;
       const profile = profiles.find((profile) => profile.userId === app.userId);
       if (!profile || !users.some((user) => user.id === app.userId)) continue;
       if (
@@ -368,7 +375,15 @@ export class ProvidersService {
         publicName: app.publicName,
         introduction: app.introduction,
         serviceArea: app.serviceArea,
-        avatarUrl: profile.avatarUrl,
+        // Public text consent does not authorize publishing personal photos.
+        avatarUrl: null,
+        slug: ready.profile.slug,
+        title: ready.profile.title,
+        yearsExperience: ready.profile.yearsExperience,
+        providerKind: ready.providerKind,
+        eligibleServices: ready.services,
+        trainingBadge: 'MOC_MARIA_INTERNAL',
+        bookable: false,
       });
     }
     return result;

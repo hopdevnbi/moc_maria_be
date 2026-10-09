@@ -10,6 +10,11 @@ import { TrainingEnrollment } from './entities/training-enrollment.entity';
 import { TrainingService } from './training.service';
 import { ProviderTrustService } from './provider-trust.service';
 import { ProviderScheduleService } from './provider-schedule.service';
+import { ProviderEligibilityService } from './provider-eligibility.service';
+import {
+  AdminProviderEligibilityController,
+  OwnProviderEligibilityController,
+} from './provider-eligibility.controller';
 import {
   AdminProviderScheduleController,
   OwnProviderScheduleController,
@@ -34,7 +39,13 @@ import {
     AuthModule,
     AccessControlModule,
   ],
-  providers: [ProvidersService, TrainingService, ProviderTrustService, ProviderScheduleService],
+  providers: [
+    ProvidersService,
+    TrainingService,
+    ProviderTrustService,
+    ProviderScheduleService,
+    ProviderEligibilityService,
+  ],
   controllers: [
     PublicProvidersController,
     ProviderApplicationsController,
@@ -42,6 +53,8 @@ import {
     TrainingController,
     AdminProviderScheduleController,
     OwnProviderScheduleController,
+    AdminProviderEligibilityController,
+    OwnProviderEligibilityController,
   ],
 })
 export class ProvidersModule {}

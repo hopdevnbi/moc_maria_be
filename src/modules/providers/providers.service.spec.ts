@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException } from '@nestjs/common';
 import { DataSource, Repository } from 'typeorm';
 import { ProvidersService } from './providers.service';
 import { ProviderTrustService } from './provider-trust.service';
+import { ProviderEligibilityService } from './provider-eligibility.service';
 import { ProviderApplication } from './entities/provider-application.entity';
 import { ProviderCertificate } from './entities/provider-certificate.entity';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
@@ -32,6 +33,9 @@ describe('Provider eligibility', () => {
   const service = new ProvidersService(
     dataSource as unknown as DataSource,
     trust as unknown as ProviderTrustService,
+    {
+      readinessBatch: jest.fn(() => Promise.resolve(new Map())),
+    } as unknown as ProviderEligibilityService,
     applications as unknown as Repository<ProviderApplication>,
     certificates as unknown as Repository<ProviderCertificate>,
     profiles as unknown as Repository<StaffProfile>,
