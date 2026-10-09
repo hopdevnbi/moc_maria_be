@@ -247,6 +247,19 @@
         "test": "25 BE unit +65 disposable PostgreSQL integrations; migration rollback/reapply; FE21 tests/full quality/build; 320/390px local browser QA; production schema16→17, health200/private401/public ratings200; backend/FE CI and production Vercel deployment PASS",
         "businessData": "No production fixtures or approval/booking writes. Real eligible KTV count0. Verified review submission depends on existing separately owned E2 completion workflow."
       }
+    },
+    {
+      "agent": "Codex KTV accounts photos schedules 2026-10-09",
+      "status": "ACTIVE",
+      "frontendBranch": "codex/ktv-accounts-photos",
+      "backendBranch": "codex/ktv-accounts-photos",
+      "ownedPaths": [
+        "FE seed profile photos, seed schedule display and generator",
+        "BE scripts/provision-ktv-accounts.cjs",
+        "BE seed-owned identity/application/branch-assignment/weekly-shift rows only",
+        "Plan own claim and release evidence"
+      ],
+      "note": "User explicitly authorizes ten persistent KTV accounts and five configured schedules, plus local photo publication. Existing E2a modules remain unchanged; no invented certificates/contact verification/assessment results or appointment writes."
     }
   ]
 }
