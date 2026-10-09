@@ -1,0 +1,126 @@
+PHASE 02 - AUTHENTICATION / RBAC / CUSTOMER / STAFF IDENTITY
+=============================================================
+
+AUDIT CHECKLIST 2026-10-09 — CURRENT
+------------------------------------
+[x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
+Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
+Evidence: BE ffc89b3/API deployed, FE 99612d5/Vercel deployed; BE 17 unit+20 isolated integrations, FE quality/4 unit/build PASS; isolated browser admin/applicant QA PASS. Small QA fixes remain pending commit/deploy.
+Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
+
+
+
+Mục tiêu
+--------
+Xây identity foundation đủ an toàn cho customer, staff và admin trước khi làm booking.
+
+Role dự kiến
+------------
+SUPER_ADMIN
+ADMIN
+BRANCH_MANAGER
+RECEPTIONIST
+THERAPIST
+DOCTOR_CONSULTANT
+CUSTOMER
+
+Tasks
+-----
+[x] P02-T01 Thiết kế entities:
+    users
+    roles
+    permissions
+    user_roles
+    sessions / refresh_sessions
+    customers
+    staff base identity
+
+[x] P02-T02 Auth:
+    - register customer
+    - login
+    - refresh
+    - logout current session
+    - logout all sessions
+    - forgot/reset password foundation
+    - password policy
+
+[x] P02-T03 Security:
+    - password hash Argon2/bcrypt
+    - rotating refresh token hoặc secure session strategy
+    - token expiry
+    - revoke session
+    - rate limit login
+    - normalized email/phone
+    - unique constraints
+
+[x] P02-T04 RBAC/Capability guards phía backend.
+    Không chỉ check role ở frontend.
+
+[x] P02-T05 Admin user/staff provisioning:
+    - tạo staff
+    - assign role
+    - active/inactive
+    - password reset/invite strategy
+
+[x] P02-T06 Customer profile base:
+    - name
+    - phone
+    - email optional
+    - avatar optional
+    - birthday optional
+    - contact preferences foundation
+
+[x] P02-T07 Staff profile identity base:
+    - public name
+    - internal user linkage
+    - active status
+    - role
+    - public visibility flag
+
+[x] P02-T08 FE auth:
+    - login/register
+    - route protection
+    - session refresh
+    - unauthorized/forbidden UX
+    - basic account menu
+
+[x] P02-T09 Audit logs:
+    login relevant events
+    staff role changes
+    account disabled/enabled
+
+[x] P02-T10 Integration tests auth/RBAC.
+
+Acceptance criteria
+-------------------
+- CUSTOMER không vào staff/admin API.
+- THERAPIST không tự nâng quyền.
+- ADMIN/SUPER_ADMIN permission đúng.
+- disabled user bị chặn.
+- refresh session revoke được.
+- FE không lưu credential nhạy cảm sai cách.
+
+Validation
+----------
+- auth e2e PASS
+- role matrix test PASS
+- API build PASS
+- FE build PASS
+- DB migration PASS
+
+Không làm trong phase này
+-------------------------
+- Google/Facebook login nếu chưa cần
+- OTP SMS production
+- booking
+- staff schedule chi tiết
+- payment
+
+Phase Gate
+----------
+[x] Role matrix được chốt
+[x] Auth/RBAC e2e PASS
+[x] Staff/customer identity usable
+[x] Tracker cập nhật
+[x] Commit SHA ghi vào status
+

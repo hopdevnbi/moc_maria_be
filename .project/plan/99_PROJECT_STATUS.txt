@@ -1,0 +1,56 @@
+MỘC MARIA — CURRENT PROJECT STATUS
+=================================
+SOURCE OF TRUTH: file này + task ledger; lịch sử riêng ở 15_STATUS_HISTORY_BEFORE_RECONCILIATION_2026-10-09.txt.
+LAST_UPDATED: 2026-10-09
+TOTAL_PHASES: 8
+CURRENT_PHASE: 03
+CURRENT_TASK: P03-T26
+CURRENT_STAGE: A — Chốt QA fixes, tiếp theo B — Hồ sơ/eligibility
+OVERALL_STATUS: IMPLEMENTING
+MVP_STATUS: IN_PROGRESS_NOT_OPERATIONAL
+
+PHASE STATUS
+------------
+[x] 01 Foundation: DONE.
+[x] 02 Auth/RBAC identity foundation: DONE. Email/SMS reset delivery chưa có, theo dõi Phase 08 notification.
+[-] 03 Catalog/branches/providers/schedules: IN_PROGRESS. Catalog/cơ sở nền tảng có source/test/deploy; thiếu verified contact/consent, skills/legal/quality, shifts/time-off/territory và training sessions.
+[ ] 04 Booking engine: TODO. Chưa module/migration/API booking/quote/concurrency.
+[-] 05 Public web/SEO/booking UX: PARTIAL. Homepage/catalog/provider UI API thật; booking/SEO đầy đủ chưa có.
+[-] 06 Customer/staff portal/chat: PARTIAL. Account/application/training có; chat/lịch/reviews chưa có.
+[-] 07 Admin command center/CMS: PARTIAL. Catalog/branch/training admin có; booking/CMS/report/moderation chưa có.
+[-] 08 Production/queue/hardening: PARTIAL. Hạ tầng deploy domain/API healthy; queue/CDN/backup restore/monitoring/full acceptance còn thiếu.
+Phases 05/07/08 được ưu tiên sớm theo owner; không có nghĩa đã qua Phase 03/04 gate.
+
+CHECKLIST
+---------
+[x] DONE đúng phạm vi task; [-] PARTIAL (không viết lại phần có); [ ] TODO.
+Phase 02-08: 225 tasks, 36 DONE, 64 PARTIAL, 125 TODO tại mốc reconciliation. Đây là số task, KHÔNG là phần trăm sản phẩm. Phase 01 có 10 task nền tảng đã đóng riêng.
+Mỗi task trong 13_TASK_LEDGER.json; các file 02..08 đã đồng bộ marker.
+Không tự mark DONE vì build PASS; cần API/schema/UI đúng quyền/test/release theo scope.
+
+VERIFIED RELEASE
+----------------
+FE source 99612d5: https://mocmaria.com; Vercel dpl_743MiiREwFh3gvt6U8RmTdN7eM1d READY.
+BE source ffc89b3; release docs 67cfdd5. https://api.mocmaria.com/api/v1/health/ready HTTP 200/database up.
+Image sha256:4ec1e00d8521e01f52980cfe3a3fa85602f6482da817939bfb42a49d9d1e17b9. Deployment ready=1; TLS READY.
+9 production migrations applied; no new schema migration in latest release. No production fixture seed/reset.
+BE 17 unit + 20 isolated PostgreSQL integration PASS; FE quality/4 unit/build PASS. Isolated admin/applicant browser flows PASS; temporary DB/pod/Secret removed.
+Public services/providers empty: real catalog/prices/providers chưa công bố. GiangXa HTTPS HTTP 200; namespace unchanged.
+Audit documentation branches: BE eed2627, FE 17b2c70; product release unchanged.
+
+OWNERSHIP / NEXT
+----------------
+Read 11_WORK_COORDINATION.md, 12_STAGE_ROADMAP.md, 14_ACTIVE_WORK.json before edits.
+Current Codex claims providers/training, related identity fields/migrations/tests, marketplace/auth QA, trackers/releases. No parallel writer in shared BE checkout. Other AI must claim isolated scope/worktree; coordinate shared DTO/schema/global CSS.
+FE Desktop checkout d27c1c0 preserved; current integration worktree C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe. Do not reset or overwrite other AI.
+Stage A: commit/deploy tested small QA fixes/helper and planning reconciliation.
+Stage B/C/D: consent/contact, eligibility, skills/schedules/legal/area and detailed training; do not enable bookings before gate.
+Stage E: Phase 04 engine + real FE booking; Stage F chat/reviews; G admin operations; H SEO/media/queue/production acceptance.
+Owner inputs pending: admin email and real catalog/prices/branches/providers; legal policy when applicable. Continue independent coding.
+
+ROLLBACK
+--------
+API prior digest sha256:71bd6f943e7859313ec1aa849b8c80c27d4794bec2d5dff886eb81029e419c7f.
+FE prior READY dpl_6QkFFnd7uF6EwLHGALEfTxs1k5nR. Schema unchanged in latest release.
+
+DETAILED AUDIT: 10_CURRENT_PROGRESS.md (snapshot 2026-10-09).

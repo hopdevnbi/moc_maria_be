@@ -1,0 +1,31 @@
+{
+  "updatedAt": "2026-10-09",
+  "claims": [
+    {
+      "agent": "Codex current chat",
+      "status": "ACTIVE",
+      "stage": "A then B",
+      "taskIds": [
+        "P03-T26",
+        "P03-T27",
+        "P03-T32"
+      ],
+      "backendBranch": "codex/production-integration",
+      "frontendBranch": "codex/platform-integration",
+      "frontendWorktree": "C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe",
+      "ownedPaths": [
+        "BE/src/modules/providers/**",
+        "BE/src/modules/identity/** (contact verification fields only)",
+        "BE/src/database/migrations/** (coordinate sequence)",
+        "BE/test/**",
+        "BE/scripts/isolated-integration-test.cjs",
+        "FE/src/features/marketplace/**",
+        "FE/src/features/auth/components/ChangePasswordForm.tsx",
+        "FE/src/app/tai-khoan/page.tsx",
+        "Plan/**",
+        "repo docs/progress/state"
+      ],
+      "note": "Before any new writer, recheck live status and discuss overlaps. No other agent confirmed ownership here."
+    }
+  ]
+}

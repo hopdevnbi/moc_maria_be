@@ -1,0 +1,1132 @@
+{
+  "auditedAt": "2026-10-09",
+  "currentPhase": 3,
+  "mvpStatus": "NOT_OPERATIONAL",
+  "tasks": [
+    {
+      "id": "P02-T01",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T02",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T03",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T04",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T05",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T06",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T07",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T08",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T09",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P02-T10",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T01",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T02",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T03",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T04",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T05",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T06",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T07",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T08",
+      "status": "PARTIAL",
+      "note": "Mapping active và override cấp service có thật; còn chính sách override theo variant/audit giá rõ ràng."
+    },
+    {
+      "id": "P03-T09",
+      "status": "PARTIAL",
+      "note": "Identity/bio/avatar URL/visibility có thật; thiếu slug/title/experience/media consent/trust fields."
+    },
+    {
+      "id": "P03-T10",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T11",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T12",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T13",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T14",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T15",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T16",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T17",
+      "status": "PARTIAL",
+      "note": "Tạo/sửa/publish/disable và giá variant đã có; chưa đầy đủ media/audit giá."
+    },
+    {
+      "id": "P03-T18",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T19",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T20",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T21",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T22",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T23",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P03-T24",
+      "status": "PARTIAL",
+      "note": "Public KTV list/detail có approval/certificate gate; expert và eligibility đầy đủ còn thiếu."
+    },
+    {
+      "id": "P03-T25",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T26",
+      "status": "PARTIAL",
+      "note": "Nộp đơn/own status đã có; thiếu verified contact và consent lưu server."
+    },
+    {
+      "id": "P03-T27",
+      "status": "PARTIAL",
+      "note": "State machine/audit có; yêu cầu lý do chuyển trạng thái chưa bắt buộc backend."
+    },
+    {
+      "id": "P03-T28",
+      "status": "PARTIAL",
+      "note": "Course/enrollment/assessment có; thiếu modules/sessions/instructor/attendance evidence."
+    },
+    {
+      "id": "P03-T29",
+      "status": "PARTIAL",
+      "note": "Pass/fail và attendance >=80% có; thiếu tiêu chí theo service và lịch sử đánh giá lại."
+    },
+    {
+      "id": "P03-T30",
+      "status": "PARTIAL",
+      "note": "Issue/revoke/expiry có; còn renewal/lịch sử; không phải giấy phép nhà nước."
+    },
+    {
+      "id": "P03-T31",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T32",
+      "status": "PARTIAL",
+      "note": "Approval+active+public+certificate gate có; thiếu skills/legal/quality/territory/schedule gates."
+    },
+    {
+      "id": "P03-T33",
+      "status": "PARTIAL",
+      "note": "Chỉ có serviceArea dạng text; chưa có vùng cấu trúc/mode/travel buffer."
+    },
+    {
+      "id": "P03-T34",
+      "status": "PARTIAL",
+      "note": "Variant price có; thiếu travel/fee policy và quote snapshot acceptance."
+    },
+    {
+      "id": "P03-T35",
+      "status": "PARTIAL",
+      "note": "Self-approval/self-certification/revocation/expiry tests PASS; chưa có booking/chat tests."
+    },
+    {
+      "id": "P03-T36",
+      "status": "PARTIAL",
+      "note": "Public name/bio/area/avatar/badge có; thiếu skills/services/rating/read model."
+    },
+    {
+      "id": "P03-T37",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T38",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P03-T39",
+      "status": "PARTIAL",
+      "note": "Default avatar và local reviewed images có; chưa có pipeline upload/consent."
+    },
+    {
+      "id": "P04-T01",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T02",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T03",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T04",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T05",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T06",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T07",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T08",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T09",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T10",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T11",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T12",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T13",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T14",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T15",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T16",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T17",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T18",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T19",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T20",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T21",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T22",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T23",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T24",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P04-T25",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T01",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T02",
+      "status": "PARTIAL",
+      "note": "Homepage dùng API thật; services/providers production hiện rỗng; booking/expert/reviews còn thiếu."
+    },
+    {
+      "id": "P05-T03",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T04",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T05",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T06",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T07",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T08",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T09",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T10",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T11",
+      "status": "PARTIAL",
+      "note": "Metadata cơ bản có; thiếu sitemap/robots/OG/structured data/metadata chi tiết động."
+    },
+    {
+      "id": "P05-T12",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T13",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T14",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T15",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T16",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T17",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T18",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T19",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T20",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T21",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T22",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T23",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P05-T24",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P05-T25",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T01",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T02",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T03",
+      "status": "PARTIAL",
+      "note": "Account/auth UI và profile API có; chưa có editor profile đầy đủ."
+    },
+    {
+      "id": "P06-T04",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T05",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T06",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T07",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T08",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T09",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P06-T10",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T11",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T12",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T13",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T14",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T15",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T16",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T17",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T18",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T19",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T20",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T21",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T22",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T23",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T24",
+      "status": "PARTIAL",
+      "note": "Application/training UI có; chưa có booking accept/decline và eligibility scorecard."
+    },
+    {
+      "id": "P06-T25",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T26",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T27",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T28",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P06-T29",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T01",
+      "status": "PARTIAL",
+      "note": "Permission-aware nav/forbidden có; branch scoping còn thiếu."
+    },
+    {
+      "id": "P07-T02",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T03",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T04",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T05",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T06",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T07",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T08",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T09",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T10",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T11",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T12",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T13",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T14",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T15",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T16",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T17",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T18",
+      "status": "PARTIAL",
+      "note": "Audit backend cho auth/KTV/cert có; thiếu UI và audit critical price changes."
+    },
+    {
+      "id": "P07-T19",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T20",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T21",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T22",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T23",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T24",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T25",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P07-T26",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T27",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T28",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T29",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T30",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T31",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T32",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P07-T33",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T01",
+      "status": "PARTIAL",
+      "note": "Foundation shared-service audit có; chưa tích hợp runtime/versioned queue events."
+    },
+    {
+      "id": "P08-T02",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T03",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T04",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T05",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T06",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T07",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T08",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T09",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T10",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T11",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T12",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T13",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T14",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T15",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T16",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T17",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T18",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T19",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T20",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T21",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T22",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T23",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T24",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T25",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T26",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T27",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T28",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T29",
+      "status": "PARTIAL",
+      "note": "Production audit trước đó 0; FE dev dependencies còn advisory; chưa hardening hoàn chỉnh."
+    },
+    {
+      "id": "P08-T30",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T31",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T32",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T33",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T34",
+      "status": "PARTIAL",
+      "note": "Non-root pod riêng có; DB least privilege audit/provisioning chưa hoàn tất."
+    },
+    {
+      "id": "P08-T35",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T36",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T37",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T38",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T39",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T40",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T41",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T42",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T43",
+      "status": "DONE",
+      "note": "Đã có source/migration và verification tương ứng; xem release/test evidence."
+    },
+    {
+      "id": "P08-T44",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T45",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T46",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T47",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T48",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T49",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T50",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T51",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T52",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T53",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T54",
+      "status": "PARTIAL",
+      "note": "Isolated applicant→training→cert→approval UI/DB PASS; đầy đủ skills/legal gates và real ops còn thiếu."
+    },
+    {
+      "id": "P08-T55",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T56",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T57",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T58",
+      "status": "PARTIAL",
+      "note": "Có một phần implementation; chưa đạt toàn bộ acceptance của task."
+    },
+    {
+      "id": "P08-T59",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T60",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T61",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T62",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T63",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    },
+    {
+      "id": "P08-T64",
+      "status": "TODO",
+      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+    }
+  ]
+}

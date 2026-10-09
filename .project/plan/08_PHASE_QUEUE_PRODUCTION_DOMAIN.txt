@@ -1,0 +1,189 @@
+PHASE 08 - QUEUE NOTIFICATIONS / PRODUCTION / DOMAIN / HARDENING
+================================================================
+
+AUDIT CHECKLIST 2026-10-09 — CURRENT
+------------------------------------
+[x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
+Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
+Evidence: BE ffc89b3/API deployed, FE 99612d5/Vercel deployed; BE 17 unit+20 isolated integrations, FE quality/4 unit/build PASS; isolated browser admin/applicant QA PASS. Small QA fixes remain pending commit/deploy.
+Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
+P08-T01: Foundation shared-service audit có; chưa tích hợp runtime/versioned queue events.
+P08-T18: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T20: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T23: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T28: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T29: Production audit trước đó 0; FE dev dependencies còn advisory; chưa hardening hoàn chỉnh.
+P08-T31: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T32: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T33: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T34: Non-root pod riêng có; DB least privilege audit/provisioning chưa hoàn tất.
+P08-T37: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T40: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T42: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T44: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T50: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T52: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T54: Isolated applicant→training→cert→approval UI/DB PASS; đầy đủ skills/legal gates và real ops còn thiếu.
+P08-T55: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P08-T58: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+
+
+Mục tiêu
+--------
+Đưa Mộc Maria từ hệ thống functional thành production-ready: notifications, shared queue integration, deployment, domain, observability, security hardening và runbook.
+
+A. Shared Queue integration
+---------------------------
+[-] P08-T01 Audit queue service thực tế:
+    Redis/broker
+    job schema
+    retries
+    dead-letter/failure handling
+    provider adapters
+    auth/service-to-service
+    production env
+
+[ ] P08-T02 Namespace jobs:
+    sourceApp=MOC_MARIA
+    versioned payload
+    correlationId
+    idempotencyKey
+
+[ ] P08-T03 Publish events:
+    BOOKING_CREATED
+    BOOKING_CONFIRMED
+    BOOKING_REMINDER
+    BOOKING_CANCELLED
+    BOOKING_RESCHEDULED
+    STAFF_CHANGED
+    REVIEW_REQUEST
+
+[ ] P08-T04 Reminder scheduling:
+    ví dụ 24h / 2h trước lịch
+    cấu hình được
+    timezone đúng
+    cancel/reschedule phải invalidate hoặc re-schedule job cũ.
+
+[ ] P08-T05 Notification channels baseline:
+    Email hoặc kênh production được chọn.
+    SMS/Zalo OA/Web Push để adapter-ready nếu chưa bật.
+
+[ ] P08-T06 Queue failure/retry monitoring.
+
+B. Production infrastructure
+-----------------------------
+[x] P08-T07 Backend Docker image production.
+[x] P08-T08 Kubernetes namespace/config.
+[x] P08-T09 Deployment/Service/Ingress.
+[x] P08-T10 ConfigMap + Secret.
+[x] P08-T11 readiness/liveness/startup probes.
+[x] P08-T12 resource requests/limits baseline.
+[x] P08-T13 PostgreSQL production connection/pooling.
+[ ] P08-T14 automated DB backup + restore drill documentation.
+
+C. Frontend production
+----------------------
+[x] P08-T15 Vercel project.
+[x] P08-T16 production env.
+[x] P08-T17 build/deploy checks.
+[-] P08-T18 error pages / maintenance fallback.
+
+D. Domain
+---------
+[x] P08-T19 mocmaria.com
+[-] P08-T20 www.mocmaria.com
+[x] P08-T21 api.mocmaria.com
+[ ] P08-T22 cdn.mocmaria.com nếu dùng.
+[-] P08-T23 HTTPS / redirect / canonical verification.
+Registrar đang ở GoDaddy; DNS có thể chuyển Cloudflare nếu thống nhất.
+
+E. Bunny production media
+-------------------------
+[ ] P08-T24 Tạo storage/library riêng Mộc Maria.
+[ ] P08-T25 Cấu hình CORS/cache/security.
+[ ] P08-T26 Không dùng giangxa-media làm asset store lâu dài cho Mộc Maria.
+[ ] P08-T27 Media smoke test production.
+
+F. Security hardening
+---------------------
+[-] P08-T28 Secret scan.
+[-] P08-T29 dependency audit.
+[x] P08-T30 CORS allowlist.
+[-] P08-T31 security headers.
+[-] P08-T32 rate limits public/auth/admin/chat.
+[-] P08-T33 admin audit review.
+[-] P08-T34 least privilege DB/account.
+[ ] P08-T35 upload validation.
+[ ] P08-T36 backup/restore checks.
+
+G. Observability
+----------------
+[-] P08-T37 health/metrics.
+[x] P08-T38 structured log/correlation ID.
+[ ] P08-T39 error tracking.
+[-] P08-T40 basic CPU/RAM/request/error monitoring.
+[ ] P08-T41 queue failure visibility.
+[-] P08-T42 DB pool/slow query visibility.
+
+H. Production acceptance test
+------------------------------
+[x] P08-T43 New customer register/login.
+[-] P08-T44 Browse service/staff.
+[ ] P08-T45 Create booking.
+[ ] P08-T46 Staff sees booking.
+[ ] P08-T47 Customer/staff chat.
+[ ] P08-T48 Admin reschedule/cancel.
+[ ] P08-T49 Reminder queued/sent.
+[-] P08-T50 Mobile production smoke test.
+[ ] P08-T51 SEO/OG production smoke test.
+[-] P08-T52 Restart pod without data/session catastrophe.
+[ ] P08-T53 DB restore runbook reviewed.
+
+Definition of MVP DONE
+----------------------
+MVP chỉ DONE khi:
+- cả 8 phase DONE
+- production domain hoạt động
+- booking core concurrency pass
+- auth/RBAC pass
+- customer/staff/admin flows pass
+- chat tenant isolation pass
+- queue reminder path pass
+- backup/runbook tồn tại
+- tracker/decision logs hoàn tất
+- không có secret commit
+
+Phase Gate
+----------
+[ ] Production acceptance PASS
+[ ] Security checklist PASS
+[ ] Backup strategy verified
+[ ] Domain/HTTPS PASS
+[ ] Final commit SHA/tag ghi vào 99_PROJECT_STATUS.txt
+[ ] PROJECT_STATUS = MVP_V1_DONE
+
+
+
+I. KTV MARKETPLACE PRODUCTION ACCEPTANCE (CORE MVP)
+----------------------------------------------------
+[-] P08-T54 KTV đăng ký -> xét duyệt -> hoàn tất đào tạo/đánh giá ->
+    phê duyệt -> xuất hiện danh sách; chưa duyệt không xuất hiện.
+[-] P08-T55 Kiểm tra chứng nhận nội bộ so với giấy phép pháp lý
+    và điều kiện cụ thể theo loại hình dịch vụ.
+[ ] P08-T56 Khách xem giá -> chọn KTV -> nhập địa chỉ -> chat ->
+    yêu cầu -> KTV accept -> khách xác nhận quote -> booking thành công.
+[ ] P08-T57 Queue thông báo: ứng tuyển, lịch đào tạo, cấp/thu hồi chứng nhận,
+    booking request, accept/decline, quote revision, reminder.
+[-] P08-T58 Kiểm tra dữ liệu nhạy cảm: địa chỉ khách, giấy tờ KTV,
+    upload bảo mật, thời hạn lưu trữ, audit.
+[ ] P08-T59 E2E/rollback: KTV suspend, mất mạng, trùng lịch,
+    tranh chấp phí, huỷ dịch vụ tại nhà.
+MVP KHÔNG DONE nếu chưa đạt acceptance cho luồng KTV marketplace.
+
+J. RATING / MODERATION PRODUCTION ACCEPTANCE
+-------------------------------------------
+[ ] P08-T60 Queue customer review invitations after completed sessions, provider quality alerts and moderation/appeal notifications with idempotency.
+[ ] P08-T61 End-to-end verified reviews, aggregate rebuild, anti-spam, profile visibility and correct rating counts.
+[ ] P08-T62 Automatic high-risk pause and human review with reliable audit; prevent suspended providers from accepting new jobs in concurrent requests.
+[ ] P08-T63 Appeal, remediation, reinstatement and notifications verified, including rollback of mistaken automated enforcement.
+[ ] P08-T64 Validate privacy/retention for comments, evidence and addresses, monitoring of false positives and operational dashboards.

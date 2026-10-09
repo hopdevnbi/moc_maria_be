@@ -1,0 +1,99 @@
+MỘC MARIA - DECISIONS LOG CẤP DỰ ÁN
+===================================
+
+D-001
+Status: ACCEPTED
+Decision: Xây Mộc Maria thành Wellness Platform, không phải massage-only app.
+Reason: business sẽ mở rộng dịch vụ.
+
+D-002
+Status: ACCEPTED
+Decision: Tạo 2 source mới moc_maria_be và moc_maria_fe.
+Reason: tách ownership hoàn toàn khỏi Acutis Education.
+
+D-003
+Status: ACCEPTED
+Decision: Chỉ dùng chung Shared Chat và Shared Queue.
+Reason: reuse infrastructure có giá trị nhưng không coupling business/data.
+
+D-004
+Status: ACCEPTED
+Decision: Backend dùng NestJS + TypeScript + PostgreSQL.
+Reason: booking concurrency, transaction, multi-branch/growth.
+
+D-005
+Status: ACCEPTED
+Decision: Frontend dùng Next.js.
+Reason: SEO, public service pages, expert pages, wellness content, OG preview.
+
+D-006
+Status: ACCEPTED
+Decision: Admin/Staff/Public nằm trong cùng moc_maria_fe, phân route và RBAC.
+Reason: giảm repo complexity trong MVP nhưng giữ security ở backend.
+
+D-007
+Status: ACCEPTED
+Decision: Data model generic Category -> Service -> Variant.
+Reason: thêm dịch vụ sau này bằng data thay vì thay core architecture.
+
+D-008
+Status: ACCEPTED
+Decision: Chat bắt buộc tenant isolation MOC_MARIA.
+Reason: shared service không được rò dữ liệu giữa sản phẩm.
+
+D-009
+Status: ACCEPTED
+Decision: Queue event phải namespace/version/idempotency-ready.
+Reason: shared worker cần contract bền vững.
+
+D-010
+Status: ACCEPTED
+Decision: Media production của Mộc Maria dùng namespace/storage riêng.
+Reason: tách asset ownership khỏi giangxa-media.
+
+D-011
+Status: ACCEPTED
+Decision: Secrets không được ghi trong Plan/Git.
+Reason: bảo mật.
+
+D-012
+Status: ACCEPTED
+Decision: 8 phase là milestone chính của MVP và phải qua Phase Gate tuần tự.
+Reason: chống bỏ sót/đi tắt.
+
+Khi có quyết định mới
+---------------------
+Thêm D-013, D-014...
+Không sửa mất lịch sử quyết định cũ. Nếu thay đổi:
+Status: SUPERSEDED BY D-xxx
+và ghi decision mới bên dưới.
+
+
+D-013
+Status: ACCEPTED
+Decision: KTV (THERAPIST) tự ứng tuyển; Mộc Maria đào tạo, đánh giá và duyệt eligibility trước khi công khai/nhận lịch.
+Reason: chất lượng dịch vụ và an toàn.
+
+D-014
+Status: ACCEPTED
+Decision: AT_HOME booking hỗ trợ khách chọn KTV, gói giá công khai, địa chỉ, chat, KTV chấp nhận/từ chối và khách duyệt báo giá.
+Reason: đây là quy trình nghiệp vụ trọng tâm MVP.
+
+D-015
+Status: ACCEPTED
+Decision: Chứng nhận hoàn thành đào tạo Mộc Maria là chứng nhận nội bộ, không thay giấy phép/chứng chỉ chuyên ngành do nhà nước yêu cầu.
+Reason: tuân thủ đúng điều kiện kinh doanh/dịch vụ.
+
+D-016
+Status: ACCEPTED
+Decision: Chat không phải nguồn sự thật về giá/booking; báo giá và lịch phải được backend ghi phiên bản, xác nhận và audit.
+Reason: tránh tranh chấp và thao túng giá.
+D-017
+Status: ACCEPTED
+Decision: Mộc Maria Quality & Trust is core MVP scope: verified post-service customer ratings/comments, transparent KTV public scores, risk tracking, moderation and appeals.
+Reason: sustainable service quality, customer trust and fair provider treatment.
+
+D-018
+Status: ACCEPTED
+Decision: Auto enforcement can issue alerts/temporary safety pauses under auditable rules; permanent removal and reinstatement require authorized human review with an appeal process.
+Reason: avoid false positives, review abuse and unfair arbitrary provider bans.

@@ -1,0 +1,196 @@
+PHASE 07 - ADMIN BOOKING COMMAND CENTER / CMS / OPERATIONS
+===========================================================
+
+AUDIT CHECKLIST 2026-10-09 — CURRENT
+------------------------------------
+[x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
+Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
+Evidence: BE ffc89b3/API deployed, FE 99612d5/Vercel deployed; BE 17 unit+20 isolated integrations, FE quality/4 unit/build PASS; isolated browser admin/applicant QA PASS. Small QA fixes remain pending commit/deploy.
+Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
+P07-T01: Permission-aware nav/forbidden có; branch scoping còn thiếu.
+P07-T07: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P07-T08: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P07-T18: Audit backend cho auth/KTV/cert có; thiếu UI và audit critical price changes.
+P07-T19: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P07-T20: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P07-T21: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P07-T22: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P07-T23: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P07-T24: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P07-T25: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+
+
+Mục tiêu
+--------
+Tạo khu vực vận hành thực tế để admin/lễ tân/quản lý cơ sở điều hành booking, staff, dịch vụ và nội dung mà không cần developer.
+
+Admin route
+-----------
+Trong cùng moc_maria_fe:
+ /admin
+ /admin/bookings
+ /admin/customers
+ /admin/staff
+ /admin/services
+ /admin/branches
+ /admin/schedules
+ /admin/content
+ /admin/reports
+ /admin/audit
+
+Tasks
+-----
+[-] P07-T01 Admin shell:
+    role-aware navigation
+    branch context
+    responsive desktop/tablet
+    forbidden handling
+
+[ ] P07-T02 Booking Command Center:
+    day/week view
+    timeline/calendar
+    staff rows
+    appointment blocks
+    status colors
+    filters branch/service/staff/status
+
+[ ] P07-T03 Booking detail drawer/modal:
+    customer
+    service
+    provider
+    room
+    time
+    status history
+    notes
+    actions
+
+[ ] P07-T04 Receptionist create booking for customer:
+    search existing customer
+    create quick customer
+    choose service/slot
+    validation vẫn dùng Booking Engine, không bypass.
+
+[ ] P07-T05 Reschedule/cancel/reassign from admin:
+    server revalidation bắt buộc.
+
+[ ] P07-T06 Staff scheduling UI:
+    shift
+    day off
+    override
+    branch assignment
+
+[-] P07-T07 Service catalog admin hoàn thiện:
+    categories
+    services
+    variants
+    pricing
+    durations
+    buffers
+    active/publish
+
+[-] P07-T08 Branch/resource management.
+
+[ ] P07-T09 Customer CRM lite:
+    contact
+    booking count
+    last/next booking
+    preferred provider/service derived
+    notes có scope rõ
+    không lưu medical diagnosis tùy tiện
+
+[ ] P07-T10 Expert schedule admin:
+    add weekly/one-off session
+    publish availability
+    attach branch/service
+
+CMS mini
+--------
+[ ] P07-T11 Homepage banners/sections configurable mức vừa phải.
+[ ] P07-T12 Promotions.
+[ ] P07-T13 Wellness articles.
+[ ] P07-T14 Staff/expert public content.
+[ ] P07-T15 Media upload integration với Bunny namespace Mộc Maria.
+
+Reports baseline
+----------------
+[ ] P07-T16 Dashboard:
+    bookings today
+    completed
+    cancelled
+    no-show
+    occupancy basic
+    top services basic
+    upcoming workload
+
+[ ] P07-T17 Date/branch filters.
+
+Audit / safety
+--------------
+[-] P07-T18 Audit log UI/API:
+    role changes
+    booking manual edits
+    price/service critical changes
+    customer account admin action
+
+[-] P07-T19 Confirmation dialogs cho destructive/impactful actions.
+
+[-] P07-T20 Permission matrix verification:
+    receptionist != admin
+    branch manager scope branch
+    therapist no admin config
+    super admin full control
+
+Nice-to-have nếu core xong
+--------------------------
+- drag & drop reschedule
+Chỉ bật nếu action vẫn gọi backend transaction/revalidation.
+Không để drag UI tự thay đổi local data rồi coi là success.
+
+Acceptance criteria
+-------------------
+- Lễ tân có thể vận hành ngày làm việc từ Command Center.
+- Không cần developer để thay service/schedule/content thường ngày.
+- Mọi admin mutation quan trọng có permission/audit.
+- Branch manager không xem/sửa branch khác nếu scope giới hạn.
+
+Validation
+----------
+- role matrix e2e PASS
+- booking admin e2e PASS
+- CMS CRUD PASS
+- upload media PASS
+- FE/API build PASS
+
+Phase Gate
+----------
+[ ] Booking Command Center usable
+[ ] Admin CRUD operations usable
+[ ] CMS baseline usable
+[ ] Report baseline usable
+[ ] Permission/audit tests PASS
+[ ] Tracker + commit SHA cập nhật
+
+
+
+D. QUẢN TRỊ TUYỂN SINH / ĐÀO TẠO / PHÊ DUYỆT KTV (CORE MVP)
+-----------------------------------------------------------
+[-] P07-T21 Admin xem hồ sơ KTV ứng tuyển, kiểm tra giấy tờ, yêu cầu bổ sung,
+    từ chối/đình chỉ có lý do và audit.
+[-] P07-T22 CRUD khóa học, buổi học, điểm danh, giảng viên, bài đánh giá tay nghề.
+[-] P07-T23 Duyệt cấp/gia hạn/thu hồi chứng nhận NỘI BỘ, lưu người phê duyệt.
+[-] P07-T24 Phân quyền ADMIN/TRAINER/BRANCH_MANAGER rõ ràng;
+    người duyệt không tự cấp SUPER_ADMIN; chống KTV self-approval.
+[-] P07-T25 Quản lý gói giá công khai, phụ phí di chuyển, vùng phục vụ,
+    lịch sử thay đổi giá và chính sách không thu ngoài.
+[ ] P07-T26 Giám sát yêu cầu KTV, từ chối/quá hạn, tranh chấp giá và
+    các sự cố khi phục vụ tại nhà; quyền truy cập PII theo nhu cầu.
+
+E. KTV QUALITY & TRUST COMMAND CENTER
+-------------------------------------
+[ ] P07-T27 Review moderation queue: pending/visible/hidden/reported; spam/abuse screening, evidence handling, no silent rewriting critical comments.
+[ ] P07-T28 Configurable quality rules, minimum sample sizes, trend windows, alerts for sustained poor ratings, repeated verified incidents, no-shows, severe safety complaints.
+[ ] P07-T29 Automated actions: WATCHLIST / temporary PAUSE for objective high-risk signals; severe reports trigger immediate risk pause + timely human review; low ratings alone do not permanently ban.
+[ ] P07-T30 Human decisions: warn, corrective training, resume, suspend or remove; reason, actor, timestamps, evidence, expiry and audit. Distinguish unpublished profile from deleted data.
+[ ] P07-T31 Appeal/reinstatement flow: KTV explanation, proof, remediation, independent review, outcome and notification; strict RBAC and retention.
+[ ] P07-T32 Anti-abuse: verified bookings, rate limiting, duplicate/suspicious ratings, customer safety, appeal against malicious reviews.
+[ ] P07-T33 Quality dashboard by KTV/branch/service/period: ratings, sample size, trend, complaint count, incident SLA, blocked/restored history.

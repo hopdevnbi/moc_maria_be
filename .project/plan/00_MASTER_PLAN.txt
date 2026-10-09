@@ -1,0 +1,320 @@
+MỘC MARIA WELLNESS PLATFORM - MASTER PLAN
+=========================================
+
+1. TẦM NHÌN SẢN PHẨM
+--------------------
+Mộc Maria không được xây như một app "đặt massage" đơn thuần. Hệ thống phải là nền tảng Wellness có thể mở rộng:
+- Massage thư giãn
+- Massage trị liệu
+- Cổ vai gáy
+- Chăm sóc chân
+- Gội đầu dưỡng sinh
+- Phục hồi chức năng
+- Chăm sóc cơ xương khớp
+- Y học cổ truyền
+- Lịch bác sĩ/chuyên gia
+- Các dịch vụ wellness khác trong tương lai
+
+Tư tưởng data model:
+Category -> Service -> Service Variant.
+Không tạo cấu trúc cứng theo "massage_types", "massage_staff" hay "massage_booking".
+
+2. SOURCE VÀ RANH GIỚI HỆ THỐNG
+--------------------------------
+Source mới:
+- moc_maria_be: backend NestJS độc lập
+- moc_maria_fe: frontend Next.js độc lập
+
+Shared service duy nhất:
+- Shared Chat / Socket.IO
+- Shared Queue / Worker
+
+Không chia sẻ:
+- DB Acutis
+- user table Acutis
+- API module Acutis
+- FE component business của Acutis
+- media namespace giangxa
+
+Có thể reuse pattern/code foundation sau audit, nhưng copy có chọn lọc và tách ownership rõ ràng.
+
+3. KIẾN TRÚC HIGH LEVEL
+-----------------------
+Client Browser / PWA
+        |
+        v
+mocmaria.com - Next.js
+        |
+        v
+api.mocmaria.com - NestJS
+        |
+        +--> PostgreSQL
+        |
+        +--> Shared Queue Service
+        |
+        +--> Shared Chat Service thông qua token/tenant contract
+        |
+        +--> Bunny CDN / Storage riêng cho Mộc Maria
+
+4. BACKEND STACK
+----------------
+- Node.js 22
+- NestJS 11
+- TypeScript strict
+- PostgreSQL
+- TypeORM
+- Config + Joi validation
+- class-validator / class-transformer
+- JWT access token + refresh session
+- RBAC / capability guard
+- Pino structured logging
+- Swagger/OpenAPI
+- Rate limiting
+- Health / readiness / liveness
+- Jest
+- Docker
+- Kubernetes deployment
+
+5. FRONTEND STACK
+-----------------
+- Next.js
+- React
+- TypeScript
+- TanStack Query
+- React Hook Form
+- Zod
+- Tailwind CSS
+- component/design system thống nhất
+- Socket.IO Client
+- PWA-ready
+- SSR/metadata/SEO/OG image support
+
+6. DATA DOMAINS CHÍNH
+---------------------
+Identity:
+- users
+- roles
+- permissions
+- user_roles
+- sessions
+- customers
+
+Organization:
+- branches
+- branch_business_hours
+- rooms
+- resources
+
+Catalog:
+- service_categories
+- services
+- service_variants
+- branch_services
+
+Staff:
+- staff
+- staff_profiles
+- provider_skills
+- staff_services
+- staff_shifts
+- staff_time_off
+
+Booking:
+- appointments
+- appointment_items
+- appointment_staff
+- appointment_resources
+- appointment_status_history
+- booking_holds / idempotency nếu cần
+
+Commercial future-ready:
+- packages
+- customer_packages
+- memberships
+- membership_tiers
+- vouchers
+- voucher_redemptions
+- payments
+- refunds
+
+Experience:
+- reviews
+- favorites
+- experts
+- expert_schedules
+- media
+- notifications
+- audit_logs
+
+Chat message storage thuộc Shared Chat service, không nhét vào DB Mộc Maria API.
+
+7. ROLE MODEL DỰ KIẾN
+---------------------
+SUPER_ADMIN
+ADMIN
+BRANCH_MANAGER
+RECEPTIONIST
+THERAPIST
+DOCTOR_CONSULTANT
+CUSTOMER
+
+Mọi route admin/staff phải guard ở backend; frontend chỉ là UX, không phải security boundary.
+
+8. BOOKING ENGINE NGUYÊN TẮC
+----------------------------
+Một slot chỉ khả dụng khi đồng thời thỏa:
+- chi nhánh mở cửa
+- service được bán tại chi nhánh
+- provider có skill/service phù hợp
+- provider đang trong ca làm
+- provider không nghỉ
+- không overlap booking khác
+- room/resource phù hợp còn trống
+- duration + buffer được tính đúng
+- hold/transaction tránh double booking
+
+9. CHAT NGUYÊN TẮC
+------------------
+Shared Chat phải multi-tenant.
+Token do Mộc Maria API cấp hoặc ký theo contract:
+- tenant = MOC_MARIA
+- subject/userId
+- role
+- permissions cần thiết
+
+Conversation phải có tenant isolation.
+Có thể map conversation với:
+- customerId
+- providerId
+- appointmentId optional
+
+Feature:
+- realtime text
+- read/delivered
+- typing
+- online/offline
+- ảnh/file về sau
+- booking card/voucher về sau
+
+10. QUEUE NGUYÊN TẮC
+--------------------
+Event dự kiến:
+- BOOKING_CREATED
+- BOOKING_CONFIRMED
+- BOOKING_REMINDER
+- BOOKING_CANCELLED
+- BOOKING_RESCHEDULED
+- STAFF_CHANGED
+- WAITLIST_AVAILABLE
+- PAYMENT_SUCCESS
+- REVIEW_REQUEST
+- BIRTHDAY
+- MEMBERSHIP_EXPIRING
+
+Adapter notification có thể mở rộng:
+Email / SMS / Zalo OA / Web Push.
+
+11. UX CỐT LÕI
+--------------
+Public:
+- Home
+- Service catalog
+- Staff/Expert profiles
+- Branch selector
+- Booking flow
+- Expert schedule
+- Promotions
+- Health/wellness content
+- Login/register
+- Customer portal
+
+Staff:
+- lịch hôm nay
+- lịch của tôi
+- customer context tối thiểu
+- chat
+- availability/online
+- appointment state
+
+Admin:
+- booking calendar
+- staff
+- services
+- branches
+- schedules
+- customers
+- promotions/content
+- reports
+- audit
+
+12. THƯƠNG HIỆU / UI
+--------------------
+Hướng thiết kế:
+- xanh lá đậm
+- ivory/kem
+- vàng champagne nhẹ
+- organic curves
+- gỗ/lá/texture thiên nhiên
+- clean wellness premium
+
+Tone:
+"Mộc Maria - Nơi gửi trao sức khỏe"
+
+13. MEDIA
+---------
+Tạo Bunny namespace riêng cho Mộc Maria.
+Không dùng chung giangxa-media production asset namespace.
+Có thể reuse provider code sau audit.
+
+14. SECURITY
+------------
+- Không commit secret
+- bcrypt/argon2 cho password
+- refresh session revocation
+- rate limit
+- admin audit log
+- strict tenant isolation
+- transaction booking
+- idempotency cho action nhạy cảm
+- sanitize upload
+- validation DTO
+- CORS allowlist
+- helmet/security headers
+- backup PostgreSQL
+- least privilege DB user
+
+15. 8 PHASE
+-----------
+Phase 01: Foundation
+Phase 02: Auth & RBAC
+Phase 03: Catalog / Branch / Staff / Schedule
+Phase 04: Booking Engine
+Phase 05: Public Web & SEO
+Phase 06: Customer/Staff Portal & Chat
+Phase 07: Admin Command Center & CMS
+Phase 08: Queue / Production / Domain / Hardening
+
+Chi tiết nằm trong các file 01..08.
+
+
+ 
+16. MÔ HÌNH KTV ĐÀO TẠO VÀ DỊCH VỤ TẠI NHÀ (PRIORITY: CORE MVP)
+----------------------------------------------------------------
+Mộc Maria là nền tảng wellness kết hợp dịch vụ tại cơ sở và tại địa chỉ khách yêu cầu.
+- KTV (THERAPIST) có luồng tự đăng ký ứng tuyển riêng với khách CUSTOMER.
+- KTV chỉ được công khai và nhận booking sau khi hồ sơ, đào tạo, đánh giá và điều kiện hành nghề được phê duyệt.
+- Chứng nhận đào tạo nội bộ Mộc Maria KHÔNG phải giấy phép/chứng chỉ hành nghề nhà nước. Với hoạt động chuyên ngành được pháp luật quản lý, cần chứng nhận/giấy phép hợp lệ và kiểm tra điều kiện trước khi bật dịch vụ.
+- Khách chọn gói massage, xem thời lượng/giá gốc/phụ phí công khai, chọn KTV, nhập địa chỉ và khung giờ, chat trao đổi, gửi yêu cầu, KTV chấp nhận/từ chối, hệ thống xác nhận giá và booking.
+- Giá niêm yết là chuẩn; mọi phụ phí được hiện trước khi khách xác nhận. Chat không được âm thầm thay thế báo giá/đơn hàng đã xác nhận.
+- Xác minh KTV, quyền riêng tư địa chỉ khách, tranh chấp, hoàn huỷ, kiểm soát an toàn tại nhà và audit là yêu cầu bắt buộc.
+- Mọi phát triển áp dụng generic service catalog; massage là dịch vụ đầu tiên, không hard-code mô hình ngành.
+Xem 03_PHASE_CATALOG_STAFF_SCHEDULE, 04_PHASE_BOOKING_ENGINE, 05_PHASE_PUBLIC_WEB_SEO_BOOKING_UX,
+06_PHASE_PORTALS_REALTIME_CHAT, 07_PHASE_ADMIN_COMMAND_CENTER_CMS, 08_PHASE_QUEUE_PRODUCTION_DOMAIN.
+
+17. QUALITY & TRUST: KTV RATINGS AND MODERATION (CORE MVP)
+---------------------------------------------------------
+Customer review is linked to a real completed booking, uses 1-5 stars, text and optional complaint evidence. The KTV public listing displays portrait, public name, introduction, services, prices, area, availability and verified rating/count (no invented score for new KTV).
+System tracks verified rating trends, review count, service completion, provider-attributable cancellation/no-show and serious incidents. Anti-spam and minimum sample-size thresholds are mandatory.
+Quality states: ACTIVE, WATCHLIST, PAUSED, SUSPENDED, REMOVED; suspension must affect booking eligibility on the server. Critical safety concerns may trigger immediate temporary pause pending prompt human investigation; permanent removal/reinstatement requires an accountable decision and appeal route. Auditable decisions, notifications and strict privacy rules.
+Reviews, provider replies, reports and appeals must not enable retaliation, doxxing or fabricated claims.
+Tasks distributed as P03-T36..39, P04-T23..25, P05-T21..25, P06-T27..29, P07-T27..33, P08-T60..64.

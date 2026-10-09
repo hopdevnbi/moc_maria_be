@@ -1,0 +1,165 @@
+PHASE 06 - CUSTOMER PORTAL / STAFF PORTAL / REALTIME CHAT
+==========================================================
+
+AUDIT CHECKLIST 2026-10-09 — CURRENT
+------------------------------------
+[x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
+Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
+Evidence: BE ffc89b3/API deployed, FE 99612d5/Vercel deployed; BE 17 unit+20 isolated integrations, FE quality/4 unit/build PASS; isolated browser admin/applicant QA PASS. Small QA fixes remain pending commit/deploy.
+Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
+P06-T03: Account/auth UI và profile API có; chưa có editor profile đầy đủ.
+P06-T09: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P06-T24: Application/training UI có; chưa có booking accept/decline và eligibility scorecard.
+
+
+Mục tiêu
+--------
+Sau khi public booking hoạt động, tạo trải nghiệm đăng nhập cho khách và nhân viên, đồng thời tích hợp Shared Chat an toàn theo tenant MOC_MARIA.
+
+A. Customer portal
+------------------
+[ ] P06-T01 Dashboard khách:
+    booking sắp tới
+    booking gần đây
+    quick rebook foundation
+
+[ ] P06-T02 My appointments:
+    list
+    detail
+    cancel/reschedule theo policy
+
+[-] P06-T03 Profile:
+    name
+    phone/email
+    avatar optional
+    preferences tối thiểu
+
+[ ] P06-T04 Favorites:
+    favorite provider/service foundation nếu cần.
+
+[ ] P06-T05 Rebook:
+    "Đặt lại như lần trước"
+    nhưng vẫn phải revalidate current availability/price.
+
+B. Staff portal
+---------------
+[ ] P06-T06 Staff home:
+    today schedule
+    next appointment
+    branch context
+
+[ ] P06-T07 Appointment detail cho staff:
+    customer identity cần thiết
+    service
+    notes
+    check-in/start/complete theo permission
+
+[ ] P06-T08 Staff availability/online status UX.
+
+[-] P06-T09 Staff profile self-view/edit giới hạn field phù hợp.
+
+C. Shared Chat audit + integration
+----------------------------------
+[ ] P06-T10 Audit current Chat service:
+    Socket.IO version
+    Mongo schema
+    auth
+    room join
+    online presence
+    message event names
+    read receipt
+    tenant support hiện tại
+    production env contract
+
+[ ] P06-T11 Nếu Chat chưa multi-tenant:
+    bổ sung tenant isolation có backward compatibility với Acutis.
+    Không phá existing app.
+
+[ ] P06-T12 Mộc Maria chat token endpoint:
+    short-lived
+    tenant=MOC_MARIA
+    userId
+    role
+    conversation permissions
+    signed server-side
+
+[ ] P06-T13 Conversation model/contract:
+    customer <-> provider
+    optional appointmentId
+    tenantId bắt buộc
+    membership validation server-side
+
+[ ] P06-T14 Chat UI:
+    conversation list
+    thread
+    text message
+    sending/error/retry
+    timestamps
+    unread count
+
+[ ] P06-T15 Realtime states:
+    typing
+    online/offline
+    delivered/read nếu service hỗ trợ ổn định
+
+[ ] P06-T16 Chat permissions:
+    customer chỉ vào room mình thuộc
+    therapist chỉ room assign/allowed
+    admin access policy phải được định nghĩa rõ,
+    không mặc định đọc mọi tin nhắn nếu product chưa yêu cầu.
+
+[ ] P06-T17 Chat integration tests tenant isolation.
+
+D. Security / privacy
+---------------------
+[ ] P06-T18 Rate limit / abuse handling.
+[ ] P06-T19 Block/report foundation nếu scope phù hợp.
+[ ] P06-T20 Không gửi dữ liệu nhạy cảm thừa qua socket payload.
+
+Acceptance criteria
+-------------------
+- Customer xem/điều chỉnh booking của chính mình.
+- Staff xem lịch đúng scope.
+- Customer chat được với provider hợp lệ.
+- User tenant MOC_MARIA không join được room ACUTIS và ngược lại.
+- Forged conversationId bị server từ chối.
+- Refresh/reconnect không làm mất flow.
+
+Validation
+----------
+- FE/API build PASS
+- portal e2e PASS
+- socket reconnect smoke test PASS
+- tenant isolation test PASS
+- unauthorized room join test PASS
+
+Phase Gate
+----------
+[ ] Customer portal stable
+[ ] Staff portal stable
+[ ] Chat security/tenant tests PASS
+[ ] Existing Acutis chat regression không bị phá nếu service shared đã sửa
+[ ] Tracker + commit SHA cập nhật
+
+
+
+E. CHAT KHÁCH - KTV TRƯỚC KHI CHỐT LỊCH (CORE MVP)
+--------------------------------------------------
+[ ] P06-T21 Khách được mở hội thoại với KTV đủ điều kiện trước booking,
+    không buộc phải có appointmentId; chống spam/solicitation, hạn mức hợp lý.
+[ ] P06-T22 Luồng chat gắn serviceVariantId, quoteId/bookingRequestId optional,
+    hỗ trợ trao đổi giờ, địa chỉ khu vực và yêu cầu dịch vụ.
+[ ] P06-T23 Chỉ backend booking API xác nhận thời gian, KTV, địa chỉ và giá;
+    tin nhắn không tự thay đổi booking/quote.
+[-] P06-T24 KTV portal: xem yêu cầu, accept/decline, lý do, thời hạn phản hồi,
+    profile, đào tạo/chứng nhận, trạng thái đủ điều kiện.
+[ ] P06-T25 Chặn chat khi KTV bị suspend/revoke theo chính sách, tenant isolation,
+    phòng quấy rối, block/report và xử lý sự cố.
+[ ] P06-T26 Test customer-KTV prebooking chat, permission, reconnect,
+    suspended provider, không leak địa chỉ hoặc cross-tenant.
+
+F. CUSTOMER FEEDBACK AND KTV APPEALS
+------------------------------------
+[ ] P06-T27 Customer portal: completed booking -> 1-5 star rating, text review, optional tagged feedback, evidence/report with privacy limits, edit window and status.
+[ ] P06-T28 KTV portal: quality scorecard with transparent indicators and sample-size caveats, complaint notifications, response and appeal form, training remediation status.
+[ ] P06-T29 Review replies and appeals are moderated; protect customers from retaliation, coercion to change rating or unauthorized contact.

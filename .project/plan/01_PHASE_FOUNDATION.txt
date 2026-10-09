@@ -1,0 +1,149 @@
+PHASE 01 - FOUNDATION / REPOSITORIES / INFRASTRUCTURE
+======================================================
+
+Mục tiêu
+--------
+Tạo nền móng kỹ thuật sạch, 2 source mới độc lập, PostgreSQL, convention, CI/build cơ bản và tracking system trước khi viết business feature.
+
+Điều kiện bắt đầu
+-----------------
+- Đọc 00_MASTER_PLAN.txt
+- Audit read-only 4 source Acutis liên quan để lấy pattern tốt:
+  backend, frontend, chat, queue
+- Không copy business module Acutis sang Mộc Maria
+
+Tasks
+-----
+[x] P01-T01 Audit tech stack thực tế của Acutis backend/frontend/chat/queue.
+    Ghi:
+    - versions
+    - auth pattern
+    - config pattern
+    - logger
+    - health check
+    - Docker/K8s convention
+    - socket auth contract
+    - queue job contract
+
+[x] P01-T02 Tạo folder/repo:
+    C:\Users\User\Desktop\Mộc maria\moc_maria_be
+    C:\Users\User\Desktop\Mộc maria\moc_maria_fe
+
+[x] P01-T03 Bootstrap moc_maria_be:
+    - NestJS
+    - strict TypeScript
+    - ConfigModule
+    - env schema
+    - Pino
+    - Swagger
+    - global validation
+    - exception filter
+    - request/correlation ID
+    - health endpoints
+
+[x] P01-T04 PostgreSQL foundation:
+    - TypeORM config
+    - development database
+    - migration system
+    - naming convention
+    - timezone strategy
+    - transaction helper nếu cần
+
+[x] P01-T05 Bootstrap moc_maria_fe:
+    - Next.js
+    - TypeScript
+    - Tailwind
+    - Query provider
+    - form/validation stack
+    - env handling
+    - app layout
+    - error/loading boundary
+    - design tokens ban đầu
+
+[x] P01-T06 Tạo project tracking bắt buộc trong 2 repo:
+    docs/PROJECT_PROGRESS.md
+    docs/DECISIONS.md
+    .project/project-state.json
+
+[x] P01-T07 Repo hygiene:
+    - .gitignore
+    - .editorconfig
+    - lint
+    - format
+    - test config
+    - README
+    - .env.example KHÔNG có secret thật
+
+[x] P01-T08 Container/dev readiness:
+    - Dockerfile
+    - docker compose local PostgreSQL nếu phù hợp
+    - health endpoint
+    - build image thử
+
+[x] P01-T09 Chuẩn bị namespace integration:
+    APP_ID=MOC_MARIA
+    tenant constants
+    queue source namespace
+    chat tenant namespace
+    Chưa cần build feature chat/queue ở phase này.
+
+[x] P01-T10 Git initial commits, xác nhận working tree sạch.
+
+Deliverables
+------------
+- 2 repo độc lập chạy được
+- API boot được và connect PostgreSQL
+- FE boot được
+- migration chạy được
+- tracker tồn tại
+- không có secret trong Git
+
+Validation
+----------
+API:
+- install pass
+- lint pass
+- test basic pass
+- build pass
+- health endpoint 200
+- migration up/down smoke test
+
+FE:
+- install pass
+- lint pass
+- typecheck/build pass
+- home skeleton render được
+
+Phase Gate
+----------
+[x] Toàn bộ critical task P01 DONE
+[x] API build PASS
+[x] FE build PASS
+[x] PostgreSQL migration PASS
+[x] Tracker files đã commit
+[x] Không có secret
+[x] Ghi commit SHA vào 99_PROJECT_STATUS.txt
+
+Không làm trong phase này
+-------------------------
+- Booking business logic
+- UI production hoàn chỉnh
+- Payment
+- Chat UI
+- Notification production
+
+
+PHASE 01 COMPLETION
+-------------------
+Status: DONE
+Validated: 2026-10-08 Asia/Ho_Chi_Minh
+Backend implementation commit: 8a87b44
+Frontend implementation commit: 59da268
+Notes:
+- Supabase Session Pooler validated for local IPv4 access.
+- Migration show/run/revert/run PASS.
+- DB session timezone UTC PASS.
+- API live/readiness PASS.
+- FE production homepage smoke PASS.
+- Production dependency audit 0 vulnerabilities.
+- Docker CLI is unavailable on this workstation, so actual container image execution is deferred to infrastructure verification; Dockerfiles are present in both repositories.

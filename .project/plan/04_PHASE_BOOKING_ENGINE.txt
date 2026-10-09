@@ -1,0 +1,171 @@
+PHASE 04 - BOOKING ENGINE
+=========================
+
+AUDIT CHECKLIST 2026-10-09 — CURRENT
+------------------------------------
+[x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
+Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
+Evidence: BE ffc89b3/API deployed, FE 99612d5/Vercel deployed; BE 17 unit+20 isolated integrations, FE quality/4 unit/build PASS; isolated browser admin/applicant QA PASS. Small QA fixes remain pending commit/deploy.
+Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
+
+
+
+Mục tiêu
+--------
+Xây core quan trọng nhất: availability và appointment transaction đúng, chống double booking và đủ mở rộng multi-branch.
+
+Booking flow logic
+------------------
+Customer chọn:
+1. dịch vụ
+2. chi nhánh
+3. ngày/giờ
+4. chuyên viên hoặc "bất kỳ phù hợp"
+5. xác nhận lịch
+
+Có thể hỗ trợ flow đảo:
+- chọn chuyên viên trước
+- chọn "đi ngay / earliest available"
+sau khi core ổn định.
+
+Tasks
+-----
+[ ] P04-T01 Entity:
+    appointments
+    appointment_items
+    appointment_staff
+    appointment_resources
+    appointment_status_history
+
+[ ] P04-T02 Status machine:
+    DRAFT/HOLD optional
+    PENDING
+    CONFIRMED
+    CHECKED_IN
+    IN_SERVICE
+    COMPLETED
+    CANCELLED
+    NO_SHOW
+    Quy tắc chuyển trạng thái phải server-side.
+
+[ ] P04-T03 Availability engine:
+    branch hours
+    service duration
+    before/after buffer
+    staff shift
+    time off
+    skill mapping
+    branch mapping
+    existing bookings
+    room/resource
+
+[ ] P04-T04 Timezone strategy:
+    Asia/Ho_Chi_Minh business timezone
+    DB timestamp strategy rõ ràng
+    không mix local/UTC tùy tiện.
+
+[ ] P04-T05 Double-booking protection:
+    transaction
+    locking/constraint phù hợp
+    idempotency key cho create booking
+    test concurrent requests
+
+[ ] P04-T06 Appointment create:
+    customer tự đặt
+    lễ tân/admin đặt hộ
+    notes
+    source channel
+
+[ ] P04-T07 Reschedule:
+    tái validate slot
+    atomic update
+    history
+
+[ ] P04-T08 Cancellation:
+    cancellation reason
+    permission/policy
+    history
+    release resource
+
+[ ] P04-T09 Check-in / start / complete.
+
+[ ] P04-T10 "Any suitable provider":
+    server tìm provider phù hợp theo rule,
+    không random mù.
+
+[ ] P04-T11 Earliest availability endpoint.
+
+[ ] P04-T12 Waitlist foundation optional schema/interface.
+    Có thể chưa bật UX nhưng không thiết kế ngõ cụt.
+
+[ ] P04-T13 Booking API contract + Swagger.
+
+[ ] P04-T14 Booking e2e/concurrency tests.
+
+API gợi ý
+---------
+GET  /availability
+POST /appointments
+GET  /appointments/:id
+PATCH /appointments/:id/reschedule
+POST /appointments/:id/cancel
+POST /appointments/:id/check-in
+POST /appointments/:id/start
+POST /appointments/:id/complete
+
+Critical test cases
+-------------------
+- 2 request đồng thời lấy cùng staff/room/slot -> chỉ 1 thành công
+- staff nghỉ -> slot không xuất hiện
+- branch đóng -> không book
+- service 60m + buffer 10m -> block đúng 70m
+- provider không có service -> không book
+- reschedule fail không làm mất booking cũ
+- cancel release slot
+- idempotent retry không tạo 2 booking
+
+Không làm trong phase này
+-------------------------
+- Payment production
+- Loyalty
+- Chat
+- Full public landing UI
+- Marketing CMS
+
+Phase Gate
+----------
+[ ] Concurrency test PASS
+[ ] Availability test PASS
+[ ] Status transition test PASS
+[ ] E2E create/reschedule/cancel PASS
+[ ] DB migration PASS
+[ ] Swagger rõ ràng
+[ ] Tracker + commit SHA cập nhật
+[ ] Booking engine được coi là stable foundation trước Phase 05
+
+
+
+B. BOOKING TẠI NHÀ, KTV CHẤP NHẬN, GIÁ MINH BẠCH (CORE MVP)
+------------------------------------------------------------
+[ ] P04-T15 Booking mode: AT_BRANCH / AT_HOME; lưu địa chỉ nhận dịch vụ được khách
+    xác nhận, chỉ chia sẻ tối thiểu cho KTV khi cần, bảo vệ PII.
+[ ] P04-T16 Khách có thể chọn KTV trước hoặc chọn gói trước; kiểm tra KTV đã được
+    đào tạo/chứng nhận hợp lệ, thuộc khu vực và có lịch trống.
+[ ] P04-T17 Xác thực vùng phục vụ, thời gian di chuyển + buffer trước/sau,
+    tránh overlap 2 khách tại các địa chỉ khác nhau.
+[ ] P04-T18 Luồng REQUESTED -> ACCEPTED/DECLINED -> CUSTOMER_CONFIRMED
+    -> CONFIRMED; request expiry, KTV timeout, reassign, concurrency/idempotency.
+[ ] P04-T19 Báo giá trước khi chốt: public price + travel/extra fees + giảm giá,
+    tổng tiền; snapshot & customer explicit acceptance; không thoả thuận giá ngầm trong chat.
+[ ] P04-T20 Thay đổi giá/địa chỉ/dịch vụ sau chat tạo revision có audit và
+    yêu cầu khách xác nhận lại; chống sửa đơn im lặng.
+[ ] P04-T21 Cancellation/no-show/late-arrival/incident policy cho dịch vụ tại nhà.
+[ ] P04-T22 Test giao dịch: 2 yêu cầu trùng slot, KTV chưa approved,
+    ngoài khu vực phục vụ, phí không được xác nhận, KTV offline/từ chối.
+Phase 04 gate bổ sung: booking tại nhà có địa chỉ + KTV duyệt + quote acceptance + concurrency PASS.
+
+C. VERIFIED REVIEWS AND PROVIDER QUALITY EVENTS
+-----------------------------------------------
+[ ] P04-T23 Only eligible, COMPLETED bookings may create a verified customer review for their actual KTV; one review per booking-provider, with audited edits.
+[ ] P04-T24 Capture cancelled/no-show/declined/late status evidence and attribution; protect KTV against customer-caused cancellations.
+[ ] P04-T25 Booking eligibility checks provider quality state at the point of hold/confirmation, atomically; invalidated KTV cannot silently accept new bookings.

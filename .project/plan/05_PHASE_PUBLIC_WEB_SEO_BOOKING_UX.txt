@@ -1,0 +1,225 @@
+PHASE 05 - PUBLIC WEBSITE / SEO / BOOKING UX
+============================================
+
+AUDIT CHECKLIST 2026-10-09 — CURRENT
+------------------------------------
+[x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
+Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
+Evidence: BE ffc89b3/API deployed, FE 99612d5/Vercel deployed; BE 17 unit+20 isolated integrations, FE quality/4 unit/build PASS; isolated browser admin/applicant QA PASS. Small QA fixes remain pending commit/deploy.
+Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
+P05-T01: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T02: Homepage dùng API thật; services/providers production hiện rỗng; booking/expert/reviews còn thiếu.
+P05-T03: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T04: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T05: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T06: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T10: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T11: Metadata cơ bản có; thiếu sitemap/robots/OG/structured data/metadata chi tiết động.
+P05-T12: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T13: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T14: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T16: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T17: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T21: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T22: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+P05-T24: Có một phần implementation; chưa đạt toàn bộ acceptance của task.
+
+
+Mục tiêu
+--------
+Biến core backend thành website Mộc Maria đẹp, nhanh, SEO tốt và cho khách đặt lịch thuận tiện trên mobile.
+
+Brand direction
+---------------
+- Xanh lá đậm
+- Ivory / kem
+- Vàng champagne nhẹ
+- Cảm giác thiên nhiên, sạch, premium, wellness
+- Organic shapes / leaf motif vừa phải
+- Không làm UI giống app kỹ thuật khô cứng
+
+Thông điệp:
+Mộc Maria - Nơi gửi trao sức khỏe
+
+Public IA dự kiến
+-----------------
+/
+ /dich-vu
+ /dich-vu/[slug]
+ /chuyen-vien
+ /chuyen-vien/[slug]
+ /chuyen-gia
+ /chuyen-gia/[slug]
+ /co-so
+ /co-so/[slug]
+ /dat-lich
+ /khuyen-mai
+ /kien-thuc
+ /kien-thuc/[slug]
+ /dang-nhap
+ /dang-ky
+
+Tasks
+-----
+[-] P05-T01 Hoàn thiện design system:
+    typography
+    spacing
+    buttons
+    cards
+    form fields
+    badges
+    modals/drawers
+    loading/skeleton
+    empty/error states
+
+[-] P05-T02 Homepage:
+    hero
+    primary CTA "Đặt lịch ngay"
+    service categories
+    featured services
+    featured staff
+    expert schedule block
+    branch/location
+    reviews placeholder/data
+    wellness content
+    final CTA
+
+[-] P05-T03 Service listing/filter/search.
+
+[-] P05-T04 Service detail SEO page:
+    title/description
+    duration
+    price
+    benefits/content
+    provider list
+    branch availability
+    CTA booking
+
+[-] P05-T05 Staff/expert list.
+
+[-] P05-T06 Staff/expert detail:
+    avatar/gallery
+    title
+    bio
+    strengths/services
+    branch
+    next availability
+    rating/review foundation
+    chat CTA reserved for Phase 06
+    booking CTA
+
+[ ] P05-T07 Branch pages:
+    address
+    hours
+    map/link
+    services
+    available staff
+    booking CTA
+
+[ ] P05-T08 Booking UI:
+    choose service
+    choose branch
+    choose provider / any suitable
+    choose date
+    choose available slot
+    login/register when required
+    confirmation
+    success page
+
+[ ] P05-T09 UX "Đi ngay / Sớm nhất":
+    dùng earliest availability endpoint.
+    Có thể bật sau khi core flow pass.
+
+[-] P05-T10 Mobile-first validation:
+    phone widths
+    touch targets
+    sticky CTA
+    fast booking
+
+[-] P05-T11 SEO foundation:
+    metadata
+    canonical
+    robots
+    sitemap
+    structured data phù hợp
+    OG image
+    Facebook/Zalo preview
+    semantic headings
+
+[-] P05-T12 Performance:
+    Next Image/media sizing
+    lazy loading
+    route loading
+    web vitals baseline
+    avoid oversized JS/client component
+
+[-] P05-T13 Public error states:
+    no staff
+    no slot
+    branch closed
+    service unavailable
+    API offline
+
+[-] P05-T14 Accessibility baseline:
+    keyboard
+    labels
+    contrast
+    alt text
+    focus state
+
+Acceptance criteria
+-------------------
+- Khách mới hiểu Mộc Maria làm gì trong vài giây.
+- Từ homepage tới booking thành công ít bước, mobile thuận tiện.
+- Không có slot giả; UI lấy availability từ server.
+- SEO pages có metadata/canonical/sitemap.
+- Facebook/Zalo share preview đúng.
+- Public pages không lộ admin/internal data.
+
+Validation
+----------
+- Next build PASS
+- lint/typecheck PASS
+- booking happy path e2e PASS
+- mobile smoke test PASS
+- metadata/OG smoke test PASS
+- Lighthouse/performance baseline ghi nhận
+
+Không làm trong phase này
+-------------------------
+- Chat realtime production
+- Admin booking command center đầy đủ
+- Queue reminder production
+- Loyalty/payment
+
+Phase Gate
+----------
+[ ] Public site usable
+[ ] Booking UX stable
+[ ] SEO baseline complete
+[ ] Build/e2e PASS
+[ ] Tracker + commit SHA cập nhật
+
+
+
+B. KTV MARKETPLACE VÀ TẠI NHÀ (CORE MVP)
+-----------------------------------------
+[ ] P05-T15 Landing phục vụ tại nhà: địa chỉ/khu vực, gói massage, giá và phí
+    minh bạch, CTA chọn KTV.
+[-] P05-T16 Form đăng ký ứng tuyển KTV riêng; trình bày rõ yêu cầu khóa học,
+    kiểm tra tay nghề, thẩm định và các điều kiện pháp lý liên quan.
+[-] P05-T17 Danh sách KTV APPROVED: avatar, chuyên môn, chứng nhận nội bộ có
+    diễn giải đúng, dịch vụ, khu vực, giờ trống, rating/reviews được kiểm duyệt.
+[ ] P05-T18 Trang KTV: chọn gói/duration/giá công khai, chat CTA, chọn giờ,
+    địa chỉ khách và yêu cầu đặt lịch.
+[ ] P05-T19 UX chi tiết phí/đi lại, quote revision, xác nhận lại sau trao đổi;
+    không hiển thị slot hay giấy phép giả.
+[ ] P05-T20 Mobile smoke test toàn flow khách chọn KTV -> địa chỉ -> quote -> booking.
+
+C. PREMIUM KTV DISCOVERY, VERIFIED REVIEWS
+-----------------------------------------
+[-] P05-T21 Distinctive elegant KTV cards: consistent portrait, public name, one-line descriptor, highlighted services, verified training indicator, 1-5 star average + review count, price-from, service area, availability, CTA View / Chat / Book.
+[-] P05-T22 KTV detail: fuller intro, qualifications worded correctly, portfolio with consent, packages with public prices, verified comment feed, filters, response from KTV, reporting and review policy.
+[ ] P05-T23 Ranking/filter by area, qualified service, availability, verified rating, experience; no purchased/fake ratings or hidden promotion presented as organic rank.
+[-] P05-T24 Empty/new KTV state shows 'Chưa có đánh giá' rather than fabricated stars; accessible skeletons, safe images, mobile-first responsive.
+[ ] P05-T25 Only display verified reviews; feedback form available only after eligible completed service, consent-aware attachments.

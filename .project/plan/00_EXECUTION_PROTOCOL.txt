@@ -1,0 +1,125 @@
+MỘC MARIA - EXECUTION PROTOCOL / CƠ CHẾ KHÔNG BỎ SÓT
+=====================================================
+
+1. SOURCE OF TRUTH
+------------------
+File nguồn trạng thái cấp dự án:
+Plan\99_PROJECT_STATUS.txt
+
+Khi Phase 01 tạo source, bắt buộc tạo thêm trong CẢ HAI repo:
+docs\PROJECT_PROGRESS.md
+docs\DECISIONS.md
+.project\project-state.json
+
+Ý nghĩa:
+- PROJECT_PROGRESS.md: người đọc nhanh
+- DECISIONS.md: Architectural Decision Log
+- project-state.json: trạng thái machine-readable để AI/tool có thể đọc chắc chắn
+
+2. QUY TRÌNH MỖI PHIÊN LÀM VIỆC
+--------------------------------
+BẮT ĐẦU:
+1) git status
+2) đọc Plan\99_PROJECT_STATUS.txt
+3) đọc docs\PROJECT_PROGRESS.md của repo liên quan
+4) đọc file phase hiện tại
+5) xác nhận phase trước đã DONE
+6) chỉ làm task đang TODO/IN_PROGRESS
+
+KẾT THÚC:
+1) chạy validation của phase/task
+2) ghi kết quả validation
+3) update PROJECT_PROGRESS.md
+4) update project-state.json
+5) update Plan\99_PROJECT_STATUS.txt
+6) update DECISIONS nếu có quyết định kiến trúc
+7) commit theo scope nhỏ, message có phase
+8) ghi commit SHA vào progress
+
+3. QUY ƯỚC TASK ID
+------------------
+P01-T01, P01-T02...
+P02-T01...
+...
+P08-Txx
+
+Mỗi task có:
+- status
+- owner/agent optional
+- files/repo
+- acceptance criteria
+- validation
+- commit SHA
+- note/blocker
+
+4. STATE JSON MẪU
+-----------------
+{
+  "project": "moc-maria",
+  "currentPhase": 1,
+  "currentTask": "P01-T01",
+  "phases": {
+    "1": {
+      "status": "IN_PROGRESS",
+      "completedTasks": [],
+      "lastValidatedAt": null,
+      "lastCommit": null
+    }
+  }
+}
+
+5. PHASE GATE
+-------------
+Không chuyển Phase N+1 nếu:
+- còn task Pxx ở TODO/BLOCKED thuộc critical path
+- build fail
+- migration chưa kiểm chứng
+- API contract chưa test
+- security requirement chưa đạt
+- docs status chưa cập nhật
+
+Chỉ chuyển phase khi:
+PHASE_STATUS = DONE
+VALIDATION = PASS
+COMMIT_SHA = <sha>
+NEXT_PHASE_UNLOCKED = YES
+
+6. STATUS MARKERS
+-----------------
+[ ] TODO
+[-] IN_PROGRESS
+[x] DONE
+[!] BLOCKED
+[~] DEFERRED
+
+7. GIT COMMIT CONVENTION
+------------------------
+feat(p01): bootstrap Mộc Maria API
+feat(p02): add refresh-session auth
+feat(p04): prevent double booking
+fix(p04): correct provider overlap check
+docs(plan): update phase 04 status
+
+Không gộp thay đổi unrelated.
+
+8. DEFINITION OF DONE CHUNG
+---------------------------
+Một task chỉ DONE khi:
+- code tồn tại
+- test/build tương ứng pass
+- behavior được verify
+- không để secret vào Git
+- migration/revert strategy hợp lý nếu có DB change
+- docs/tracker được update
+
+9. AUDIT TRAIL
+--------------
+98_DECISIONS_LOG.txt ghi quyết định product/architecture cấp cao.
+Trong source, docs/DECISIONS.md ghi kỹ thuật cụ thể theo commit.
+
+10. NGUYÊN TẮC QUAN TRỌNG
+--------------------------
+Không được "nhớ bằng chat".
+Trạng thái dự án phải tồn tại trong file được Git track.
+Chat chỉ hỗ trợ triển khai; source + tracker mới là nguồn sự thật bền vững.
+
