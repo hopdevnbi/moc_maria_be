@@ -20,6 +20,11 @@ import {
   OwnProviderScheduleController,
 } from './provider-schedule.controller';
 import { TrainingController } from './training.controller';
+import { TrainingSessionsService } from './training-sessions.service';
+import {
+  AdminTrainingSessionsController,
+  OwnTrainingSessionsController,
+} from './training-sessions.controller';
 import { ProvidersService } from './providers.service';
 import {
   AdminProvidersController,
@@ -45,6 +50,7 @@ import {
     ProviderTrustService,
     ProviderScheduleService,
     ProviderEligibilityService,
+    TrainingSessionsService,
   ],
   controllers: [
     PublicProvidersController,
@@ -55,6 +61,8 @@ import {
     OwnProviderScheduleController,
     AdminProviderEligibilityController,
     OwnProviderEligibilityController,
+    AdminTrainingSessionsController,
+    OwnTrainingSessionsController,
   ],
 })
 export class ProvidersModule {}
