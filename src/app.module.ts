@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { KtvChatModule } from './modules/ktv-chat/ktv-chat.module';
 import { AdminUsersModule } from './modules/admin-users/admin-users.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
@@ -25,6 +26,7 @@ import { ApplicationLoggingModule } from './logging/logging.module';
     CatalogModule,
     ProvidersModule,
     BookingsModule,
+    KtvChatModule,
   ],
   providers: [GlobalExceptionFilter],
 })
