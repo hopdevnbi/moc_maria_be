@@ -180,7 +180,7 @@
     },
     {
       "agent": "Codex private KTV chat audit 2026-10-09",
-      "status": "ACTIVE",
+      "status": "RELEASED",
       "stage": "F — private customer/KTV chat and mobile redesign",
       "taskIds": [
         "P06-T10",
@@ -204,7 +204,15 @@
         "docs/PRIVATE_KTV_CHAT.md",
         "BE/src/modules/providers/providers.module.ts (export existing service only)"
       ],
-      "note": "Isolated worktrees; no booking/provider writes. Existing E2a scope retained. Migrated tracker found at .project/plan on new machine."
+      "note": "Isolated worktrees; no booking/provider writes. Existing E2a scope retained. Migrated tracker found at .project/plan on new machine. Production backup/isolated restore PASS; migration 15→16; no business fixtures. Existing E2a ownership retained.",
+      "release": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     }
   ]
 }

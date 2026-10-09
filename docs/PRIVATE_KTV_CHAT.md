@@ -25,9 +25,13 @@ All read/send/read-marker requests verify membership on the server; unrelated us
 CODE: FE and BE implementation complete for direct text chat.
 TEST: BE 25 existing unit tests + 55 isolated PostgreSQL integration tests, including 12 new chat cases. Migration 16 rollback/reapply PASS. FE 6 new interaction tests cover login return URL, picker/demo exclusion, draft isolation, delayed response races, send retries and mobile back. FE typecheck/lint/build PASS. Desktop and 390/320px browser QA uses local-only fixtures; no production business fixtures.
 COMMIT: see Git history on `codex/ktv-private-chat` and release update below.
-DEPLOY: pending until the release update below records the actual image and frontend deployment.
+DEPLOY: RELEASED; evidence below.
 BUSINESS_DATA: no production seed or changes to provider approval/catalog; a real eligible provider is required to start a chat.
 
 ## Release
 
 Deploy backend migration before switching frontend. Additive migration `PrivateKtvChat1791659000000` adds only `ktv_chat_threads`, `ktv_chat_messages` and indexes. Before production migration, back up the application schema and check its existing migration prefix. On application rollback retain the new tables/history; never run `down` after real messages are written. Do not touch Giang Xá resources or booking modules.
+
+Production release verified: BE `8d7dc7b6e92934681dcd9ff90d5d575923cf2b40`, image `sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1`, ready replica 1; migration job `moc-maria-private-ktv-chat-20261009` applied 15→16 with exact schema-prefix checks. FE `df53c27f05e9ba1ea257a6916bf27f31e50e264b`, GitHub production deployment `6959386754` successful, `https://mocmaria.com/tin-nhan` browser alias verified. Both PR/main quality CI and backend image workflow PASS. Production health 200, unauthenticated chat 401 (previous missing route fixed), public eligible provider count 0. Authenticated full conversation flow verified only in isolated/local QA, not with a real production KTV.
+
+Pre-migration private schema backup: 148927 bytes; SHA256 `cc4eeab82988896caf4f7123bb1d8dbd42d1beca6963110ad8d533a792da6daf`. Disposable restore PASS: 15 migrations/49 tables/7 roles/8 permissions. QA infrastructure removed. Previous image `sha256:dc3cb89ee11a0b536c4dfedc535efb078ddc57ed4244bbfeac3a9ed694ef343b` is the source rollback target; retain message tables after writes. Temporary workstation QA SSH access is removed after release.

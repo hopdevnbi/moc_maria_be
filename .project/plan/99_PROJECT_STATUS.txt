@@ -1,3 +1,10 @@
+PRIVATE KTV CHAT RELEASE — 2026-10-09
+BE 8d7dc7b; FE df53c27; migration16; API health200/chat401; FE production alias verified.
+Direct text chat and mobile redesign RELEASED. Public eligible KTV count=0; demo profiles do not accept chat.
+55 isolated integrations +25 BE unit +17 FE tests/quality/build PASS; schema backup and isolated restore PASS.
+Polling5s/8s; shared socket/presence/report work remains open. Existing booking E2a phase/claim retained below.
+See docs/PRIVATE_KTV_CHAT.md for evidence.
+
 MỘC MARIA — CURRENT PROJECT STATUS
 =================================
 SOURCE OF TRUTH: file này +13_TASK_LEDGER.json; files15/16 là lịch sử.

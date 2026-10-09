@@ -69,7 +69,10 @@
     "P08-T21",
     "P08-T30",
     "P08-T38",
-    "P08-T43"
+    "P08-T43",
+    "P06-T14",
+    "P06-T16",
+    "P06-T23"
   ],
   "phase1": {
     "backendImplementationCommit": "8a87b44",
@@ -168,5 +171,13 @@
     "backupRestore": "PASS_SCHEMA14",
     "migration": "BookingAvailabilityFoundation1791646000000",
     "appointmentWrites": false
+  },
+  "chatRelease": {
+    "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+    "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+    "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+    "migration": "PrivateKtvChat1791659000000",
+    "frontendDeployment": "6959386754",
+    "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
   }
 }

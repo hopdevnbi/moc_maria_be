@@ -605,8 +605,16 @@
     },
     {
       "id": "P06-T10",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "Acutis Chat/Queue source audited at current remote revisions; Acutis class/parish auth has no MOC_MARIA tenant contract. Dedicated Mộc Maria REST/DB boundary selected; shared socket production audit remains open.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T11",
@@ -620,33 +628,81 @@
     },
     {
       "id": "P06-T13",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "One private customer/KTV pair with server membership checks deployed in dedicated Mộc Maria DB. Optional appointment/quote links and shared tenant contract remain open.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T14",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Private chat list/picker/history/send/retry/time/unread UI deployed. Mobile list/detail/back/visual viewport verified at 320/390px; 6 interaction tests PASS.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T15",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "Unread/read watermarks and polling reconnect supported. Socket typing, presence and delivery signals remain open.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T16",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Participant-only list/read/send/read markers deployed; no admin bypass. Forged IDs and sender/group fields rejected; isolated PostgreSQL tests PASS.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T17",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "Dedicated DB and existing Mộc Maria auth isolate this REST release; membership tests PASS. Shared Socket.IO cross-tenant test is not implemented.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T18",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "30 new messages per sender/thread/minute and idempotent retries deployed; broader abuse workflow remains open.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T19",
@@ -655,13 +711,29 @@
     },
     {
       "id": "P06-T20",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "REST payload returns participant names/text/time only; no contacts/addresses/token forwarding. Shared socket path remains unimplemented.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T21",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "Customer can choose current publicly eligible KTV and open unique prebooking thread; no appointment required. Per-thread rate limit implemented; broader solicitation/report policies open.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T22",
@@ -670,8 +742,16 @@
     },
     {
       "id": "P06-T23",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "DONE",
+      "note": "Chat only writes dedicated thread/message/read state; never changes booking or quote transactions.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T24",
@@ -680,13 +760,29 @@
     },
     {
       "id": "P06-T25",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "Suspended KTV/inactive participant cannot send; private history retained. Block/report and shared tenant socket workflow remain open.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T26",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "12 chat integration cases PASS: auth, separate KTV/customer pairs, concurrent opens/sends, membership, validation, unread, pagination and suspension. Six FE interaction cases and mobile visual QA PASS. Shared socket tenant/reconnect tests remain open.",
+      "evidence": {
+        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
+        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
+        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
+        "migration": "PrivateKtvChat1791659000000",
+        "frontendDeployment": "6959386754",
+        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      }
     },
     {
       "id": "P06-T27",
