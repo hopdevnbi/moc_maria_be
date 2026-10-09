@@ -5,6 +5,7 @@ import { ProfilesModule } from './modules/profiles/profiles.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { ProvidersModule } from './modules/providers/providers.module';
+import { BookingsModule } from './modules/bookings/bookings.module';
 import { ApplicationConfigModule } from './config/config.module';
 import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
@@ -23,6 +24,7 @@ import { ApplicationLoggingModule } from './logging/logging.module';
     BranchesModule,
     CatalogModule,
     ProvidersModule,
+    BookingsModule,
   ],
   providers: [GlobalExceptionFilter],
 })

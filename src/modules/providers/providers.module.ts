@@ -68,5 +68,6 @@ import {
     AdminTrainingSessionsController,
     OwnTrainingSessionsController,
   ],
+  exports: [ProviderEligibilityService, ProviderScheduleService, ProviderTrustService],
 })
 export class ProvidersModule {}

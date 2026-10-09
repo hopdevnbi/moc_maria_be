@@ -307,9 +307,9 @@ export class ProviderScheduleService {
     id: string,
     branchId: string,
     date: string,
+    manager = this.dataSource.manager,
   ): Promise<{ timezone: string; windows: MinuteWindow[]; bookable: false }> {
     if (!validCalendarDate(date)) throw new BadRequestException('Ngày không hợp lệ.');
-    const manager = this.dataSource.manager;
     if (!(await manager.findOneBy(ProviderApplication, { id })))
       throw new NotFoundException('Không tìm thấy hồ sơ KTV.');
     const branch = await manager.findOneBy(Branch, { id: branchId, isActive: true });

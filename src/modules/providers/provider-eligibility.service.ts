@@ -46,6 +46,7 @@ export interface EligibleProviderService {
   travelBufferMinutes: number;
   travelFeeVnd: string;
   maxRadiusKm: number | null;
+  validThrough: Date;
 }
 export interface ProviderServiceReadiness {
   applicationId: string;
@@ -328,29 +329,17 @@ export class ProviderEligibilityService {
   ): Promise<Map<string, ProviderServiceReadiness>> {
     if (!ids.length) return new Map();
     const where = { providerApplicationId: In(ids) };
-    const [
-      applications,
-      profiles,
-      reviews,
-      skills,
-      certificates,
-      enrollments,
-      assignments,
-      weekly,
-      dated,
-      grants,
-    ] = await Promise.all([
-      manager.find(ProviderApplication, { where: { id: In(ids) } }),
-      manager.find(ProviderPublicProfile, { where }),
-      manager.find(ProviderOperatingReview, { where }),
-      manager.find(ProviderSkill, { where }),
-      manager.find(ProviderCertificate, { where }),
-      manager.find(TrainingEnrollment, { where }),
-      manager.find(ProviderBranchAssignment, { where }),
-      manager.find(ProviderWeeklyShift, { where }),
-      manager.find(ProviderDateSchedule, { where }),
-      manager.find(ProviderServiceGrant, { where }),
-    ]);
+    // A transactional manager owns one PG connection; reads must finish sequentially.
+    const applications = await manager.find(ProviderApplication, { where: { id: In(ids) } });
+    const profiles = await manager.find(ProviderPublicProfile, { where });
+    const reviews = await manager.find(ProviderOperatingReview, { where });
+    const skills = await manager.find(ProviderSkill, { where });
+    const certificates = await manager.find(ProviderCertificate, { where });
+    const enrollments = await manager.find(TrainingEnrollment, { where });
+    const assignments = await manager.find(ProviderBranchAssignment, { where });
+    const weekly = await manager.find(ProviderWeeklyShift, { where });
+    const dated = await manager.find(ProviderDateSchedule, { where });
+    const grants = await manager.find(ProviderServiceGrant, { where });
     const policies = grants.length
       ? await manager.find(ServiceProviderPolicy, {
           where: { id: In(grants.map((g) => g.policyId)) },
@@ -358,24 +347,28 @@ export class ProviderEligibilityService {
       : [];
     const serviceIds = policies.map((p) => p.serviceId),
       branchIds = policies.map((p) => p.branchId);
-    const [services, branches, courses, mappings, variants, staffProfiles] = await Promise.all([
-      serviceIds.length ? manager.find(Service, { where: { id: In(serviceIds) } }) : [],
-      branchIds.length ? manager.find(Branch, { where: { id: In(branchIds) } }) : [],
-      policies.length
-        ? manager.find(TrainingCourse, { where: { id: In(policies.map((p) => p.courseId)) } })
-        : [],
-      branchIds.length
-        ? manager.find(BranchService, {
-            where: { branchId: In(branchIds), serviceId: In(serviceIds) },
-          })
-        : [],
-      serviceIds.length
-        ? manager.find(ServiceVariant, { where: { serviceId: In(serviceIds), isActive: true } })
-        : [],
-      applications.length
-        ? manager.find(StaffProfile, { where: { userId: In(applications.map((a) => a.userId)) } })
-        : [],
-    ]);
+    const services = serviceIds.length
+      ? await manager.find(Service, { where: { id: In(serviceIds) } })
+      : [];
+    const branches = branchIds.length
+      ? await manager.find(Branch, { where: { id: In(branchIds) } })
+      : [];
+    const courses = policies.length
+      ? await manager.find(TrainingCourse, { where: { id: In(policies.map((p) => p.courseId)) } })
+      : [];
+    const mappings = branchIds.length
+      ? await manager.find(BranchService, {
+          where: { branchId: In(branchIds), serviceId: In(serviceIds) },
+        })
+      : [];
+    const variants = serviceIds.length
+      ? await manager.find(ServiceVariant, { where: { serviceId: In(serviceIds), isActive: true } })
+      : [];
+    const staffProfiles = applications.length
+      ? await manager.find(StaffProfile, {
+          where: { userId: In(applications.map((a) => a.userId)) },
+        })
+      : [];
     const validCertificates = await currentCertificateEvidence(manager, certificates, at);
     const practicalCriteria = courses.length
       ? await manager.find(TrainingCriterion, {
@@ -495,6 +488,16 @@ export class ProviderEligibilityService {
             travelBufferMinutes: grant.travelBufferMinutes,
             travelFeeVnd: grant.travelFeeVnd,
             maxRadiusKm: grant.maxRadiusKm,
+            validThrough: new Date(
+              Math.min(
+                policy.validUntil.getTime(),
+                certificate.expiresAt!.getTime(),
+                policy.legalRequirement === 'LICENSE_REQUIRED' ||
+                  review?.providerKind === 'SPECIALIST'
+                  ? grant.credentialValidUntil!.getTime()
+                  : Infinity,
+              ),
+            ),
           });
         }
         if (!eligible.length)

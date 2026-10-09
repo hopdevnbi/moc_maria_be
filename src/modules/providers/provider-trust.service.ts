@@ -238,21 +238,22 @@ export class ProviderTrustService {
   async publicEligibleIds(
     applications: ProviderApplication[],
     users: User[],
+    manager = this.dataSource.manager,
   ): Promise<Set<string>> {
     if (!applications.length) return new Set();
     const ids = applications.map((a) => a.id);
-    const [consents, contacts] = await Promise.all([
-      this.dataSource.manager.find(ProviderConsent, { where: { providerApplicationId: In(ids) } }),
-      this.dataSource.manager.find(ProviderContactVerification, {
-        where: { providerApplicationId: In(ids) },
-      }),
-    ]);
+    const consents = await manager.find(ProviderConsent, {
+      where: { providerApplicationId: In(ids) },
+    });
+    const contacts = await manager.find(ProviderContactVerification, {
+      where: { providerApplicationId: In(ids) },
+    });
     return new Set(
       applications
         .filter((a) => {
           const user = users.find((u) => u.id === a.userId);
           return (
-            !!user &&
+            !!user?.isActive &&
             !!a.introduction?.trim() &&
             !!a.serviceArea?.trim() &&
             ['APPLICATION_REVIEW', 'PUBLIC_PROFILE'].every((scope) =>

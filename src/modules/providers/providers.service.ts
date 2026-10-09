@@ -365,7 +365,7 @@ export class ProvidersService {
         where: { providerApplicationId: In(approved.map((app) => app.id)) },
       }),
       this.dataSource.getRepository(User).find({
-        select: ['id', 'email', 'phone'],
+        select: ['id', 'email', 'phone', 'isActive'],
         where: { id: In(approved.map((app) => app.userId)), isActive: true },
       }),
       this.eligibility.readinessBatch(approved.map((app) => app.id)),
