@@ -15,7 +15,13 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { KtvChatService } from './ktv-chat.service';
-import { KtvHistoryDto, OpenKtvChatDto, ReadKtvChatDto, SendKtvMessageDto } from './ktv-chat.dto';
+import {
+  BlockKtvChatDto,
+  KtvHistoryDto,
+  OpenKtvChatDto,
+  ReadKtvChatDto,
+  SendKtvMessageDto,
+} from './ktv-chat.dto';
 
 @ApiTags('ktv-chat')
 @ApiBearerAuth()
@@ -63,5 +69,22 @@ export class KtvChatController {
     @Body() dto: ReadKtvChatDto,
   ): Promise<void> {
     return this.chat.read(actor, id, dto.lastMessageId);
+  }
+  @Post(':id/block')
+  @Header('Cache-Control', 'private, no-store')
+  block(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: BlockKtvChatDto,
+  ): ReturnType<KtvChatService['block']> {
+    return this.chat.block(actor, id, dto);
+  }
+  @Post(':id/unblock')
+  @Header('Cache-Control', 'private, no-store')
+  unblock(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): ReturnType<KtvChatService['unblock']> {
+    return this.chat.unblock(actor, id);
   }
 }

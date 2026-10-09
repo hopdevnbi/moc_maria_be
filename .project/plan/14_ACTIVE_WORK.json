@@ -213,6 +213,31 @@
         "frontendDeployment": "6959386754",
         "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
       }
+    },
+    {
+      "agent": "Codex customer KTV blocking and verified reviews 2026-10-09",
+      "status": "ACTIVE",
+      "stage": "F2 — reciprocal timed blocking and service ratings",
+      "taskIds": [
+        "P06-T19",
+        "P06-T25",
+        "P06-T27",
+        "P06-T26",
+        "P03-T24"
+      ],
+      "frontendBranch": "codex/chat-blocks-reviews",
+      "backendBranch": "codex/chat-blocks-reviews",
+      "ownedPaths": [
+        "BE/src/modules/ktv-chat/**",
+        "BE/src/modules/provider-reviews/**",
+        "BE/src/database/migrations/*ChatBlocksReviews*",
+        "BE/src/app.module.ts (reviews registration only)",
+        "FE/src/features/mobile/chat*",
+        "FE/src/features/provider-reviews/**",
+        "FE/src/app/chuyen-vien/[id]/page.tsx and src/features/mobile/ktv-home.tsx (ratings embed only)",
+        "Plan and release evidence"
+      ],
+      "note": "Reuse isolated chat worktrees. No booking/provider eligibility writes; ratings read completed appointments. Existing E2a scope remains intact."
     }
   ]
 }
