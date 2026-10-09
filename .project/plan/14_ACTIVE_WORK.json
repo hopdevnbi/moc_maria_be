@@ -216,7 +216,7 @@
     },
     {
       "agent": "Codex customer KTV blocking and verified reviews 2026-10-09",
-      "status": "ACTIVE",
+      "status": "RELEASED",
       "stage": "F2 — reciprocal timed blocking and service ratings",
       "taskIds": [
         "P06-T19",
@@ -237,7 +237,16 @@
         "FE/src/app/chuyen-vien/[id]/page.tsx and src/features/mobile/ktv-home.tsx (ratings embed only)",
         "Plan and release evidence"
       ],
-      "note": "Reuse isolated chat worktrees. No booking/provider eligibility writes; ratings read completed appointments. Existing E2a scope remains intact."
+      "note": "Reuse isolated chat worktrees. No booking/provider eligibility writes; ratings read completed appointments. Existing E2a scope remains intact. Production backup/isolated restore PASS; schema16→17. No production business fixtures. E2a booking ownership preserved.",
+      "release": {
+        "backend": "c213cc1b62fa3e021e0a35b1d5e101dea6b5d5cd",
+        "frontend": "5f12ecb952c3c093167124b3329213b32f459b7f",
+        "imageDigest": "sha256:14a551f94e5a677097776eaa01729c963ebfdad97d303189a50f28334c27e833",
+        "migration": "ChatBlocksReviews1791662000000",
+        "frontendDeployment": "6960250016",
+        "test": "25 BE unit +65 disposable PostgreSQL integrations; migration rollback/reapply; FE21 tests/full quality/build; 320/390px local browser QA; production schema16→17, health200/private401/public ratings200; backend/FE CI and production Vercel deployment PASS",
+        "businessData": "No production fixtures or approval/booking writes. Real eligible KTV count0. Verified review submission depends on existing separately owned E2 completion workflow."
+      }
     }
   ]
 }

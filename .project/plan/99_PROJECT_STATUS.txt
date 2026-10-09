@@ -1,3 +1,9 @@
+CHAT BLOCKS + VERIFIED RATINGS RELEASE — 2026-10-09
+BE c213cc1; FE5f12ecb; schema17; Vercel production6960250016 successful.
+Reciprocal timed/permanent blocking, own unblock, private history; real KTV stars/comments and completed-service review form RELEASED.
+25 BE unit +65 isolated integrations +21 FE tests/quality/build PASS. Backup/restore PASS; production health200/private401/public ratings200.
+No production fixtures. Eligible real KTV count0; service feedback requires E2 completed bookings (separate owner). Shared socket/presence/report and overall MVP remain open.
+
 PRIVATE KTV CHAT RELEASE — 2026-10-09
 BE 8d7dc7b; FE df53c27; migration16; API health200/chat401; FE production alias verified.
 Direct text chat and mobile redesign RELEASED. Public eligible KTV count=0; demo profiles do not accept chat.
@@ -24,7 +30,7 @@ PHASE STATUS
 [-]06 Portals/chat PARTIAL.
 [-]07 Admin/CMS PARTIAL.
 [-]08 Production PARTIAL. Manual backup restore PASS; automated retention open.
-Phase02–08:225 tasks;51 DONE,67 PARTIAL,107 TODO. Not product percentage.
+Phase02–08:225 tasks;54 DONE,78 PARTIAL,93 TODO. Not product percentage.
 
 VERIFIED RELEASE — E1
 BE sourceb53d660a361549d53d8c92b3773413d0b078963d; image sha256:dc3cb89ee11a0b536c4dfedc535efb078ddc57ed4244bbfeac3a9ed694ef343b; ready1, health200.

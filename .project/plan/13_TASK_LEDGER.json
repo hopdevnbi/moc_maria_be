@@ -189,12 +189,15 @@
     {
       "id": "P03-T24",
       "status": "PARTIAL",
-      "note": "C2 public practitioner/specialist safe profile plus eligible services gates deployed; ratings/media/dedicated expert acceptance still pending.",
+      "note": "Safe practitioner profile and real aggregate ratings/verified comments deployed. Provider media/dedicated expert acceptance gates remain separate/open.",
       "evidence": {
-        "backend": "3a069e66dd1ccc44de175cd7a507fa4b01a76e10",
-        "frontend": "eab0a4e2a192e9b408ad580e8306fb90f037844f",
-        "migration": "ProviderServiceEligibility1791635200000",
-        "test": "21 unit + 26 isolated integration; FE quality/4 unit/build; isolated browser save/reload/mobile"
+        "backend": "c213cc1b62fa3e021e0a35b1d5e101dea6b5d5cd",
+        "frontend": "5f12ecb952c3c093167124b3329213b32f459b7f",
+        "imageDigest": "sha256:14a551f94e5a677097776eaa01729c963ebfdad97d303189a50f28334c27e833",
+        "migration": "ChatBlocksReviews1791662000000",
+        "frontendDeployment": "6960250016",
+        "test": "25 BE unit +65 disposable PostgreSQL integrations; migration rollback/reapply; FE21 tests/full quality/build; 320/390px local browser QA; production schema16→17, health200/private401/public ratings200; backend/FE CI and production Vercel deployment PASS",
+        "businessData": "No production fixtures or approval/booking writes. Real eligible KTV count0. Verified review submission depends on existing separately owned E2 completion workflow."
       }
     },
     {
@@ -706,8 +709,17 @@
     },
     {
       "id": "P06-T19",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "Reciprocal temporary/permanent thread blocking deployed; expiry, own-only unblock and private history enforced. Reporting workflow remains open.",
+      "evidence": {
+        "backend": "c213cc1b62fa3e021e0a35b1d5e101dea6b5d5cd",
+        "frontend": "5f12ecb952c3c093167124b3329213b32f459b7f",
+        "imageDigest": "sha256:14a551f94e5a677097776eaa01729c963ebfdad97d303189a50f28334c27e833",
+        "migration": "ChatBlocksReviews1791662000000",
+        "frontendDeployment": "6960250016",
+        "test": "25 BE unit +65 disposable PostgreSQL integrations; migration rollback/reapply; FE21 tests/full quality/build; 320/390px local browser QA; production schema16→17, health200/private401/public ratings200; backend/FE CI and production Vercel deployment PASS",
+        "businessData": "No production fixtures or approval/booking writes. Real eligible KTV count0. Verified review submission depends on existing separately owned E2 completion workflow."
+      }
     },
     {
       "id": "P06-T20",
@@ -761,33 +773,44 @@
     {
       "id": "P06-T25",
       "status": "PARTIAL",
-      "note": "Suspended KTV/inactive participant cannot send; private history retained. Block/report and shared tenant socket workflow remain open.",
+      "note": "Existing suspension/active-user send gates plus reciprocal block/expiry checks enforced transactionally. Shared Socket.IO tenant isolation remains separate/open.",
       "evidence": {
-        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
-        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
-        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
-        "migration": "PrivateKtvChat1791659000000",
-        "frontendDeployment": "6959386754",
-        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+        "backend": "c213cc1b62fa3e021e0a35b1d5e101dea6b5d5cd",
+        "frontend": "5f12ecb952c3c093167124b3329213b32f459b7f",
+        "imageDigest": "sha256:14a551f94e5a677097776eaa01729c963ebfdad97d303189a50f28334c27e833",
+        "migration": "ChatBlocksReviews1791662000000",
+        "frontendDeployment": "6960250016",
+        "test": "25 BE unit +65 disposable PostgreSQL integrations; migration rollback/reapply; FE21 tests/full quality/build; 320/390px local browser QA; production schema16→17, health200/private401/public ratings200; backend/FE CI and production Vercel deployment PASS",
+        "businessData": "No production fixtures or approval/booking writes. Real eligible KTV count0. Verified review submission depends on existing separately owned E2 completion workflow."
       }
     },
     {
       "id": "P06-T26",
       "status": "PARTIAL",
-      "note": "12 chat integration cases PASS: auth, separate KTV/customer pairs, concurrent opens/sends, membership, validation, unread, pagination and suspension. Six FE interaction cases and mobile visual QA PASS. Shared socket tenant/reconnect tests remain open.",
+      "note": "65 isolated integrations and21 frontend tests PASS; block permissions/expiry, verified review eligibility, deduplication, privacy, edits/moderation tested. Shared socket reconnect/presence remains open.",
       "evidence": {
-        "backend": "8d7dc7b6e92934681dcd9ff90d5d575923cf2b40",
-        "frontend": "df53c27f05e9ba1ea257a6916bf27f31e50e264b",
-        "imageDigest": "sha256:35295f4b7fb0213b9cd76cc6da9039f7910459d5ffa42e5977b0d2c30f1656c1",
-        "migration": "PrivateKtvChat1791659000000",
-        "frontendDeployment": "6959386754",
-        "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+        "backend": "c213cc1b62fa3e021e0a35b1d5e101dea6b5d5cd",
+        "frontend": "5f12ecb952c3c093167124b3329213b32f459b7f",
+        "imageDigest": "sha256:14a551f94e5a677097776eaa01729c963ebfdad97d303189a50f28334c27e833",
+        "migration": "ChatBlocksReviews1791662000000",
+        "frontendDeployment": "6960250016",
+        "test": "25 BE unit +65 disposable PostgreSQL integrations; migration rollback/reapply; FE21 tests/full quality/build; 320/390px local browser QA; production schema16→17, health200/private401/public ratings200; backend/FE CI and production Vercel deployment PASS",
+        "businessData": "No production fixtures or approval/booking writes. Real eligible KTV count0. Verified review submission depends on existing separately owned E2 completion workflow."
       }
     },
     {
       "id": "P06-T27",
-      "status": "TODO",
-      "note": "Chưa implementation; giữ nguyên yêu cầu bên dưới."
+      "status": "PARTIAL",
+      "note": "Verified completed-appointment 1–5 star/text feedback, seven-day versioned edits, public score/comments and auditable independent moderation deployed. Real booking completion E2 flow and report/tagged-feedback workflow remain open.",
+      "evidence": {
+        "backend": "c213cc1b62fa3e021e0a35b1d5e101dea6b5d5cd",
+        "frontend": "5f12ecb952c3c093167124b3329213b32f459b7f",
+        "imageDigest": "sha256:14a551f94e5a677097776eaa01729c963ebfdad97d303189a50f28334c27e833",
+        "migration": "ChatBlocksReviews1791662000000",
+        "frontendDeployment": "6960250016",
+        "test": "25 BE unit +65 disposable PostgreSQL integrations; migration rollback/reapply; FE21 tests/full quality/build; 320/390px local browser QA; production schema16→17, health200/private401/public ratings200; backend/FE CI and production Vercel deployment PASS",
+        "businessData": "No production fixtures or approval/booking writes. Real eligible KTV count0. Verified review submission depends on existing separately owned E2 completion workflow."
+      }
     },
     {
       "id": "P06-T28",

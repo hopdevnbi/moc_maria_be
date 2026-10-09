@@ -113,7 +113,7 @@ C. Shared Chat audit + integration
 D. Security / privacy
 ---------------------
 [-] P06-T18: Rate limit / abuse handling.
-[ ] P06-T19 Block/report foundation nếu scope phù hợp.
+[-] P06-T19 Block/report foundation nếu scope phù hợp.
 [-] P06-T20: Không gửi dữ liệu nhạy cảm thừa qua socket payload.
 
 Acceptance criteria
@@ -160,8 +160,10 @@ E. CHAT KHÁCH - KTV TRƯỚC KHI CHỐT LỊCH (CORE MVP)
 
 F. CUSTOMER FEEDBACK AND KTV APPEALS
 ------------------------------------
-[ ] P06-T27 Customer portal: completed booking -> 1-5 star rating, text review, optional tagged feedback, evidence/report with privacy limits, edit window and status.
+[-] P06-T27 Customer portal: completed booking -> 1-5 star rating, text review, optional tagged feedback, evidence/report with privacy limits, edit window and status.
 [ ] P06-T28 KTV portal: quality scorecard with transparent indicators and sample-size caveats, complaint notifications, response and appeal form, training remediation status.
 [ ] P06-T29 Review replies and appeals are moderated; protect customers from retaliation, coercion to change rating or unauthorized contact.
 
 PRIVATE CHAT RELEASE 2026-10-09: dedicated Mộc Maria REST/DB chat deployed. See docs/PRIVATE_KTV_CHAT.md. Shared socket gates remain open.
+
+F2 RELEASE 2026-10-09: reciprocal blocks and verified service ratings deployed. Reporting/socket work and E2 completion remain open; see docs/PRIVATE_KTV_CHAT.md.
