@@ -110,7 +110,7 @@
     },
     {
       "agent": "Codex current chat",
-      "status": "ACTIVE",
+      "status": "RELEASED",
       "stage": "E1 — availability/schema and booking transaction contract",
       "taskIds": [
         "P04-T01",
@@ -134,8 +134,49 @@
         "FE/src/features/marketplace/** and booking/portal routes",
         "Plan/** and repo docs/state/scoped release manifests"
       ],
-      "next": "E1 availability/schema → E2 request/accept/quote/confirm/concurrency → E3 reschedule/cancel/complete/quality; F/G/H remain open",
-      "note": "No other writer in shared modules; do not mark availability as a reservation before request/quote transaction acceptance."
+      "next": "E2a branch request/quote transaction → E2b home territory/travel → E3 lifecycle/quality, then F/G/H",
+      "note": "No other writer in shared modules; do not mark availability as a reservation before request/quote transaction acceptance.",
+      "releasedStageE1": {
+        "backend": "b53d660a361549d53d8c92b3773413d0b078963d",
+        "frontend": "a7b67d1297ca53ba45026eb5e9d9692cd1036fdb",
+        "frontendDeployment": "dpl_3Jdkz9QSCys6d2w19ENrF7JW6BRz",
+        "imageDigest": "sha256:dc3cb89ee11a0b536c4dfedc535efb078ddc57ed4244bbfeac3a9ed694ef343b",
+        "migrations": 15
+      }
+    },
+    {
+      "agent": "Codex current chat",
+      "status": "ACTIVE",
+      "stage": "E2a — branch request/provider acceptance/customer quote confirmation",
+      "taskIds": [
+        "P04-T02",
+        "P04-T03",
+        "P04-T05",
+        "P04-T06",
+        "P04-T10",
+        "P04-T13",
+        "P04-T14",
+        "P04-T18",
+        "P04-T19",
+        "P04-T20",
+        "P04-T25"
+      ],
+      "backendBranch": "codex/production-integration",
+      "frontendBranch": "codex/platform-integration",
+      "frontendWorktree": "C:/Users/User/.codex/worktrees/moc-maria-platform/moc_maria_fe",
+      "ownedPaths": [
+        "BE/src/modules/bookings/**",
+        "BE/src/modules/providers/** (atomic booking eligibility and locks)",
+        "BE/src/modules/catalog/** and branches/** (booking coordination only)",
+        "BE/src/modules/profiles/** and admin-users/** (eligibility lifecycle serialization only)",
+        "BE/src/database/migrations/** (one release owner)",
+        "BE/test/** and scripts/isolated-integration-test.cjs",
+        "FE/src/features/marketplace/**",
+        "FE/src/app/** (booking/portal pages and account navigation only)",
+        "Plan/** and repo docs/state/scoped release manifests"
+      ],
+      "next": "E2a branch transactions → E2b home geofence/radius/travel/PII → E3 reschedule/cancel/check-in/start/complete/quality; F/G/H still open",
+      "note": "No other writer in shared checkout/modules. Never treat an availability preview as a reservation; no production fixtures or human eligibility decisions."
     }
   ]
 }

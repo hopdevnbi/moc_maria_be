@@ -4,7 +4,7 @@ PHASE 04 - BOOKING ENGINE
 AUDIT CHECKLIST 2026-10-09 — CURRENT
 ------------------------------------
 [x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
-Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
+Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 IN_PROGRESS: E1 availability/schema deployed; appointment request/quote/concurrency E2 pending. Phases 05-08 contain early partial work; no full gate is closed.
 Evidence đang chạy: đọc 99_PROJECT_STATUS.txt và 13_TASK_LEDGER.json. Không lấy snapshot lịch sử làm release hiện tại.
 Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
 
@@ -30,7 +30,7 @@ sau khi core ổn định.
 
 Tasks
 -----
-[ ] P04-T01 Entity:
+[x] P04-T01 Entity:
     appointments
     appointment_items
     appointment_staff
@@ -48,7 +48,7 @@ Tasks
     NO_SHOW
     Quy tắc chuyển trạng thái phải server-side.
 
-[ ] P04-T03 Availability engine:
+[-] P04-T03 Availability engine:
     branch hours
     service duration
     before/after buffer
@@ -59,7 +59,7 @@ Tasks
     existing bookings
     room/resource
 
-[ ] P04-T04 Timezone strategy:
+[x] P04-T04 Timezone strategy:
     Asia/Ho_Chi_Minh business timezone
     DB timestamp strategy rõ ràng
     không mix local/UTC tùy tiện.
@@ -93,14 +93,14 @@ Tasks
     server tìm provider phù hợp theo rule,
     không random mù.
 
-[ ] P04-T11 Earliest availability endpoint.
+[-] P04-T11 Earliest availability endpoint.
 
 [ ] P04-T12 Waitlist foundation optional schema/interface.
     Có thể chưa bật UX nhưng không thiết kế ngõ cụt.
 
-[ ] P04-T13 Booking API contract + Swagger.
+[-] P04-T13 Booking API contract + Swagger.
 
-[ ] P04-T14 Booking e2e/concurrency tests.
+[-] P04-T14 Booking e2e/concurrency tests.
 
 API gợi ý
 ---------
@@ -169,3 +169,5 @@ C. VERIFIED REVIEWS AND PROVIDER QUALITY EVENTS
 [ ] P04-T23 Only eligible, COMPLETED bookings may create a verified customer review for their actual KTV; one review per booking-provider, with audited edits.
 [ ] P04-T24 Capture cancelled/no-show/declined/late status evidence and attribution; protect KTV against customer-caused cancellations.
 [ ] P04-T25 Booking eligibility checks provider quality state at the point of hold/confirmation, atomically; invalidated KTV cannot silently accept new bookings.
+
+E1 release evidence: migration15,25 BE unit+43 isolated integrations, rollback/reapply, BE/FE quality/CI, browser settings persistence/mobile, private schema14 restore PASS. Appointment writes/concurrency/quote/home flow still open.

@@ -3,8 +3,8 @@ MỘC MARIA — CURRENT PROJECT STATUS
 SOURCE OF TRUTH: file này +13_TASK_LEDGER.json; files15/16 là lịch sử.
 LAST_UPDATED: 2026-10-09
 CURRENT_PHASE: 04 (implementation focus; Phase03 remains IN_PROGRESS)
-CURRENT_TASK: P04-T01
-CURRENT_STAGE: E1 — availability/schema and booking transaction contract
+CURRENT_TASK: P04-T05
+CURRENT_STAGE: E2a — branch request/provider acceptance/customer quote confirmation
 OVERALL_STATUS: IMPLEMENTING
 MVP_STATUS: IN_PROGRESS_NOT_OPERATIONAL
 
@@ -12,28 +12,28 @@ PHASE STATUS
 [x]01 Foundation DONE.
 [x]02 Identity/auth/RBAC foundation DONE; delivery Phase08.
 [-]03 IN_PROGRESS: A/B/C1/C2/D1/D2 deployed; training P03-T28/29/30 DONE; media/quality aggregates/specialist/full gate open.
-[ ]04 Booking TODO — active E1; no booking endpoints released yet.
+[-]04 Booking IN_PROGRESS — E1 availability/schema released; request/quote/state writes E2 pending.
 [-]05 Public web/SEO PARTIAL.
 [-]06 Portals/chat PARTIAL.
 [-]07 Admin/CMS PARTIAL.
 [-]08 Production PARTIAL. Manual backup restore PASS; automated retention open.
-Phase02–08:225 tasks;49 DONE,63 PARTIAL,113 TODO. Not product percentage.
+Phase02–08:225 tasks;51 DONE,67 PARTIAL,107 TODO. Not product percentage.
 
-VERIFIED RELEASE — D2
-BE sourced6d05000c38df841dc971c1ebe13f4911c3483a4; image sha256:39354480ae727110bcca756fe215858baa7aaebf8a172ac1086d258869a0f37f; deployment ready1, health live/ready200.
-Schema14, TrainingAssessmentEvidence1791642400000 applied13→14 transactionally. Initial guard stopped before writes; read-only schema13 verified; v2 handles TypeORM optional name/class fallback.
-FE source68b40f33fde3dc5812d6668d57a1684eec3274a5; https://mocmaria.com; Vercel dpl_E7NmxqBXmWC8DMGPRWWQQ4duAaXi READY, alias browser verified.
-21 BE unit+37 isolated integrations/latest rollback-reapply, FE4 tests/22 routes, quality/build/CI PASS.
-Browser Vietnamese criteria/practical assessment/renewal/history/reload/mobile390 PASS. QA pod/Secret/private credentials removed.
-Private schema13 backup106514 bytes SHA25698777e56f627857e7a99f0ddaa7d851d1e1934fd4db2fc20018d35176ab21947; disposable restore PASS13 migrations/39 tables/7 roles/8 permissions.
-Public providers200/no-store/empty; private training routes anonymous401/private,no-store. GiangXa200. No production business fixtures.
+VERIFIED RELEASE — E1
+BE sourceb53d660a361549d53d8c92b3773413d0b078963d; image sha256:dc3cb89ee11a0b536c4dfedc535efb078ddc57ed4244bbfeac3a9ed694ef343b; ready1, health200.
+Schema15 BookingAvailabilityFoundation1791646000000 applied14→15; exact schema-prefix guard/class-name fallback PASS.
+FE sourcea7b67d1297ca53ba45026eb5e9d9692cd1036fdb; dpl_3Jdkz9QSCys6d2w19ENrF7JW6BRz READY; https://mocmaria.com browser alias verified.
+25 BE unit+43 isolated integrations, migration15 rollback/reapply, FE4 unit/build22 routes/quality/CI PASS. Browser settings update/reload/mobile390 PASS.
+Private schema14 backup118265 bytes SHA2566d2fa14ce55dbb321c7574e36f30d5893c962d7f42d52889878d1c38b649be20; disposable restore PASS14 migrations/42 tables/7 roles/8 permissions.
+No-store preview404 for absent public package; private settings401/private,no-store; public providers empty; GiangXa200; QA pod/Secret/private credentials removed.
+No appointment writes in E1; reservation=false/requestEnabled=false. No production business fixtures.
 
 OWNERSHIP / NEXT
-Read11/12/13/14 before edits. D2 RELEASED; E1 ACTIVE current Codex. One BE checkout writer and one migration release owner; isolated FE worktree. No confirmed other AI claim.
-E1 availability/schema → E2 request/accept/quote/confirm/concurrency → E3 reschedule/cancel/complete/quality → F portal/chat/reviews → G operations/CMS → H SEO/media/queue/production acceptance.
+Read11/12/13/14 before edits. D2/E1 RELEASED; E2a ACTIVE current Codex. One BE checkout writer and one migration release owner; isolated FE worktree. No confirmed other AI claim.
+E2a branch request/accept/quote/confirm/concurrency → E2b home territory/travel → E3 reschedule/cancel/complete/quality → F portal/chat/reviews → G operations/CMS → H SEO/media/queue/production acceptance.
 Owner inputs pending: official admin email, actual catalog/prices/branches/providers, scoped legal review, integration config when needed. Continue independent code.
 
 ROLLBACK
-Previous D1 image sha256:91821eb0d761c1714e293b587252d9adfcd606d00c42150c54838647536c4a19; FE dpl_92tjoXBcRK1wPHDZMiYe5hfs6cze.
+Previous D2 image sha256:39354480ae727110bcca756fe215858baa7aaebf8a172ac1086d258869a0f37f; FE dpl_E7NmxqBXmWC8DMGPRWWQQ4duAaXi.
 Keep additive tables/live history on source rollback; no DROP after writes. Backup private outside Git.
-Boundary: docs/TRAINING_ASSESSMENTS_D2.md +PROVIDER_SERVICE_ELIGIBILITY_C2.md. All bookable=false until Phase04 transaction acceptance; eligibility is not slot availability. Internal certificate is not government licence.
+Boundary: docs/BOOKING_AVAILABILITY_E1.md +TRAINING_ASSESSMENTS_D2.md +PROVIDER_SERVICE_ELIGIBILITY_C2.md. All bookable=false until Phase04 transaction acceptance; eligibility is not slot availability. Internal certificate is not government licence.

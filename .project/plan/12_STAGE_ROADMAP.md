@@ -13,4 +13,4 @@
 
 Mỗi chặng báo cáo kết quả thực tế rồi tiếp tục tự chủ. Chặng có thể tách nhỏ để mỗi commit/deploy review được. Không đóng phase khi critical gate chưa PASS. Owner data/access cần hỏi chỉ khi thực sự phụ thuộc; tiếp tục phần độc lập.
 
-Verified release: A/B/C1/C2/D1/D2 deployed. P03-T28/29/30 DONE; Phase03 remains IN_PROGRESS. E1 ACTIVE (availability/schema), E2/E3 then F/G/H open.
+Verified release: A/B/C1/C2/D1/D2/E1 deployed. P03-T28/29/30 and P04-T01/04 DONE. Phase03/04 IN_PROGRESS. E2a ACTIVE; E2b home, E3 lifecycle, F/G/H open.

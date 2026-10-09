@@ -1,9 +1,9 @@
 # Mộc Maria Project Progress - Backend
 
 ## Current — 2026-10-09
-- D2 deployed: evidence-derived practical assessments/renewal/history; P03-T28/29/30 DONE. Phase03 remains IN_PROGRESS. E1/P04-T01 ACTIVE, MVP not operational.
-- BE d6d0500 / FE68b40f3 / schema14 / dpl_E7NmxqBXmWC8DMGPRWWQQ4duAaXi READY.
-- Validation21 unit+37 isolated integrations, migration rollback/reapply, FE4 tests/build22 routes/CI, browser assessment/renewal/history/reload/mobile, schema13 restore PASS.
+- D2/E1 deployed; training P03-T28/29/30 and appointment schema/timezone P04-T01/04 DONE. Phase03/04 remain IN_PROGRESS. E2a/P04-T05 ACTIVE; MVP not operational.
+- BEb53d660 / FEa7b67d1 / schema15 / dpl_3Jdkz9QSCys6d2w19ENrF7JW6BRz READY.
+- Validation25 unit+43 isolated integrations, rollback/reapply, FE4 tests/build22 routes/CI, browser settings persistence/mobile, schema14 restore PASS. E1 preview never reserves a slot; request/quote/concurrency remain open.
 - Current details: CURRENT_PROGRESS_2026-10-09.md and .project/plan/99_PROJECT_STATUS.txt. Following sections are historical evidence.
 
 ## Phase 01 completed

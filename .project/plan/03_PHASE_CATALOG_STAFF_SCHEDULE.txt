@@ -4,7 +4,7 @@ PHASE 03 - BRANCH / SERVICE CATALOG / STAFF PROFILE / SCHEDULE
 AUDIT CHECKLIST 2026-10-09 — CURRENT
 ------------------------------------
 [x] = DONE đúng phạm vi task; [-] = PARTIAL (đã có phần code, còn acceptance); [ ] = TODO.
-Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 not implemented. Phases 05-08 contain early partial work; no full gate is closed.
+Phase 01/02 foundation closed. Phase 03 remains IN_PROGRESS. Phase 04 IN_PROGRESS: E1 availability/schema deployed; appointment request/quote/concurrency E2 pending. Phases 05-08 contain early partial work; no full gate is closed.
 Evidence đang chạy: đọc 99_PROJECT_STATUS.txt và 13_TASK_LEDGER.json. Không lấy snapshot lịch sử làm release hiện tại.
 Detailed task ledger: 13_TASK_LEDGER.json. Ownership: 11_WORK_COORDINATION.md. Next stages: 12_STAGE_ROADMAP.md.
 P03-T08: Mapping active và override cấp service có thật; còn chính sách override theo variant/audit giá rõ ràng.
