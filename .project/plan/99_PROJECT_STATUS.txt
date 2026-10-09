@@ -1,3 +1,11 @@
+CUSTOMER REGISTRATION → PRIVATE KTV CONSULTATION RELEASE — 2026-10-10
+FE dc99e8e (core b9e11b8), BE d65b2a7; Vercel6972380799 SUCCESS; API immutable9183dd6d ready.
+10 existing KTV accounts now receive private consultation. One CUSTOMER created by normal registration; credentials in private owner TXT.
+Live customer select KTV/service → registration return → emoji question → KTV UI reply PASS. Reciprocal temporary/permanent block/unblock and outsider isolation PASS.
+25 BE unit +71 disposable integrations +27 FE tests/full quality/build PASS. Mobile320/390 and desktop1440 verified. Schema remains17; no new migration.
+Chat opt-in does not approve booking/service eligibility. E2a ownership and broad MVP phase statuses remain open.
+See docs/CUSTOMER_KTV_CONSULTATION_FLOW.md.
+
 KTV ACCOUNTS / REAL ACTIVITY PHOTOS / SCHEDULE RELEASE — 2026-10-09
 FE4e7b58a; BE onboarding scripts e14fe0c; Vercel6966198505 SUCCESS, mocmaria.com verified.
 10 persistent KTV logins verified; 5 with Monday–Saturday09:00–18:00 shifts; 5 unset.

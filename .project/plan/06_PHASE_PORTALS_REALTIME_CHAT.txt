@@ -1,3 +1,7 @@
+OWNER CUSTOMER/KTV CONSULTATION ADDENDUM 2026-10-10
+[x] Customer registration preserves selected KTV/service; ten owner-seeded KTV identities receive private chat. Role-aware portals, emoji, mobile draft sizing and reciprocal blocking verified live.
+Evidence: FE dc99e8e / BE d65b2a7; 71 isolated integrations +27 FE tests; see CUSTOMER_KTV_CONSULTATION_FLOW.md. Shared socket/presence/report and booking phases remain separately open.
+
 PHASE 06 - CUSTOMER PORTAL / STAFF PORTAL / REALTIME CHAT
 ==========================================================
 

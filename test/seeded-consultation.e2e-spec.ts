@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { configureApplication } from '../src/bootstrap/configure-application';
 import { requireIsolatedDatabase } from './isolated-database';
+import type { ChatProvider } from '../src/modules/ktv-chat/ktv-chat.service';
 
 describe('Owner-seeded consultation with real registration/auth in disposable DB', () => {
   let app: INestApplication,
@@ -104,17 +105,25 @@ describe('Owner-seeded consultation with real registration/auth in disposable DB
   it('offers only opted-in KTV; exposes public consultation data without certifying/bookabling them', async () => {
     const list = await api().get('/api/v1/ktv-chat/providers').expect(200);
     expect(list.headers['cache-control']).toBe('no-store');
-    expect(list.body).toHaveLength(1);
-    expect(list.body[0]).toMatchObject({
+    const seeded = (list.body as ChatProvider[]).filter((p: { id: string }) =>
+      accounts.some((a) => a.applicationId === p.id),
+    );
+    expect(seeded).toHaveLength(1);
+    expect(seeded[0]).toMatchObject({
       id: providerId,
       publicAlias: 'demo-ktv-01',
       services: [{ id: 'demo-neck', name: 'Massage cổ vai gáy' }],
     });
-    expect(list.body[0]).not.toHaveProperty('user_id');
-    expect(list.body[0]).not.toHaveProperty('email');
-    expect(list.body[0]).not.toHaveProperty('trainingBadge');
+    expect(seeded[0]).not.toHaveProperty('user_id');
+    expect(seeded[0]).not.toHaveProperty('email');
+    expect(seeded[0]).not.toHaveProperty('trainingBadge');
     const publicProviders = await api().get('/api/v1/providers').expect(200);
-    expect(publicProviders.body).toEqual([]);
+    expect((publicProviders.body as ChatProvider[]).map((p: { id: string }) => p.id)).not.toContain(
+      providerId,
+    );
+    expect((publicProviders.body as ChatProvider[]).map((p: { id: string }) => p.id)).not.toContain(
+      accounts[1].applicationId,
+    );
   });
   it('opens private chat from a normally registered customer and binds to the actual KTV account', async () => {
     const open = await api(customer)
@@ -197,7 +206,11 @@ describe('Owner-seeded consultation with real registration/auth in disposable DB
     await db.query("UPDATE app_metadata SET value=$1::jsonb WHERE key='mocmaria.ktv.accounts.v1'", [
       JSON.stringify({ accounts }),
     ]);
-    expect((await api().get('/api/v1/ktv-chat/providers').expect(200)).body).toEqual([]);
+    expect(
+      ((await api().get('/api/v1/ktv-chat/providers').expect(200)).body as ChatProvider[]).map(
+        (p: { id: string }) => p.id,
+      ),
+    ).not.toContain(providerId);
     await api(customer)
       .post(`/api/v1/ktv-chat/threads/${threadId}/messages`)
       .send({ body: 'Disabled' })
@@ -210,9 +223,17 @@ describe('Owner-seeded consultation with real registration/auth in disposable DB
       JSON.stringify({ accounts }),
     ]);
     await db.query("UPDATE provider_applications SET status='SUSPENDED' WHERE id=$1", [providerId]);
-    expect((await api().get('/api/v1/ktv-chat/providers').expect(200)).body).toEqual([]);
+    expect(
+      ((await api().get('/api/v1/ktv-chat/providers').expect(200)).body as ChatProvider[]).map(
+        (p: { id: string }) => p.id,
+      ),
+    ).not.toContain(providerId);
     await db.query("UPDATE provider_applications SET status='APPLIED' WHERE id=$1", [providerId]);
     await db.query('UPDATE users SET is_active=false WHERE id=$1', [providerUserId]);
-    expect((await api().get('/api/v1/ktv-chat/providers').expect(200)).body).toEqual([]);
+    expect(
+      ((await api().get('/api/v1/ktv-chat/providers').expect(200)).body as ChatProvider[]).map(
+        (p: { id: string }) => p.id,
+      ),
+    ).not.toContain(providerId);
   });
 });

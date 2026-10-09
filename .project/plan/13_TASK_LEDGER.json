@@ -653,6 +653,19 @@
         "migration": "PrivateKtvChat1791659000000",
         "frontendDeployment": "6959386754",
         "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      },
+      "consultationEvidence": {
+        "date": "2026-10-10",
+        "frontend": "dc99e8e2f2eeb53b64b219612c80c8c9bd950252",
+        "frontendCore": "b9e11b81e56187accece7c6c0d6c33b768d50edc",
+        "backend": "d65b2a7486c89505b20283a7267819170422e217",
+        "imageDigest": "sha256:9183dd6df3eca3f3f1e0e1e1c6d1ba575e227575ea59daab1ae4be831ddb5f68",
+        "frontendDeployment": "6972380799",
+        "migrations": 17,
+        "chatEnabledKtv": 10,
+        "customerAccountsCreated": 1,
+        "test": "25 BE unit, 71 disposable PostgreSQL integrations/all17 migrations, 27 FE tests/full quality/build PASS; source PR/main CI and Vercel PASS; live browser registration preserves KTV/service, customer emoji send and KTV UI reply, reciprocal block/unblock; live API outsider404, distinct private KTV conversations, denied blocked writes/history preservation; mobile320/390, reduced500px height and desktop1440 checked",
+        "businessData": "Owner opt-in flags for existing ten THERAPIST accounts; one ordinary CUSTOMER registered through production UI. Five scheduled/five unset remain. No provider approvals, certificates, customer reservations or public ratings seeded."
       }
     },
     {
@@ -679,6 +692,19 @@
         "migration": "PrivateKtvChat1791659000000",
         "frontendDeployment": "6959386754",
         "test": "BE 25 unit + 55 disposable PostgreSQL integrations; migration rollback/reapply; FE 17 unit/interaction tests, quality/build and 320/390px browser QA; production health200/chat401/alias verified"
+      },
+      "consultationEvidence": {
+        "date": "2026-10-10",
+        "frontend": "dc99e8e2f2eeb53b64b219612c80c8c9bd950252",
+        "frontendCore": "b9e11b81e56187accece7c6c0d6c33b768d50edc",
+        "backend": "d65b2a7486c89505b20283a7267819170422e217",
+        "imageDigest": "sha256:9183dd6df3eca3f3f1e0e1e1c6d1ba575e227575ea59daab1ae4be831ddb5f68",
+        "frontendDeployment": "6972380799",
+        "migrations": 17,
+        "chatEnabledKtv": 10,
+        "customerAccountsCreated": 1,
+        "test": "25 BE unit, 71 disposable PostgreSQL integrations/all17 migrations, 27 FE tests/full quality/build PASS; source PR/main CI and Vercel PASS; live browser registration preserves KTV/service, customer emoji send and KTV UI reply, reciprocal block/unblock; live API outsider404, distinct private KTV conversations, denied blocked writes/history preservation; mobile320/390, reduced500px height and desktop1440 checked",
+        "businessData": "Owner opt-in flags for existing ten THERAPIST accounts; one ordinary CUSTOMER registered through production UI. Five scheduled/five unset remain. No provider approvals, certificates, customer reservations or public ratings seeded."
       }
     },
     {
