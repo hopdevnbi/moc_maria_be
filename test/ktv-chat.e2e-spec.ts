@@ -203,6 +203,114 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
       .send({ lastMessageId: messageId })
       .expect(400);
   });
+  it('enforces participant-only block/unblock and validates durations', async () => {
+    const path = `/api/v1/ktv-chat/threads/${threadId}`;
+    await api()
+      .post(path + '/block')
+      .send({ mode: 'PERMANENT' })
+      .expect(401);
+    await api(3)
+      .post(path + '/block')
+      .send({ mode: 'PERMANENT' })
+      .expect(404);
+    await api(3)
+      .post(path + '/unblock')
+      .send({})
+      .expect(404);
+    for (const body of [
+      { mode: 'TEMPORARY' },
+      { mode: 'TEMPORARY', durationMinutes: 0 },
+      { mode: 'TEMPORARY', durationMinutes: 1.5 },
+      { mode: 'TEMPORARY', durationMinutes: 525601 },
+      { mode: 'PERMANENT', durationMinutes: 60 },
+      { mode: 'PERMANENT', blocker_user_id: actors[1].id },
+    ])
+      await api(0)
+        .post(path + '/block')
+        .send(body)
+        .expect(400);
+  });
+  it('KTV blocks both sends but preserves history, private notes and separate conversations', async () => {
+    const path = `/api/v1/ktv-chat/threads/${threadId}`;
+    const blocked = await api(1)
+      .post(path + '/block')
+      .send({ mode: 'PERMANENT', reason: 'private reason' })
+      .expect(201);
+    expect(blocked.body).toMatchObject({
+      blocked_by_me: true,
+      blocked_by_other: false,
+      can_send: false,
+      my_block_expires_at: null,
+    });
+    for (const actor of [0, 1])
+      await api(actor)
+        .post(path + '/messages')
+        .send({ body: 'cannot send' })
+        .expect(403);
+    await api(0)
+      .get(path + '/messages')
+      .expect(200);
+    const list = await api(0).get('/api/v1/ktv-chat/threads').expect(200);
+    expect(list.body.find((t: { id: string }) => t.id === threadId)).toMatchObject({
+      blocked_by_me: false,
+      blocked_by_other: true,
+      can_send: false,
+    });
+    expect(JSON.stringify(list.body)).not.toContain('private reason');
+    const separate = list.body.find((t: { id: string }) => t.id !== threadId);
+    await api(0)
+      .post(`/api/v1/ktv-chat/threads/${separate.id}/messages`)
+      .send({ body: 'unaffected' })
+      .expect(201);
+    const reopened = await api(0)
+      .post('/api/v1/ktv-chat/threads')
+      .send({ providerApplicationId: providerIds[0] })
+      .expect(201);
+    expect(reopened.body).toMatchObject({ id: threadId, can_send: false });
+  });
+  it('each participant can only lift their own block; temporary blocks expire automatically', async () => {
+    const path = `/api/v1/ktv-chat/threads/${threadId}`;
+    await api(0)
+      .post(path + '/block')
+      .send({ mode: 'TEMPORARY', durationMinutes: 60 })
+      .expect(201);
+    const ownLift = await api(0)
+      .post(path + '/unblock')
+      .send({})
+      .expect(201);
+    expect(ownLift.body).toMatchObject({
+      blocked_by_me: false,
+      blocked_by_other: true,
+      can_send: false,
+    });
+    await api(0)
+      .post(path + '/block')
+      .send({ mode: 'TEMPORARY', durationMinutes: 60 })
+      .expect(201);
+    const peerLift = await api(1)
+      .post(path + '/unblock')
+      .send({})
+      .expect(201);
+    expect(peerLift.body).toMatchObject({
+      blocked_by_me: false,
+      blocked_by_other: true,
+      can_send: false,
+    });
+    await db.query(
+      `UPDATE ktv_chat_blocks SET expires_at=clock_timestamp()-interval '1 second' WHERE thread_id=$1 AND blocker_user_id=$2`,
+      [threadId, actors[0].id],
+    );
+    const list = await api(0).get('/api/v1/ktv-chat/threads').expect(200);
+    expect(list.body.find((t: { id: string }) => t.id === threadId)).toMatchObject({
+      blocked_by_me: false,
+      blocked_by_other: false,
+      can_send: true,
+    });
+    await api(0)
+      .post(path + '/messages')
+      .send({ body: 'automatically reopened' })
+      .expect(201);
+  });
   it('suspended KTV history remains private and sends are disabled', async () => {
     await db.query(`UPDATE provider_applications SET status='SUSPENDED' WHERE id=$1`, [
       providerIds[0],

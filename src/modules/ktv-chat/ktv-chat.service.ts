@@ -9,7 +9,7 @@ import {
 import { DataSource, type EntityManager } from 'typeorm';
 import { ProvidersService } from '../providers/providers.service';
 import type { AuthUserContext } from '../identity/identity.types';
-import type { SendKtvMessageDto } from './ktv-chat.dto';
+import type { BlockKtvChatDto, SendKtvMessageDto } from './ktv-chat.dto';
 
 export interface KtvThread {
   id: string;
@@ -21,6 +21,10 @@ export interface KtvThread {
   updated_at: string;
   last_message: string | null;
   unread_count: number;
+  blocked_by_me: boolean;
+  blocked_by_other: boolean;
+  my_block_expires_at: string | null;
+  can_send: boolean;
 }
 export interface KtvMessage {
   id: string;
@@ -41,6 +45,10 @@ export class KtvChatService {
     return this.db.query(
       `SELECT t.id,t.customer_user_id,t.provider_user_id,t.provider_application_id,
       t.updated_at,p.public_name AS provider_name,u.display_name AS customer_name,
+      EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id=$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS blocked_by_me,
+      EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id<>$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS blocked_by_other,
+      (SELECT expires_at FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id=$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS my_block_expires_at,
+      NOT EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS can_send,
       (SELECT body FROM ktv_chat_messages WHERE thread_id=t.id ORDER BY seq DESC LIMIT 1) AS last_message,
       (SELECT count(*)::int FROM ktv_chat_messages m WHERE m.thread_id=t.id AND m.sender_user_id<>$1
         AND m.seq>CASE WHEN t.customer_user_id=$1 THEN t.customer_read_seq ELSE t.provider_read_seq END) AS unread_count
@@ -138,6 +146,13 @@ export class KtvChatService {
         if (existing.body !== body) throw new BadRequestException('Mã tin nhắn đã được sử dụng.');
         return existing;
       }
+      const [blocked] = await manager.query<{ thread_id: string }[]>(
+        `SELECT thread_id FROM ktv_chat_blocks WHERE thread_id=$1 AND revoked_at IS NULL
+         AND (expires_at IS NULL OR expires_at>clock_timestamp()) LIMIT 1`,
+        [threadId],
+      );
+      if (blocked)
+        throw new ForbiddenException('Hội thoại đang bị chặn. Chỉ có thể xem lịch sử tin nhắn.');
       const [active] = await manager.query<{ id: string }[]>(
         `SELECT p.id FROM provider_applications p
         JOIN users provider ON provider.id=p.user_id JOIN users customer ON customer.id=$2
@@ -180,5 +195,50 @@ export class KtvChatService {
         [threadId, messageId],
       );
     });
+  }
+  async block(actor: AuthUserContext, threadId: string, dto: BlockKtvChatDto): Promise<KtvThread> {
+    if (dto.mode === 'PERMANENT' && dto.durationMinutes !== undefined)
+      throw new BadRequestException('Chặn vĩnh viễn không có thời hạn.');
+    await this.db.transaction(async (manager) => {
+      await this.member(manager, actor.id, threadId, true);
+      await manager.query(
+        `INSERT INTO ktv_chat_blocks(thread_id,blocker_user_id,expires_at,reason)
+        VALUES($1,$2,CASE WHEN $3::int IS NULL THEN NULL ELSE clock_timestamp()+$3*interval '1 minute' END,$4)
+        ON CONFLICT(thread_id,blocker_user_id) DO UPDATE SET expires_at=EXCLUDED.expires_at,
+          reason=EXCLUDED.reason,revoked_at=NULL,created_at=clock_timestamp()`,
+        [
+          threadId,
+          actor.id,
+          dto.mode === 'TEMPORARY' ? dto.durationMinutes : null,
+          dto.reason ?? null,
+        ],
+      );
+      await manager.query(
+        `INSERT INTO audit_logs(event,actor_user_id,metadata) VALUES('KTV_CHAT_BLOCK',$1,$2::jsonb)`,
+        [
+          actor.id,
+          JSON.stringify({
+            threadId,
+            mode: dto.mode,
+            durationMinutes: dto.durationMinutes ?? null,
+          }),
+        ],
+      );
+    });
+    return (await this.list(actor)).find((t) => t.id === threadId)!;
+  }
+  async unblock(actor: AuthUserContext, threadId: string): Promise<KtvThread> {
+    await this.db.transaction(async (manager) => {
+      await this.member(manager, actor.id, threadId, true);
+      await manager.query(
+        `UPDATE ktv_chat_blocks SET revoked_at=clock_timestamp() WHERE thread_id=$1 AND blocker_user_id=$2 AND revoked_at IS NULL`,
+        [threadId, actor.id],
+      );
+      await manager.query(
+        `INSERT INTO audit_logs(event,actor_user_id,metadata) VALUES('KTV_CHAT_UNBLOCK',$1,$2::jsonb)`,
+        [actor.id, JSON.stringify({ threadId })],
+      );
+    });
+    return (await this.list(actor)).find((t) => t.id === threadId)!;
   }
 }

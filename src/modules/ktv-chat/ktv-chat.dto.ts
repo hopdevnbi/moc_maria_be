@@ -1,5 +1,15 @@
 import { Transform } from 'class-transformer';
-import { IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Max,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 
 export class OpenKtvChatDto {
   @IsUUID()
@@ -22,4 +32,18 @@ export class KtvHistoryDto {
   @IsOptional()
   @IsUUID()
   before?: string;
+}
+export class BlockKtvChatDto {
+  @IsIn(['TEMPORARY', 'PERMANENT'])
+  mode!: 'TEMPORARY' | 'PERMANENT';
+  @ValidateIf((dto: BlockKtvChatDto) => dto.mode === 'TEMPORARY')
+  @IsInt()
+  @Min(1)
+  @Max(525600)
+  durationMinutes?: number;
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Length(0, 200)
+  reason?: string;
 }
