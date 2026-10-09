@@ -3,6 +3,10 @@
 const { spawn, spawnSync } = require('node:child_process');
 const { randomBytes } = require('node:crypto');
 const { Client } = require('pg');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
+const argon2 = require('argon2');
 const sshBase = ['-p', '8686', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=10'];
 const host = 'root@163.128.42.101';
 const kubectl = 'kubectl --kubeconfig=/etc/kubernetes/admin.conf -n moc-maria';
@@ -13,6 +17,8 @@ const port = Number(process.env.QA_LOCAL_PORT || 15432);
 const remotePort = port + 10000;
 const url = `postgresql://qa:${password}@127.0.0.1:${port}/moc_maria_qa`;
 let tunnel;
+const servers = [];
+let browserFixtureFile;
 function remote(command, input) {
   const result = spawnSync('ssh', [...sshBase, host, command], {
     input,
@@ -163,7 +169,95 @@ async function main() {
       env,
     );
     console.log('Isolated migrations and complete integration suite PASS.');
+    if (process.env.QA_BROWSER === 'true') {
+      const feDirectory = process.env.QA_FE_WORKDIR;
+      if (!feDirectory || !fs.existsSync(path.join(feDirectory, 'node_modules/next/dist/bin/next')))
+        throw new Error('QA browser frontend directory is unavailable');
+      const browserPassword = randomBytes(32).toString('base64url') + '1!';
+      const email = `browser-admin-${suffix}@mocmaria.test`;
+      const client = new Client({ connectionString: url, ssl: false });
+      await client.connect();
+      try {
+        const created = await client.query(
+          'INSERT INTO users(email,display_name,password_hash,is_active,must_change_password) VALUES($1,$2,$3,true,false) RETURNING id',
+          [email, 'Isolated QA administrator', await argon2.hash(browserPassword)],
+        );
+        await client.query(
+          'INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name=$2',
+          [created.rows[0].id, 'SUPER_ADMIN'],
+        );
+      } finally {
+        await client.end();
+      }
+      const apiServer = spawn(
+        process.execPath,
+        [
+          '-e',
+          "const {NestFactory}=require('@nestjs/core'); const {AppModule}=require('./dist/app.module'); const {configureApplication}=require('./dist/bootstrap/configure-application'); (async()=>{const app=await NestFactory.create(AppModule,{logger:false}); configureApplication(app); await app.listen(3002,'127.0.0.1');})().catch(()=>process.exit(1));",
+        ],
+        {
+          env: { ...env, PORT: '3002', CORS_ORIGINS: 'http://localhost:3016' },
+          stdio: 'ignore',
+          windowsHide: true,
+        },
+      );
+      servers.push(apiServer);
+      const frontend = spawn(
+        process.execPath,
+        [
+          path.join(feDirectory, 'node_modules/next/dist/bin/next'),
+          'dev',
+          '--hostname',
+          '127.0.0.1',
+          '-p',
+          '3016',
+        ],
+        {
+          cwd: feDirectory,
+          env: {
+            ...process.env,
+            NODE_ENV: 'development',
+            NEXT_PUBLIC_API_BASE_URL: 'http://localhost:3002/api/v1',
+            NEXT_PUBLIC_SITE_URL: 'http://localhost:3016',
+          },
+          stdio: 'ignore',
+          windowsHide: true,
+        },
+      );
+      servers.push(frontend);
+      browserFixtureFile = path.join(os.tmpdir(), name + '-browser.json');
+      fs.writeFileSync(
+        browserFixtureFile,
+        JSON.stringify({ email, password: browserPassword, url: 'http://localhost:3016' }),
+        { mode: 0o600 },
+      );
+      console.log(
+        'Isolated browser QA servers started; fixture credential file: ' + browserFixtureFile,
+      );
+      console.log('Send Ctrl+C to stop browser QA and remove its database/credential file.');
+      await new Promise((resolve) => {
+        const timer = setTimeout(resolve, 30 * 60 * 1000);
+        process.once('SIGINT', () => {
+          clearTimeout(timer);
+          resolve();
+        });
+        process.once('SIGTERM', () => {
+          clearTimeout(timer);
+          resolve();
+        });
+        apiServer.once('exit', () => {
+          clearTimeout(timer);
+          resolve();
+        });
+        frontend.once('exit', () => {
+          clearTimeout(timer);
+          resolve();
+        });
+      });
+    }
   } finally {
+    for (const server of servers) server.kill();
+    if (browserFixtureFile) fs.rmSync(browserFixtureFile, { force: true });
     if (tunnel) tunnel.kill();
     remote(kubectl + ` delete pod/${name} secret/${name} --ignore-not-found --wait=false`);
     console.log('Isolated QA pod and secret removed.');
