@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthModule } from '../auth/auth.module';
 import { AccessControlModule } from '../access-control/access-control.module';
@@ -68,6 +68,11 @@ import {
     AdminTrainingSessionsController,
     OwnTrainingSessionsController,
   ],
-  exports: [ProviderEligibilityService, ProviderScheduleService, ProviderTrustService],
+  exports: [
+    ProvidersService,
+    ProviderEligibilityService,
+    ProviderScheduleService,
+    ProviderTrustService,
+  ],
 })
 export class ProvidersModule {}
