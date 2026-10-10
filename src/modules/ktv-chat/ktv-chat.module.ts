@@ -3,9 +3,10 @@ import { AuthModule } from '../auth/auth.module';
 import { ProvidersModule } from '../providers/providers.module';
 import { KtvChatController, KtvChatDirectoryController } from './ktv-chat.controller';
 import { KtvChatService } from './ktv-chat.service';
+import { KtvChatPrivacyService } from './ktv-chat-privacy.service';
 @Module({
   imports: [AuthModule, ProvidersModule],
   controllers: [KtvChatController, KtvChatDirectoryController],
-  providers: [KtvChatService],
+  providers: [KtvChatService, KtvChatPrivacyService],
 })
 export class KtvChatModule {}

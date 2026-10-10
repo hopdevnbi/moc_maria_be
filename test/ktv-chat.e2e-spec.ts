@@ -11,7 +11,7 @@ import { requireIsolatedDatabase } from './isolated-database';
 
 describe('Private KTV chat in disposable PostgreSQL', () => {
   let app: INestApplication, db: DataSource;
-  const actors: Array<{ id: string; token: string }> = [];
+  const actors: Array<{ id: string; token: string; email: string; password: string }> = [];
   const providerIds: string[] = [];
   let threadId: string, messageId: string, lastMessageId: string;
   function api(index?: number): ReturnType<typeof request.agent> {
@@ -28,16 +28,18 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
     await app.init();
     db = app.get(DataSource);
     for (let i = 0; i < 4; i++) {
+      const email = `chat-${randomUUID()}@mocmaria.test`;
+      const password = randomBytes(24).toString('base64url') + '1!';
       const response = await api()
         .post('/api/v1/auth/register')
         .set('Origin', 'http://localhost:3001')
         .send({
-          email: `chat-${randomUUID()}@mocmaria.test`,
+          email,
           displayName: `Isolated chat actor ${i}`,
-          password: randomBytes(24).toString('base64url') + '1!',
+          password,
         })
         .expect(201);
-      actors.push({ id: response.body.user.id, token: response.body.accessToken });
+      actors.push({ id: response.body.user.id, token: response.body.accessToken, email, password });
     }
     for (const actor of actors.slice(1, 3)) {
       const [row] = await db.query<{ id: string }[]>(
@@ -310,6 +312,221 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
       .post(path + '/messages')
       .send({ body: 'automatically reopened' })
       .expect(201);
+  });
+  describe('customer per-thread password', () => {
+    const password = 'Private chat passphrase 1!';
+    const nextPassword = 'Another private passphrase 2!';
+    const privacyPath = (): string => `/api/v1/ktv-chat/threads/${threadId}/privacy`;
+    const metadataKey = (): string => `mocmaria.chat.privacy.${threadId}`;
+    afterEach(async () => {
+      await db.query('DELETE FROM app_metadata WHERE key=$1', [metadataKey()]);
+    });
+    it('only the owning customer may configure a password and rejects malformed inputs', async () => {
+      await api()
+        .post(privacyPath() + '/password')
+        .send({ password })
+        .expect(401);
+      await api(1)
+        .post(privacyPath() + '/password')
+        .send({ password })
+        .expect(403);
+      await api(3)
+        .post(privacyPath() + '/password')
+        .send({ password })
+        .expect(404);
+      await api(0)
+        .post(privacyPath() + '/password')
+        .send({ password: 'short' })
+        .expect(400);
+      await api(0)
+        .post(privacyPath() + '/password')
+        .send({ password, customer_user_id: actors[3].id })
+        .expect(400);
+    });
+    it('masks previews and gates history, sending, retry and read; the KTV stays unaffected', async () => {
+      const set = await api(0)
+        .post(privacyPath() + '/password')
+        .send({ password })
+        .expect(201);
+      expect(set.body).toMatchObject({
+        privacy_enabled: true,
+        history_locked: false,
+        last_message: null,
+      });
+      expect(JSON.stringify(set.body)).not.toMatch(/passwordHash|grants|failures/);
+      const [stored] = await db.query('SELECT value FROM app_metadata WHERE key=$1', [
+        metadataKey(),
+      ]);
+      expect(stored.value.passwordHash).toMatch(/^\$argon2id\$/);
+      expect(JSON.stringify(stored.value)).not.toContain(password);
+      expect(JSON.stringify(stored.value)).not.toContain(set.body.unlock_token);
+      await api(0).get(`/api/v1/ktv-chat/threads/${threadId}/messages`).expect(403);
+      await api(0)
+        .get(`/api/v1/ktv-chat/threads/${threadId}/messages`)
+        .set('X-Chat-Unlock', set.body.unlock_token)
+        .expect(200);
+      const lock = await api(0)
+        .post(privacyPath() + '/lock')
+        .send({})
+        .expect(201);
+      expect(lock.body).toMatchObject({ history_locked: true, last_message: null });
+      const path = `/api/v1/ktv-chat/threads/${threadId}`;
+      const history = await api(0)
+        .get(path + '/messages')
+        .expect(403);
+      expect(history.body.error).toBe('CHAT_LOCKED');
+      await api(0)
+        .post(path + '/read')
+        .send({ lastMessageId: messageId })
+        .expect(403);
+      await api(0)
+        .post(path + '/messages')
+        .send({ body: 'locked send', clientMessageId: randomUUID() })
+        .expect(403);
+      await api(1)
+        .get(path + '/messages')
+        .expect(200);
+      await api(1)
+        .post(path + '/messages')
+        .send({ body: 'provider reply while customer locked' })
+        .expect(201);
+      const provider = await api(1).get('/api/v1/ktv-chat/threads').expect(200);
+      expect(provider.body.find((t: { id: string }) => t.id === threadId)).toMatchObject({
+        privacy_enabled: false,
+        history_locked: false,
+        last_message: 'provider reply while customer locked',
+      });
+      const customer = await api(0).get('/api/v1/ktv-chat/threads').expect(200);
+      expect(customer.body.find((t: { id: string }) => t.id === threadId).last_message).toBeNull();
+    });
+    it('unlock is session scoped, expires, and does not unlock another protected chat', async () => {
+      await api(0)
+        .post(privacyPath() + '/password')
+        .send({ password })
+        .expect(201);
+      const login = await api()
+        .post('/api/v1/auth/login')
+        .set('Origin', 'http://localhost:3001')
+        .send({ identifier: actors[0].email, password: actors[0].password })
+        .expect(200);
+      const session = request
+        .agent(app.getHttpServer())
+        .set('Authorization', 'Bearer ' + login.body.accessToken);
+      const locked = await session.get('/api/v1/ktv-chat/threads').expect(200);
+      expect(locked.body.find((t: { id: string }) => t.id === threadId).history_locked).toBe(true);
+      await session.get(`/api/v1/ktv-chat/threads/${threadId}/messages`).expect(403);
+      await session
+        .post(privacyPath() + '/unlock')
+        .send({ password: 'wrong' })
+        .expect(403);
+      const unlocked = await session
+        .post(privacyPath() + '/unlock')
+        .send({ password })
+        .expect(201);
+      await session.get(`/api/v1/ktv-chat/threads/${threadId}/messages`).expect(403);
+      session.set('X-Chat-Unlock', unlocked.body.unlock_token);
+      await session.get(`/api/v1/ktv-chat/threads/${threadId}/messages`).expect(200);
+      const otherId = locked.body.find((t: { id: string }) => t.id !== threadId).id;
+      await api(0)
+        .post(`/api/v1/ktv-chat/threads/${otherId}/privacy/password`)
+        .send({ password: nextPassword })
+        .expect(201);
+      await session.get(`/api/v1/ktv-chat/threads/${otherId}/messages`).expect(403);
+      await db.query(
+        `UPDATE app_metadata SET value=jsonb_set(value,ARRAY['grants',$2::text,'expiresAt'],to_jsonb(1::bigint)) WHERE key=$1`,
+        [metadataKey(), login.body.user.sessionId],
+      );
+      await session.get(`/api/v1/ktv-chat/threads/${threadId}/messages`).expect(403);
+      await db.query('DELETE FROM app_metadata WHERE key=$1', [`mocmaria.chat.privacy.${otherId}`]);
+    });
+    it('persists failed attempts, limits guesses and validates old password for changes/removal', async () => {
+      await api(0)
+        .post(privacyPath() + '/password')
+        .send({ password })
+        .expect(201);
+      await api(0)
+        .post(privacyPath() + '/lock')
+        .send({})
+        .expect(201);
+      for (let i = 0; i < 5; i++)
+        await api(0)
+          .post(privacyPath() + '/unlock')
+          .send({ password: 'wrong' })
+          .expect(i === 4 ? 429 : 403);
+      await api(0)
+        .post(privacyPath() + '/unlock')
+        .send({ password })
+        .expect(429);
+      const [stored] = await db.query('SELECT value FROM app_metadata WHERE key=$1', [
+        metadataKey(),
+      ]);
+      expect(stored.value.blockedUntil).toBeGreaterThan(Date.now());
+      await db.query(`UPDATE app_metadata SET value=value-'blockedUntil' WHERE key=$1`, [
+        metadataKey(),
+      ]);
+      await api(0)
+        .post(privacyPath() + '/password')
+        .send({ password: nextPassword, currentPassword: 'wrong' })
+        .expect(403);
+      await api(0)
+        .post(privacyPath() + '/password')
+        .send({ password: nextPassword, currentPassword: password })
+        .expect(201);
+      await api(0)
+        .post(privacyPath() + '/unlock')
+        .send({ password })
+        .expect(403);
+      await api(0)
+        .post(privacyPath() + '/remove')
+        .send({ password: 'wrong' })
+        .expect(403);
+      const removed = await api(0)
+        .post(privacyPath() + '/remove')
+        .send({ password: nextPassword })
+        .expect(201);
+      expect(removed.body).toMatchObject({ privacy_enabled: false, history_locked: false });
+      await api(0).get(`/api/v1/ktv-chat/threads/${threadId}/messages`).expect(200);
+    });
+    it('recovers only with the owner account password, preserves history and never logs secrets', async () => {
+      await api(0)
+        .post(privacyPath() + '/password')
+        .send({ password })
+        .expect(201);
+      await api(0)
+        .post(privacyPath() + '/lock')
+        .send({})
+        .expect(201);
+      await api(1)
+        .post(privacyPath() + '/recover')
+        .send({ password: actors[1].password })
+        .expect(403);
+      await api(3)
+        .post(privacyPath() + '/recover')
+        .send({ password: actors[3].password })
+        .expect(404);
+      await api(0)
+        .post(privacyPath() + '/recover')
+        .send({ password: actors[3].password })
+        .expect(403);
+      await api(0)
+        .post(privacyPath() + '/recover')
+        .send({ password: actors[0].password })
+        .expect(201);
+      const history = await api(0).get(`/api/v1/ktv-chat/threads/${threadId}/messages`).expect(200);
+      expect(history.body.length).toBeGreaterThan(0);
+      const [preserved] = await db.query(
+        'SELECT id FROM ktv_chat_messages WHERE thread_id=$1 AND id=$2',
+        [threadId, messageId],
+      );
+      expect(preserved.id).toBe(messageId);
+      const audit = await db.query(
+        `SELECT metadata FROM audit_logs WHERE event LIKE 'KTV_CHAT_PRIVACY_%' AND actor_user_id=$1`,
+        [actors[0].id],
+      );
+      expect(JSON.stringify(audit)).not.toMatch(/passwordHash|grants/);
+      expect(JSON.stringify(audit)).not.toContain(password);
+      expect(JSON.stringify(audit)).not.toContain(actors[0].password);
+    });
   });
   it('suspended KTV history remains private and sends are disabled', async () => {
     await db.query(`UPDATE provider_applications SET status='SUSPENDED' WHERE id=$1`, [
