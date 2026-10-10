@@ -1,3 +1,10 @@
+CUSTOMER PER-CHAT PASSWORD RELEASE — 2026-10-10
+FE 18aa39b29ae1a2c3307765b6b8bab261899ab625; Vercel6974064810 SUCCESS; BE 117f9a084764b03f2a4586e769d9eea4953ac14c; immutable sha256:6797416683911ba1aaafc461302e18ebe37758717fb77bd2bb93eba1d66dcbe3 ready.
+CODE/TEST/COMMIT/DEPLOY complete. Customer-owned passwords, masked previews, API proof gates, lock/change/remove/recovery; 15-minute memory-only unlock. Provider access retained.
+FE40 tests/full quality; BE25 unit/full quality and all76 integration cases covered; CI and mobile320/390 PASS. Live normal chat/API/empty setup dialog verified.
+BUSINESS_DATA: no production passwords or messages created; customer self-service only. No migration; E2a/shared socket scope retained.
+See docs/CUSTOMER_CHAT_PASSWORD.md.
+
 OWNER CUSTOMER/KTV CONSULTATION ADDENDUM 2026-10-10
 [x] Customer registration preserves selected KTV/service; ten owner-seeded KTV identities receive private chat. Role-aware portals, emoji, mobile draft sizing and reciprocal blocking verified live.
 Evidence: FE dc99e8e / BE d65b2a7; 71 isolated integrations +27 FE tests; see CUSTOMER_KTV_CONSULTATION_FLOW.md. Shared socket/presence/report and booking phases remain separately open.
