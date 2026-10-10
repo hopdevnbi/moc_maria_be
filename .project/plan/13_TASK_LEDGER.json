@@ -1374,10 +1374,18 @@
     "releasedAt": "2026-10-10T09:07:01.505Z"
   },
   "zaloAdminDelivery": {
-    "status": "CODE_TEST_PASS_RECIPIENT_PENDING",
+    "status": "DEPLOYED_RECIPIENT_PENDING",
     "implementation": "3e058ec",
     "pr": "https://github.com/hopdevnbi/moc_maria_be/pull/17",
     "test": "46 unit tests; 27 chat/inquiry isolated cases; 3 PostgreSQL outbox cases. Format/lint/typecheck/build PASS.",
-    "live": "Bot API getMe verified BASIC account. Recipient bootstrap still waiting for a new incoming message; no live delivery claimed."
+    "live": "Bot API getMe verified BASIC account. Recipient bootstrap still waiting for a new incoming message; no live delivery claimed.",
+    "release": {
+      "source": "37e734853e9c78652f2af79fd3b99630561be9bf",
+      "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:4811bdda3f581beff6493c2942499abe15716d920768707c0ec3841aa317938a",
+      "previousImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:d1ea4f628f5a77a758caf0100ea466b9a74cce7b32c62002f2923fa808915d2b",
+      "secretName": "moc-maria-zalo-admin",
+      "recipientConfigured": false,
+      "releasedAt": "2026-10-10T16:57:37.146Z"
+    }
   }
 }

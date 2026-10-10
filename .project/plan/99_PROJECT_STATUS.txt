@@ -89,3 +89,7 @@ LIMITATIONS: Web GPS needs visible foreground page; native background tracking i
 ZALO ADMIN ALERT DELIVERY — 2026-10-10
 CODE/TEST PASS: customer chat + appointment inquiry transactional outbox; retry/replica lease; existing email kept. PR17 / 3e058ec pushed.
 46 unit / 27 isolated chat+inquiry / 3 PostgreSQL outbox tests PASS. Bot getMe verified BASIC. Recipient connection pending; do not claim live notifications enabled. See docs/ZALO_ADMIN_DELIVERY.md.
+
+ZALO SERVER CODE DEPLOYED — 2026-10-10
+Main37e734853e9c78652f2af79fd3b99630561be9bf; image sha256:4811bdda3f581beff6493c2942499abe15716d920768707c0ec3841aa317938a; rollout ready1.
+Live/ready200; chat/inquiry/admin email private401. Existing email configuration retained. Bot token stored in dedicated Secret; recipient empty, sends disabled. Await fresh owner connection message; no live Zalo delivery claimed.
