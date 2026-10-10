@@ -24,6 +24,7 @@ import {
   EligibleProviderReviewDto,
   ModerateProviderReviewDto,
   ProviderReviewPageDto,
+  AdminProviderReviewPageDto,
 } from './provider-reviews.dto';
 @ApiTags('provider-reviews')
 @Controller('providers')
@@ -86,6 +87,15 @@ export class OwnProviderReviewsController {
 @UseGuards(AccessTokenGuard, PermissionsGuard)
 export class AdminProviderReviewsController {
   constructor(private readonly reviews: ProviderReviewsService) {}
+  @Get()
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @Header('Cache-Control', 'private, no-store')
+  list(
+    @Query() dto: AdminProviderReviewPageDto,
+  ): ReturnType<ProviderReviewsService['adminReviews']> {
+    return this.reviews.adminReviews(dto);
+  }
+
   @Patch(':id/visibility')
   @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
   @Header('Cache-Control', 'private, no-store')

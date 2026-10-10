@@ -11,6 +11,7 @@ import type {
   CreateProviderReviewDto,
   EditProviderReviewDto,
   ModerateProviderReviewDto,
+  AdminProviderReviewPageDto,
 } from './provider-reviews.dto';
 
 interface Review {
@@ -39,6 +40,19 @@ export interface RatingSummary {
   count: number;
   distribution: Record<string, number>;
 }
+export interface AdminProviderReview {
+  id: string;
+  provider_application_id: string;
+  provider_name: string;
+  service_name: string;
+  stars: number;
+  comment: string;
+  visibility: 'PUBLISHED' | 'HIDDEN';
+  moderation_status: 'PUBLISHED' | 'HIDDEN' | 'PENDING';
+  version: number;
+  created_at: Date;
+  updated_at: Date;
+}
 export interface EligibleReview {
   appointment_id: string;
   provider_application_id: string;
@@ -49,6 +63,7 @@ export interface EligibleReview {
   stars: number | null;
   comment: string | null;
   visibility: string | null;
+  moderation_status: string | null;
   version: number | null;
   editable_until: Date | null;
 }
@@ -67,7 +82,13 @@ export class ProviderReviewsService {
     return this.db.query(
       `SELECT a.id AS appointment_id,s.provider_application_id,p.public_name AS provider_name,
       COALESCE(i.service_name,'Dịch vụ chăm sóc') AS service_name,a.ends_at AS completed_at,
-      r.id AS review_id,r.stars,r.comment,r.visibility,r.version,r.created_at+interval '7 days' AS editable_until
+      r.id AS review_id,r.stars,r.comment,r.visibility,
+      CASE WHEN r.id IS NULL THEN NULL
+        WHEN r.visibility='PUBLISHED' THEN 'PUBLISHED'
+        WHEN (SELECT h.action FROM provider_review_history h WHERE h.review_id=r.id
+          ORDER BY h.version DESC LIMIT 1)='MODERATE' THEN 'HIDDEN'
+        ELSE 'PENDING' END AS moderation_status,
+      r.version,r.created_at+interval '7 days' AS editable_until
       FROM appointments a JOIN appointment_staff s ON s.appointment_id=a.id
       JOIN provider_applications p ON p.id=s.provider_application_id
       LEFT JOIN appointment_items i ON i.appointment_id=a.id
@@ -113,8 +134,8 @@ export class ProviderReviewsService {
       if (!appointment)
         throw new ForbiddenException('Bạn chỉ có thể đánh giá KTV của lịch hẹn đã hoàn thành.');
       const [created] = await manager.query<Review[]>(
-        `INSERT INTO provider_reviews(appointment_id,provider_application_id,customer_user_id,stars,comment)
-        VALUES($1,$2,$3,$4,$5) ON CONFLICT(appointment_id,provider_application_id) DO NOTHING RETURNING *`,
+        `INSERT INTO provider_reviews(appointment_id,provider_application_id,customer_user_id,stars,comment,visibility)
+        VALUES($1,$2,$3,$4,$5,'HIDDEN') ON CONFLICT(appointment_id,provider_application_id) DO NOTHING RETURNING *`,
         [dto.appointmentId, dto.providerApplicationId, actor.id, dto.stars, dto.comment],
       );
       if (created) {
@@ -151,7 +172,7 @@ export class ProviderReviewsService {
       if (!window.allowed)
         throw new ForbiddenException('Thời hạn sửa đánh giá là 7 ngày kể từ lần gửi đầu tiên.');
       await manager.query(
-        `UPDATE provider_reviews SET stars=$2,comment=$3,version=version+1,updated_at=clock_timestamp() WHERE id=$1`,
+        `UPDATE provider_reviews SET stars=$2,comment=$3,visibility='HIDDEN',version=version+1,updated_at=clock_timestamp() WHERE id=$1`,
         [id, dto.stars, dto.comment],
       );
       const [saved] = await manager.query<Review[]>('SELECT * FROM provider_reviews WHERE id=$1', [
@@ -212,6 +233,63 @@ export class ProviderReviewsService {
     );
     return { summary, items, page, hasMore: page * 10 < count };
   }
+  async adminReviews(dto: AdminProviderReviewPageDto): Promise<{
+    items: AdminProviderReview[];
+    page: number;
+    total: number;
+    pending: number;
+    hasMore: boolean;
+  }> {
+    const page = dto.page ?? 1;
+    const status = dto.status ?? 'ALL';
+    const lastActionSql =
+      '(SELECT h.action FROM provider_review_history h WHERE h.review_id=r.id ORDER BY h.version DESC LIMIT 1)';
+    const pendingSql =
+      "r.visibility='HIDDEN' AND (" + lastActionSql + " IS DISTINCT FROM 'MODERATE')";
+    const predicate =
+      status === 'PENDING'
+        ? pendingSql
+        : status === 'HIDDEN'
+          ? "r.visibility='HIDDEN' AND (" + lastActionSql + " = 'MODERATE')"
+          : status === 'PUBLISHED'
+            ? "r.visibility='PUBLISHED'"
+            : 'TRUE';
+    const [totals] = await this.db.query<{ pending: number }[]>(
+      'SELECT count(*) FILTER (WHERE ' + pendingSql + ')::int AS pending FROM provider_reviews r',
+    );
+    const [matching] = await this.db.query<{ count: number }[]>(
+      'SELECT count(*)::int AS count FROM provider_reviews r WHERE ' + predicate,
+    );
+    const sql =
+      'SELECT r.id, r.provider_application_id, p.public_name AS provider_name, ' +
+      "COALESCE(i.service_name, 'Dịch vụ chăm sóc') AS service_name, " +
+      'r.stars, r.comment, r.visibility, r.version, r.created_at, r.updated_at, ' +
+      "CASE WHEN r.visibility='PUBLISHED' THEN 'PUBLISHED' " +
+      'WHEN ' +
+      lastActionSql +
+      " = 'MODERATE' THEN 'HIDDEN' " +
+      "ELSE 'PENDING' END AS moderation_status " +
+      'FROM provider_reviews r ' +
+      'JOIN provider_applications p ON p.id=r.provider_application_id ' +
+      'LEFT JOIN LATERAL (SELECT service_name FROM appointment_items ' +
+      'WHERE appointment_id=r.appointment_id ORDER BY id LIMIT 1) i ON TRUE ' +
+      'WHERE ' +
+      predicate +
+      ' ' +
+      'ORDER BY CASE WHEN ' +
+      pendingSql +
+      ' THEN 0 ELSE 1 END, ' +
+      'r.created_at DESC,r.id DESC LIMIT 20 OFFSET $1';
+    const items = await this.db.query<AdminProviderReview[]>(sql, [(page - 1) * 20]);
+    return {
+      items,
+      page,
+      total: matching.count,
+      pending: totals.pending,
+      hasMore: page * 20 < matching.count,
+    };
+  }
+
   async moderate(
     actor: AuthUserContext,
     id: string,
