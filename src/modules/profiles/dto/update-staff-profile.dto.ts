@@ -5,6 +5,12 @@ export class UpdateStaffProfileDto {
   @IsString()
   @MinLength(2)
   @MaxLength(160)
+  displayName?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(160)
   publicName?: string;
 
   @IsOptional()

@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Patch, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { RequirePermissions } from '../access-control/decorators/require-permissions.decorator';
 import { PermissionsGuard } from '../access-control/guards/permissions.guard';
@@ -9,13 +19,17 @@ import type { AuthUserContext } from '../identity/identity.types';
 import { UpdateCustomerProfileDto } from './dto/update-customer-profile.dto';
 import { UpdateStaffProfileDto } from './dto/update-staff-profile.dto';
 import { ProfilesService } from './profiles.service';
+import { StaffAvatarStorage, type ProfileAvatarFile } from './staff-avatar-storage';
 
 @ApiTags('profiles')
 @ApiBearerAuth()
 @Controller()
 @UseGuards(AccessTokenGuard, PermissionsGuard)
 export class ProfilesController {
-  constructor(private readonly service: ProfilesService) {}
+  constructor(
+    private readonly service: ProfilesService,
+    private readonly avatarStorage: StaffAvatarStorage,
+  ) {}
 
   @Get('customers/me')
   @RequirePermissions(PERMISSIONS.CUSTOMER_PORTAL)
@@ -30,6 +44,17 @@ export class ProfilesController {
     @Body() dto: UpdateCustomerProfileDto,
   ): Promise<unknown> {
     return this.service.updateCustomer(user.id, dto);
+  }
+
+  @Post('staff/me/avatar')
+  @RequirePermissions(PERMISSIONS.STAFF_PORTAL)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  async uploadStaffAvatar(
+    @CurrentUser() user: AuthUserContext,
+    @UploadedFile() file: ProfileAvatarFile | undefined,
+  ): Promise<unknown> {
+    const url = await this.avatarStorage.upload(user.id, file);
+    return this.service.updateStaff(user, { avatarUrl: url });
   }
 
   @Get('staff/me')
