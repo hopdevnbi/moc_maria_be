@@ -399,7 +399,15 @@
         "BE app.module.ts registration only",
         "Own tests/docs/Plan"
       ],
-      "note": "Preserve newly merged email alerts and E2a ownership. Use existing app_metadata, no migration or legacy booking edits. Token remains private."
+      "note": "Code merged and server deployed; outbound disabled pending an incoming owner connection event. Existing email preserved; no production chat fixture or migration. Token only in dedicated server Secret.",
+      "release": {
+        "source": "37e734853e9c78652f2af79fd3b99630561be9bf",
+        "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:4811bdda3f581beff6493c2942499abe15716d920768707c0ec3841aa317938a",
+        "previousImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:d1ea4f628f5a77a758caf0100ea466b9a74cce7b32c62002f2923fa808915d2b",
+        "secretName": "moc-maria-zalo-admin",
+        "recipientConfigured": false,
+        "releasedAt": "2026-10-10T16:57:37.146Z"
+      }
     }
   ]
 }

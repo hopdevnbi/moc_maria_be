@@ -36,3 +36,5 @@ Official API references:
 Release evidence will distinguish CODE / TEST / COMMIT / DEPLOY / live recipient verification. Bot creation alone is not a working website notification integration.
 
 Validation 2026-10-10: 46 unit tests, 27 isolated chat/inquiry integration cases and 3 PostgreSQL outbox cases passed. Format/lint/typecheck/build passed. Bot getMe verified BASIC; no new connection event received yet, so live recipient delivery remains pending.
+
+Server release: main37e734853e9c78652f2af79fd3b99630561be9bf / image sha256:4811bdda3f581beff6493c2942499abe15716d920768707c0ec3841aa317938a. PR17 merged; main quality/container CI passed. Dedicated secret moc-maria-zalo-admin installed without replacing existing email or safety secrets. Rollout ready1; initial ingress transition503 recovered on follow-up: health live/ready200 and chat/inquiry/admin-email private401. Recipient remains unset: outbound notifications are disabled pending a fresh connection message. No production message/inquiry fixture or new migration.
