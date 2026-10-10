@@ -167,8 +167,18 @@ export class ProvidersService {
     return provider;
   }
 
-  listApplications(): Promise<ProviderApplication[]> {
-    return this.applications.find({ order: { createdAt: 'DESC' } });
+  async listApplications(): Promise<Array<ProviderApplication & { avatarUrl: string | null }>> {
+    const applications = await this.applications.find({ order: { createdAt: 'DESC' } });
+    if (!applications.length) return [];
+    // This endpoint is staff.manage protected; applicant photos are never added to publicProviders.
+    const profiles = await this.profiles.find({
+      where: { userId: In(applications.map((app) => app.userId)) },
+    });
+    const avatars = new Map(profiles.map((profile) => [profile.userId, profile.avatarUrl]));
+    return applications.map((application) => ({
+      ...application,
+      avatarUrl: avatars.get(application.userId) ?? null,
+    }));
   }
 
   async applicationTraining(id: string): ReturnType<ProvidersService['myTraining']> {

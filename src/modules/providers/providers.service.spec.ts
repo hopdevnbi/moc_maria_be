@@ -115,4 +115,25 @@ describe('Provider eligibility', () => {
     ]);
     expect(await service.publicProviders()).toEqual([]);
   });
+
+  it('returns the real staff avatar only within the protected admin directory', async () => {
+    applications.find.mockResolvedValue([
+      { id: 'app-1', userId: 'user-1', publicName: 'Linh Anh', status: 'APPLIED' },
+      { id: 'app-2', userId: 'user-2', publicName: 'Mai Anh', status: 'REVIEWING' },
+    ]);
+    profiles.find.mockResolvedValue([
+      { userId: 'user-1', avatarUrl: 'https://cdn.example.com/avatar.webp' },
+    ]);
+    expect(await service.listApplications()).toEqual([
+      expect.objectContaining({ id: 'app-1', avatarUrl: 'https://cdn.example.com/avatar.webp' }),
+      expect.objectContaining({ id: 'app-2', avatarUrl: null }),
+    ]);
+    expect(profiles.find).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not query profiles when there are no applications', async () => {
+    applications.find.mockResolvedValue([]);
+    expect(await service.listApplications()).toEqual([]);
+    expect(profiles.find).not.toHaveBeenCalled();
+  });
 });
