@@ -7,6 +7,7 @@ import {
 import { createHash } from 'node:crypto';
 import { DataSource, EntityManager, In } from 'typeorm';
 import { User } from '../identity/entities/user.entity';
+import { AdminAlertsService } from '../admin-alerts/admin-alerts.service';
 import { AuditLog } from '../identity/entities/audit-log.entity';
 import { ProviderApplication } from '../providers/entities/provider-application.entity';
 import { ProviderBranchAssignment } from '../providers/entities/provider-branch-assignment.entity';
@@ -45,6 +46,7 @@ export class BookingTransactionsService {
   constructor(
     private readonly database: DataSource,
     private readonly availability: AvailabilityService,
+    private readonly adminAlerts: AdminAlertsService,
   ) {}
 
   // SSI prevents predicate/write skew; canonical application/course/branch locks serialize reservations.
@@ -293,7 +295,7 @@ export class BookingTransactionsService {
         }),
       )
       .digest('hex');
-    return this.transaction(async (manager) => {
+    const result = await this.transaction(async (manager) => {
       await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
         'booking-request:' + customerId + ':' + dto.idempotencyKey,
       ]);
@@ -391,6 +393,46 @@ export class BookingTransactionsService {
       );
       return this.view(manager, appointment, 'CUSTOMER');
     });
+    if (result['status'] === 'REQUESTED' && typeof result['id'] === 'string') {
+      const appointmentId = result['id'];
+      try {
+        // Idempotent job key prevents duplicate notifications on repeated booking requests.
+        const [customer, provider, details] = await Promise.all([
+          this.database.getRepository(User).findOneBy({ id: customerId }),
+          this.database.getRepository(AppointmentStaff).findOneBy({ appointmentId }),
+          this.database.getRepository(AppointmentItem).findOneBy({ appointmentId }),
+        ]);
+        const providerApplication = provider
+          ? await this.database
+              .getRepository(ProviderApplication)
+              .findOneBy({ id: provider.providerApplicationId })
+          : null;
+        const branch =
+          typeof dto.branchId === 'string'
+            ? await this.database.getRepository(Branch).findOneBy({ id: dto.branchId })
+            : null;
+        await this.adminAlerts.bookingRequested({
+          appointmentId,
+          customerName: customer?.displayName || 'Khách hàng',
+          customerEmail: customer?.email ?? null,
+          customerPhone: customer?.phone ?? null,
+          providerName: providerApplication?.publicName || 'KTV',
+          serviceName: details?.serviceName || 'Dịch vụ',
+          branchName: branch?.name || 'Cơ sở',
+          startsAt: typeof result['startsAt'] === 'string' ? result['startsAt'] : '',
+          totalVnd:
+            typeof result['quote'] === 'object' &&
+            result['quote'] !== null &&
+            'totalVnd' in result['quote']
+              ? String(result['quote'].totalVnd)
+              : '',
+          notes: dto.notes?.trim() || null,
+        });
+      } catch {
+        // An alert lookup or transport outage cannot turn a saved booking into a failed request.
+      }
+    }
+    return result;
   }
   private async lockedAppointment(
     manager: EntityManager,

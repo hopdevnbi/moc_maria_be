@@ -11,9 +11,15 @@ import {
   AdminBookingsController,
 } from './bookings.controller';
 import { BookingTransactionsService } from './booking-transactions.service';
+import { AdminAlertsService } from '../admin-alerts/admin-alerts.service';
 @Module({
   imports: [AuthModule, AccessControlModule, ProvidersModule],
-  providers: [AvailabilityService, BookingSettingsService, BookingTransactionsService],
+  providers: [
+    AvailabilityService,
+    BookingSettingsService,
+    BookingTransactionsService,
+    AdminAlertsService,
+  ],
   controllers: [
     AvailabilityController,
     BookingSettingsController,
