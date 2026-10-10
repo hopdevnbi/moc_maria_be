@@ -34,3 +34,5 @@ Official API references:
 - https://bot.zapps.me/docs/apis/getWebhookInfo/
 
 Release evidence will distinguish CODE / TEST / COMMIT / DEPLOY / live recipient verification. Bot creation alone is not a working website notification integration.
+
+Validation 2026-10-10: 46 unit tests, 27 isolated chat/inquiry integration cases and 3 PostgreSQL outbox cases passed. Format/lint/typecheck/build passed. Bot getMe verified BASIC; no new connection event received yet, so live recipient delivery remains pending.
