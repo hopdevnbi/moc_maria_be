@@ -1,4 +1,5 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
+import { MembershipModule } from './modules/membership/membership.module';
 import { ProviderReviewsModule } from './modules/provider-reviews/provider-reviews.module';
 import { KtvChatModule } from './modules/ktv-chat/ktv-chat.module';
 import { AdminUsersModule } from './modules/admin-users/admin-users.module';
@@ -29,6 +30,7 @@ import { ApplicationLoggingModule } from './logging/logging.module';
     BookingsModule,
     KtvChatModule,
     ProviderReviewsModule,
+    MembershipModule,
   ],
   providers: [GlobalExceptionFilter],
 })
