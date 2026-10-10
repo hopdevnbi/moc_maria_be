@@ -11,7 +11,6 @@ import { Customer } from '../identity/entities/customer.entity';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
 import { User } from '../identity/entities/user.entity';
 import { normalizeEmail, normalizePhone } from '../identity/identity-normalization';
-import { IdentityService } from '../identity/identity.service';
 import { ProviderApplication } from '../providers/entities/provider-application.entity';
 import { ProviderContactVerification } from '../providers/entities/provider-contact-verification.entity';
 import type { AuthUserContext } from '../identity/identity.types';
@@ -22,7 +21,6 @@ import type { UpdateStaffProfileDto } from './dto/update-staff-profile.dto';
 export class ProfilesService {
   constructor(
     private readonly dataSource: DataSource,
-    private readonly identityService: IdentityService,
     @InjectRepository(User)
     private readonly users: Repository<User>,
     @InjectRepository(StaffProfile)
@@ -105,14 +103,20 @@ export class ProfilesService {
 
   async getStaff(user: AuthUserContext): Promise<unknown> {
     const profile = await this.staffProfiles.findOne({ where: { userId: user.id } });
+    const account = await this.users.findOne({ where: { id: user.id } });
     if (!profile) throw new NotFoundException('Không tìm thấy hồ sơ nhân viên.');
     return {
       id: user.id,
-      displayName: user.displayName,
-      email: user.email,
-      phone: user.phone,
+      displayName: account?.displayName ?? user.displayName,
+      email: account?.email ?? user.email,
+      phone: account?.phone ?? user.phone,
       roles: user.roles,
       permissions: user.permissions,
+      avatarUploadEnabled: Boolean(
+        process.env['BUNNY_STORAGE_ZONE'] &&
+        (process.env['BUNNY_STORAGE_ACCESS_KEY'] || process.env['BUNNY_STORAGE_API_KEY']) &&
+        (process.env['BUNNY_CDN_BASE_URL'] || process.env['BUNNY_STORAGE_CDN_URL']),
+      ),
       staff: {
         id: profile.id,
         publicName: profile.publicName,
@@ -125,17 +129,26 @@ export class ProfilesService {
   }
 
   async updateStaff(user: AuthUserContext, dto: UpdateStaffProfileDto): Promise<unknown> {
-    const profile = await this.staffProfiles.findOne({ where: { userId: user.id } });
-    if (!profile) throw new NotFoundException('Không tìm thấy hồ sơ nhân viên.');
+    await this.dataSource.transaction(async (manager) => {
+      const profile = await manager.findOneBy(StaffProfile, { userId: user.id });
+      if (!profile) throw new NotFoundException('Staff profile is unavailable.');
 
-    if (dto.publicName !== undefined) profile.publicName = dto.publicName.trim();
-    if (dto.avatarUrl !== undefined) profile.avatarUrl = dto.avatarUrl || null;
-    if (dto.bio !== undefined) profile.bio = dto.bio?.trim() || null;
-    await this.staffProfiles.save(profile);
-    await this.identityService.writeAudit({
-      event: 'STAFF_PROFILE_UPDATED',
-      actorUserId: user.id,
-      targetUserId: user.id,
+      if (dto.displayName !== undefined) {
+        await manager.update(User, { id: user.id }, { displayName: dto.displayName.trim() });
+      }
+      if (dto.publicName !== undefined) profile.publicName = dto.publicName.trim();
+      if (dto.avatarUrl !== undefined) profile.avatarUrl = dto.avatarUrl || null;
+      if (dto.bio !== undefined) profile.bio = dto.bio?.trim() || null;
+      await manager.save(StaffProfile, profile);
+      await manager.insert(AuditLog, {
+        event: 'STAFF_PROFILE_UPDATED',
+        actorUserId: user.id,
+        targetUserId: user.id,
+        metadata: {
+          fields: Object.keys(dto).filter((key) => key !== 'avatarUrl'),
+          avatarChanged: dto.avatarUrl !== undefined,
+        },
+      });
     });
     return this.getStaff(user);
   }
