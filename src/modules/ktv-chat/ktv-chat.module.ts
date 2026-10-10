@@ -8,5 +8,6 @@ import { KtvChatPrivacyService } from './ktv-chat-privacy.service';
   imports: [AuthModule, ProvidersModule],
   controllers: [KtvChatController, KtvChatDirectoryController],
   providers: [KtvChatService, KtvChatPrivacyService],
+  exports: [KtvChatService],
 })
 export class KtvChatModule {}
