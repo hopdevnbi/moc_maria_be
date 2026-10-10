@@ -1349,5 +1349,16 @@
     "test": "FE40 tests/full quality/production build and CI PASS. BE25 unit/full quality/CI PASS; 8 existing integration suites passed, then all20 chat tests passed after isolating pagination timestamps from the production30/min limiter (all76 cases covered). Mobile320/390 no overflow and masked input/dialogs. Live API health/public200/private401; customer/provider normal history200/no-store, invalid password DTO400, provider privacy ownership403; live customer set-password dialog verified without submission.",
     "businessData": "No production chat password or new messages set by agent; customers opt in per thread. No migration or booking/review/identity eligibility changes.",
     "releasedAt": "2026-10-10T00:57:41.249Z"
+  },
+  "accountBookingPresentationRelease": {
+    "backend": "51dc301aed20c8762e345406056dc6dd31e4d6b8",
+    "backendImage": "sha256:cf6486635ae6c5b17ca5bef0c30cc5bf1a2f45747e4e7947ee351c5c0da95998",
+    "frontend": "e77869bc09f9bbd8c650fdcfcdc81ab91caac706",
+    "frontendDeployment": 6976034521,
+    "backendPr": "https://github.com/hopdevnbi/moc_maria_be/pull/10",
+    "frontendPr": "https://github.com/hopdevnbi/moc_maria_fe/pull/19",
+    "validation": "BE quality 27 unit tests + 7 isolated PostgreSQL integrations PASS; FE quality 55 tests PASS, merged main 58 tests CI PASS; local customer/KTV/superadmin inquiry-contacted and pending/approved-public description flows PASS; mobile 320/390/768/1024/1440 no overflow; production 10 KTV and 10 services, fixed Hanoi, private endpoints 401, health 200.",
+    "businessData": "No production inquiries or description approvals created by verification. Inquiry CONTACTED is not a confirmed reservation. Existing eligibility and booking transactions retained.",
+    "releasedAt": "2026-10-10T05:03:40.972Z"
   }
 }

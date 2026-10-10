@@ -33,3 +33,8 @@ AI đọc99 status +13 ledger +11_WORK_COORDINATION.md, nhận claim ở14_ACTIV
 
 
 E1 production: BE b53d660a361549d53d8c92b3773413d0b078963d; FE a7b67d1297ca53ba45026eb5e9d9692cd1036fdb; schema15; Vercel dpl_3Jdkz9QSCys6d2w19ENrF7JW6BRz READY tại https://mocmaria.com. Lịch trống trừ ca nghỉ/giờ đóng cửa/duration/buffer/đơn hiện có/phòng-thiết bị, kiểm tra hiệu lực đến hết buổi. Admin cấu hình thời hạn và tài nguyên theo gói/cơ sở có xác nhận/lý do. 25 BE unit+43 tích hợp/rollback-reapply, FE4 test/build22 routes, quality/CI PASS; browser lưu20 phút/reload/mobile390 PASS. Backup schema14 restore PASS14 migrations/42 tables/7 roles/8 permissions. API ready1/health200; private settings401/private,no-store; unknown public package404/no-store; providers empty; GiangXa200. QA đã dọn. Chỉ là xem lịch: reservation=false/requestEnabled=false; giao dịch và báo giá E2 vẫn chưa xong.
+
+ACCOUNT / BOOKING PRESENTATION RELEASE — 2026-10-10
+BE 51dc301aed20c8762e345406056dc6dd31e4d6b8; image sha256:cf6486635ae6c5b17ca5bef0c30cc5bf1a2f45747e4e7947ee351c5c0da95998; FE e77869bc09f9bbd8c650fdcfcdc81ab91caac706; production deployment 6976034521.
+BE quality 27 unit tests + 7 isolated PostgreSQL integrations PASS; FE quality 55 tests PASS, merged main 58 tests CI PASS; local customer/KTV/superadmin inquiry-contacted and pending/approved-public description flows PASS; mobile 320/390/768/1024/1440 no overflow; production 10 KTV and 10 services, fixed Hanoi, private endpoints 401, health 200.
+No production inquiries or description approvals created by verification. Inquiry CONTACTED is not a confirmed reservation. Existing eligibility and booking transactions retained.
