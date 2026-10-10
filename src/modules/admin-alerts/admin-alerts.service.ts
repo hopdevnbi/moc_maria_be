@@ -1,5 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { BadRequestException } from '@nestjs/common';
+import { AdminAlertRecipient } from './admin-alert-recipient.entity';
 
 export interface BookingAlert {
   appointmentId: string;
@@ -17,13 +21,35 @@ export interface BookingAlert {
 @Injectable()
 export class AdminAlertsService {
   private readonly logger = new Logger(AdminAlertsService.name);
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    @InjectRepository(AdminAlertRecipient)
+    private readonly recipients: Repository<AdminAlertRecipient>,
+  ) {}
+
+  listRecipients(): Promise<AdminAlertRecipient[]> {
+    return this.recipients.find({ order: { email: 'ASC' } });
+  }
+
+  async saveRecipient(email: string, enabled: boolean): Promise<AdminAlertRecipient> {
+    const normalized = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) || normalized.length > 320)
+      throw new BadRequestException('Email không hợp lệ.');
+    await this.recipients.upsert({ email: normalized, enabled }, ['email']);
+    return this.recipients.findOneByOrFail({ email: normalized });
+  }
+
+  async removeRecipient(email: string): Promise<{ removed: boolean }> {
+    const deleted = await this.recipients.delete(email.trim().toLowerCase());
+    return { removed: (deleted.affected ?? 0) > 0 };
+  }
 
   async bookingRequested(alert: BookingAlert): Promise<void> {
-    const recipient = this.config.get<string>('ADMIN_ALERT_EMAIL')?.trim();
+    const saved = await this.recipients.find({ where: { enabled: true } });
+    const recipient = [...new Set(saved.map((row) => row.email))];
     const base = this.config.get<string>('QUEUE_SERVICE_URL')?.trim();
     const key = this.config.get<string>('QUEUE_API_KEY')?.trim();
-    if (!recipient || !base || !key) {
+    if (!recipient.length || !base || !key) {
       this.logger.warn('Booking alert email not configured');
       return;
     }

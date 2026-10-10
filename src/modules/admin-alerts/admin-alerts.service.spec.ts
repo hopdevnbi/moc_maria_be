@@ -1,4 +1,6 @@
 import { ConfigService } from '@nestjs/config';
+import type { Repository } from 'typeorm';
+import type { AdminAlertRecipient } from './admin-alert-recipient.entity';
 import { AdminAlertsService, type BookingAlert } from './admin-alerts.service';
 
 const event: BookingAlert = {
@@ -15,6 +17,9 @@ const event: BookingAlert = {
 };
 
 describe('Mộc Maria booking admin notifications', () => {
+  const recipients = {
+    find: jest.fn().mockResolvedValue([{ email: 'admin@example.com', enabled: true }]),
+  } as unknown as Repository<AdminAlertRecipient>;
   const originalFetch = global.fetch;
   afterEach(() => {
     global.fetch = originalFetch;
@@ -23,7 +28,10 @@ describe('Mộc Maria booking admin notifications', () => {
   it('does not contact external services without explicit configuration', async () => {
     const fetchMock = jest.fn();
     global.fetch = fetchMock as typeof fetch;
-    const service = new AdminAlertsService({ get: () => undefined } as unknown as ConfigService);
+    const service = new AdminAlertsService(
+      { get: () => undefined } as unknown as ConfigService,
+      recipients,
+    );
     await service.bookingRequested(event);
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -36,9 +44,12 @@ describe('Mộc Maria booking admin notifications', () => {
       ['QUEUE_SERVICE_URL', 'https://queue.internal'],
       ['QUEUE_API_KEY', 'private-test-token'],
     ]);
-    const service = new AdminAlertsService({
-      get: (key: string) => config.get(key),
-    } as ConfigService);
+    const service = new AdminAlertsService(
+      {
+        get: (key: string) => config.get(key),
+      } as ConfigService,
+      recipients,
+    );
     await service.bookingRequested(event);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     const [url, options] = fetchMock.mock.calls[0] as [string, RequestInit];
@@ -54,7 +65,7 @@ describe('Mộc Maria booking admin notifications', () => {
       name: 'email.send',
       options: { jobId: `moc-maria.booking.${event.appointmentId}` },
     });
-    expect(body.data.to).toBe('admin@example.com');
+    expect(body.data.to).toEqual(['admin@example.com']);
     expect(body.data.text).toContain(event.providerName);
     expect(body.data.text).toContain(event.customerName);
   });
