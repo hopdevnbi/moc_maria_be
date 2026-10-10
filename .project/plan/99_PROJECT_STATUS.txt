@@ -85,3 +85,6 @@ COMMIT: https://github.com/hopdevnbi/moc_maria_fe/pull/24; https://github.com/ho
 DEPLOY: Vercel production 6978653776; ghcr.io/hopdevnbi/moc_maria_be@sha256:fba61122bf79d31da44e10f1447fd86f4575359214832ec7efb006b926116782
 BUSINESS_DATA: No production safety sessions, GPS points, SOS alerts, bookings, approvals or public reviews created. Dedicated production encryption key stored in Kubernetes Secret only. Safety feature requires no new schema migration.
 LIMITATIONS: Web GPS needs visible foreground page; native background tracking is future work. SOS needs network and an on-duty operator, no automatic calls/SMS. Real device GPS was not enabled during QA. OSM tiles unreachable from QA machine network; fallback coordinates/stale status verified, map background availability not verified. Existing internal seed/database IDs preserved.
+
+ZALO ADMIN ALERT AUDIT — 2026-10-10
+Audit and owner bot creation guide complete. Existing email commits 7b8d651/bb68696 remain on production-integration, not main. No chat/inquiry trigger or Zalo worker exists; production config lacks notification integration. Runtime feature NOT READY. No messages or production data created. See docs/ZALO_ADMIN_ALERT_AUDIT_2026-10-10.md.

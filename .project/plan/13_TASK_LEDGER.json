@@ -1372,5 +1372,12 @@
     "limitations": "Web GPS needs visible foreground page; native background tracking is future work. SOS needs network and an on-duty operator, no automatic calls/SMS. Real device GPS was not enabled during QA. OSM tiles unreachable from QA machine network; fallback coordinates/stale status verified, map background availability not verified. Existing internal seed/database IDs preserved.",
     "businessData": "No production safety sessions, GPS points, SOS alerts, bookings, approvals or public reviews created. Dedicated production encryption key stored in Kubernetes Secret only. Safety feature requires no new schema migration.",
     "releasedAt": "2026-10-10T09:07:01.505Z"
+  },
+  "zaloAdminAlertAudit20261010": {
+    "code": "Read-only audit and setup guide complete; no runtime implementation",
+    "test": "Source, Queue contract, official Zalo docs and production config/404 inspected; no Zalo end-to-end delivery",
+    "deploy": "No runtime deployment",
+    "businessData": "No bot, notification, chat, booking or production fixtures created",
+    "next": "Owner creates Bot Mộc Maria Admin; then verify token/recipient and implement durable chat/inquiry outbox + channel delivery"
   }
 }
