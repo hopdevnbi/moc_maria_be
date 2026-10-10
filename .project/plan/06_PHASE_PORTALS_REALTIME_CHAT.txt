@@ -178,3 +178,8 @@ F. CUSTOMER FEEDBACK AND KTV APPEALS
 PRIVATE CHAT RELEASE 2026-10-09: dedicated Mộc Maria REST/DB chat deployed. See docs/PRIVATE_KTV_CHAT.md. Shared socket gates remain open.
 
 F2 RELEASE 2026-10-09: reciprocal blocks and verified service ratings deployed. Reporting/socket work and E2 completion remain open; see docs/PRIVATE_KTV_CHAT.md.
+
+ACCOUNT / BOOKING PRESENTATION RELEASE — 2026-10-10
+BE 51dc301aed20c8762e345406056dc6dd31e4d6b8; image sha256:cf6486635ae6c5b17ca5bef0c30cc5bf1a2f45747e4e7947ee351c5c0da95998; FE e77869bc09f9bbd8c650fdcfcdc81ab91caac706; production deployment 6976034521.
+BE quality 27 unit tests + 7 isolated PostgreSQL integrations PASS; FE quality 55 tests PASS, merged main 58 tests CI PASS; local customer/KTV/superadmin inquiry-contacted and pending/approved-public description flows PASS; mobile 320/390/768/1024/1440 no overflow; production 10 KTV and 10 services, fixed Hanoi, private endpoints 401, health 200.
+No production inquiries or description approvals created by verification. Inquiry CONTACTED is not a confirmed reservation. Existing eligibility and booking transactions retained.
