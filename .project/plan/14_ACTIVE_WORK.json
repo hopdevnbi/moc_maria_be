@@ -301,7 +301,7 @@
     },
     {
       "agent": "Codex customer per-chat password 2026-10-10",
-      "status": "ACTIVE",
+      "status": "RELEASED",
       "frontendBranch": "codex/customer-chat-password",
       "backendBranch": "codex/customer-chat-password",
       "ownedPaths": [
@@ -309,9 +309,22 @@
         "BE/test/ktv-chat.e2e-spec.ts and scoped privacy tests",
         "BE app_metadata mocmaria.chat.privacy.* namespace only",
         "FE/src/features/mobile/chat*",
-        "Plan own release evidence and docs/PRIVATE_KTV_CHAT.md"
+        "Plan own release evidence and docs/CUSTOMER_CHAT_PASSWORD.md"
       ],
-      "note": "Customer-owned per-thread password, session-scoped expiring unlock, masked preview/API gates and recovery by own account password. No migration or shared identity/provider/booking writes; use existing private app_metadata store with thread-row transaction locking. Existing E2a ownership preserved."
+      "note": "Customer-owned per-thread password, session-scoped expiring unlock, masked preview/API gates and recovery by own account password. No migration or shared identity/provider/booking writes; use existing private app_metadata store with thread-row transaction locking. Existing E2a ownership preserved.",
+      "release": {
+        "backend": "117f9a084764b03f2a4586e769d9eea4953ac14c",
+        "backendImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:6797416683911ba1aaafc461302e18ebe37758717fb77bd2bb93eba1d66dcbe3",
+        "frontend": "18aa39b29ae1a2c3307765b6b8bab261899ab625",
+        "frontendDeployment": 6974064810,
+        "prs": [
+          "https://github.com/hopdevnbi/moc_maria_be/pull/6",
+          "https://github.com/hopdevnbi/moc_maria_fe/pull/11"
+        ],
+        "test": "FE40 tests/full quality/production build and CI PASS. BE25 unit/full quality/CI PASS; 8 existing integration suites passed, then all20 chat tests passed after isolating pagination timestamps from the production30/min limiter (all76 cases covered). Mobile320/390 no overflow and masked input/dialogs. Live API health/public200/private401; customer/provider normal history200/no-store, invalid password DTO400, provider privacy ownership403; live customer set-password dialog verified without submission.",
+        "businessData": "No production chat password or new messages set by agent; customers opt in per thread. No migration or booking/review/identity eligibility changes.",
+        "releasedAt": "2026-10-10T00:57:41.249Z"
+      }
     }
   ]
 }

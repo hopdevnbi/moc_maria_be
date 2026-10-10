@@ -1,3 +1,10 @@
+CUSTOMER PER-CHAT PASSWORD RELEASE — 2026-10-10
+FE 18aa39b29ae1a2c3307765b6b8bab261899ab625; Vercel6974064810 SUCCESS; BE 117f9a084764b03f2a4586e769d9eea4953ac14c; immutable sha256:6797416683911ba1aaafc461302e18ebe37758717fb77bd2bb93eba1d66dcbe3 ready.
+CODE/TEST/COMMIT/DEPLOY complete. Customer-owned passwords, masked previews, API proof gates, lock/change/remove/recovery; 15-minute memory-only unlock. Provider access retained.
+FE40 tests/full quality; BE25 unit/full quality and all76 integration cases covered; CI and mobile320/390 PASS. Live normal chat/API/empty setup dialog verified.
+BUSINESS_DATA: no production passwords or messages created; customer self-service only. No migration; E2a/shared socket scope retained.
+See docs/CUSTOMER_CHAT_PASSWORD.md.
+
 # Mộc Maria — Tiến độ hiện tại (09/10/2026)
 
 **D2 và E1 đã deploy. Đang làm E2a: yêu cầu đặt lịch tại cơ sở và xác nhận báo giá. Mục3 vẫn còn việc; MVP chưa vận hành trọn vẹn.**

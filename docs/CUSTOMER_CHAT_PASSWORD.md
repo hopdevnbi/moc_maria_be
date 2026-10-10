@@ -27,5 +27,21 @@ The feature gates customer access to server history; stored message text and pro
 
 ## Verification / rollout
 
-CODE complete. FE full quality:39 tests, lint/typecheck/format and production build PASS. BE full quality:25 unit tests, lint/typecheck/format and build PASS using temporary normalization of Windows checkout line endings (unchanged files restored). The disposable PostgreSQL suite tests owner membership, masked previews/API gates, proof/session/thread isolation, expiry, persistent rate limits, change/removal/recovery and retained history; 8 existing integration suites passed in the complete run; the chat suite passed all20 tests after backdating pagination fixtures so they do not consume the genuine30/min provider send limit. This covers all76 integration cases; the production limiter is unchanged. Mobile320/390 checks confirmed no horizontal overflow, masked inputs and usable dialogs. Existing REST chat has no lock records until a customer opts in. Deploy the additive backend first, then frontend; no production passwords will be set by the agent. Production UI smoke and final source/image evidence follow.
+CODE complete. FE full quality:40 tests, lint/typecheck/format and production build PASS. BE full quality:25 unit tests, lint/typecheck/format and build PASS using temporary normalization of Windows checkout line endings (unchanged files restored). The disposable PostgreSQL suite tests owner membership, masked previews/API gates, proof/session/thread isolation, expiry, persistent rate limits, change/removal/recovery and retained history; 8 existing integration suites passed in the complete run; the chat suite passed all20 tests after backdating pagination fixtures so they do not consume the genuine30/min provider send limit. This covers all76 integration cases; the production limiter is unchanged. Mobile320/390 checks confirmed no horizontal overflow, masked inputs and usable dialogs. Existing REST chat has no lock records until a customer opts in. Deploy the additive backend first, then frontend; no production passwords will be set by the agent. Production read-only API smoke and live customer password setup dialog PASS; no credentials submitted.
 
+
+## Production release evidence
+
+{
+  "backend": "117f9a084764b03f2a4586e769d9eea4953ac14c",
+  "backendImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:6797416683911ba1aaafc461302e18ebe37758717fb77bd2bb93eba1d66dcbe3",
+  "frontend": "18aa39b29ae1a2c3307765b6b8bab261899ab625",
+  "frontendDeployment": 6974064810,
+  "prs": [
+    "https://github.com/hopdevnbi/moc_maria_be/pull/6",
+    "https://github.com/hopdevnbi/moc_maria_fe/pull/11"
+  ],
+  "test": "FE40 tests/full quality/production build and CI PASS. BE25 unit/full quality/CI PASS; 8 existing integration suites passed, then all20 chat tests passed after isolating pagination timestamps from the production30/min limiter (all76 cases covered). Mobile320/390 no overflow and masked input/dialogs. Live API health/public200/private401; customer/provider normal history200/no-store, invalid password DTO400, provider privacy ownership403; live customer set-password dialog verified without submission.",
+  "businessData": "No production chat password or new messages set by agent; customers opt in per thread. No migration or booking/review/identity eligibility changes.",
+  "releasedAt": "2026-10-10T00:57:41.249Z"
+}
