@@ -318,6 +318,14 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
     const nextPassword = 'Another private passphrase 2!';
     const privacyPath = (): string => `/api/v1/ktv-chat/threads/${threadId}/privacy`;
     const metadataKey = (): string => `mocmaria.chat.privacy.${threadId}`;
+    beforeAll(async () => {
+      // Pagination fixtures must not exhaust the real 30/min provider send limit.
+      await db.query(
+        `UPDATE ktv_chat_messages SET created_at=now()-interval '2 minutes'
+         WHERE thread_id=$1 AND body LIKE 'history %'`,
+        [threadId],
+      );
+    });
     afterEach(async () => {
       await db.query('DELETE FROM app_metadata WHERE key=$1', [metadataKey()]);
     });
