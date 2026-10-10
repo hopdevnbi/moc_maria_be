@@ -10,6 +10,7 @@ import { DataSource, EntityManager } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
 import { KtvChatService } from '../ktv-chat/ktv-chat.service';
 import { AuditLog } from '../identity/entities/audit-log.entity';
+import { AdminAlertsService } from '../admin-alerts/admin-alerts.service';
 import type {
   CreateInquiryDto,
   ReviewPresentationDto,
@@ -56,6 +57,7 @@ export class CustomerExperienceService {
   constructor(
     private readonly db: DataSource,
     private readonly chat: KtvChatService,
+    private readonly adminAlerts: AdminAlertsService,
   ) {}
   private superAdmin(actor: AuthUserContext): void {
     if (!actor.roles.includes('SUPER_ADMIN'))
@@ -216,7 +218,8 @@ export class CustomerExperienceService {
     const id = createHash('sha256')
       .update(actor.id + dto.idempotencyKey)
       .digest('hex');
-    return this.db.transaction(async (m) => {
+    let created = false;
+    const result = await this.db.transaction(async (m) => {
       await this.lock(m, 'mocmaria.inquiry.customer.' + actor.id);
       const existing = await this.read<Inquiry>(m, inquiryKey(id));
       if (existing) {
@@ -274,8 +277,28 @@ export class CustomerExperienceService {
         targetUserId: receiver.user_id,
         metadata: { inquiryId: id, providerId: provider.id },
       });
+      created = true;
       return this.visibleInquiry(value);
     });
+    // Notify only after persistence; repeat submissions reuse a deterministic Queue job id.
+    if (created)
+      try {
+        await this.adminAlerts.bookingRequested({
+          appointmentId: result.id,
+          customerName: result.customerName,
+          customerEmail: actor.email || null,
+          customerPhone: actor.phone || null,
+          providerName: result.providerName,
+          serviceName: result.serviceName,
+          branchName: result.location === 'AT_HOME' ? 'Tại nhà' : 'Tại cơ sở',
+          startsAt: result.requestedAt,
+          totalVnd: 'Liên hệ xác nhận',
+          notes: [result.address, result.notes].filter(Boolean).join(' - '),
+        });
+      } catch {
+        /* A notification outage cannot undo a saved inquiry. */
+      }
+    return result;
   }
   private visibleInquiry({
     signature: _signature,

@@ -15,11 +15,13 @@ import { DatabaseModule } from './database/database.module';
 import { HealthModule } from './health/health.module';
 import { GlobalExceptionFilter } from './http/global-exception.filter';
 import { ApplicationLoggingModule } from './logging/logging.module';
+import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
 
 @Module({
   imports: [
     ApplicationConfigModule,
     ApplicationLoggingModule,
+    AdminAlertsModule,
     DatabaseModule,
     HealthModule,
     AuthModule,
