@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -62,6 +63,7 @@ export class KtvChatService {
     private readonly db: DataSource,
     private readonly providers: ProvidersService,
     private readonly privacy: KtvChatPrivacyService,
+    private readonly zaloAlerts: ZaloAlertsService,
   ) {}
 
   private seededProviders(manager: EntityManager = this.db.manager): Promise<SeedChatProvider[]> {
@@ -296,6 +298,18 @@ export class KtvChatService {
       await manager.query(`UPDATE ktv_chat_threads SET updated_at=clock_timestamp() WHERE id=$1`, [
         threadId,
       ]);
+      if (actor.id === thread.customer_user_id) {
+        const [provider] = await manager.query<{ public_name: string }[]>(
+          'SELECT public_name FROM provider_applications WHERE id=$1',
+          [thread.provider_application_id],
+        );
+        await this.zaloAlerts.enqueue(manager, {
+          kind: 'chat',
+          eventId: message.id,
+          customerName: actor.displayName,
+          providerName: provider?.public_name || 'KTV Mộc Maria',
+        });
+      }
       return message;
     });
   }

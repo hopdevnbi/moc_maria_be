@@ -11,6 +11,7 @@ import type { AuthUserContext } from '../identity/identity.types';
 import { KtvChatService } from '../ktv-chat/ktv-chat.service';
 import { AuditLog } from '../identity/entities/audit-log.entity';
 import { AdminAlertsService } from '../admin-alerts/admin-alerts.service';
+import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 import type {
   CreateInquiryDto,
   ReviewPresentationDto,
@@ -58,6 +59,7 @@ export class CustomerExperienceService {
     private readonly db: DataSource,
     private readonly chat: KtvChatService,
     private readonly adminAlerts: AdminAlertsService,
+    private readonly zaloAlerts: ZaloAlertsService,
   ) {}
   private superAdmin(actor: AuthUserContext): void {
     if (!actor.roles.includes('SUPER_ADMIN'))
@@ -271,6 +273,13 @@ export class CustomerExperienceService {
         status: 'PENDING',
       };
       await this.save(m, inquiryKey(id), value);
+      await this.zaloAlerts.enqueue(m, {
+        kind: 'inquiry',
+        eventId: id,
+        customerName: value.customerName,
+        providerName: value.providerName,
+        serviceName: value.serviceName,
+      });
       await m.save(AuditLog, {
         event: 'appointment.inquiry.created',
         actorUserId: actor.id,
