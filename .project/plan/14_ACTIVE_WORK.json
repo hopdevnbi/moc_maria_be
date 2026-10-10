@@ -386,6 +386,23 @@
         "businessData": "No production safety sessions, GPS points, SOS alerts, bookings, approvals or public reviews created. Dedicated production encryption key stored in Kubernetes Secret only. Safety feature requires no new schema migration.",
         "releasedAt": "2026-10-10T09:07:01.505Z"
       }
+    },
+    {
+      "agent": "Codex Zalo admin alert audit 2026-10-10",
+      "status": "DONE",
+      "backendBranch": "codex/zalo-admin-alert-audit",
+      "ownedPaths": [
+        "docs/ZALO_ADMIN_ALERT_AUDIT_2026-10-10.md",
+        "Own audit entry in Plan only"
+      ],
+      "note": "Read-only review; no booking/chat/Queue runtime edits, no notification delivery or migration.",
+      "result": {
+        "code": "Read-only audit and setup guide complete; no runtime implementation",
+        "test": "Source, Queue contract, official Zalo docs and production config/404 inspected; no Zalo end-to-end delivery",
+        "deploy": "No runtime deployment",
+        "businessData": "No bot, notification, chat, booking or production fixtures created",
+        "next": "Owner creates Bot Mộc Maria Admin; then verify token/recipient and implement durable chat/inquiry outbox + channel delivery"
+      }
     }
   ]
 }
