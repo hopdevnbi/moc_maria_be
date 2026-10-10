@@ -10,6 +10,7 @@ import { DataSource, type EntityManager } from 'typeorm';
 import { ProvidersService } from '../providers/providers.service';
 import type { AuthUserContext } from '../identity/identity.types';
 import type { BlockKtvChatDto, SendKtvMessageDto } from './ktv-chat.dto';
+import { KtvChatPrivacyService } from './ktv-chat-privacy.service';
 
 export interface KtvThread {
   id: string;
@@ -25,6 +26,9 @@ export interface KtvThread {
   blocked_by_other: boolean;
   my_block_expires_at: string | null;
   can_send: boolean;
+  privacy_enabled: boolean;
+  history_locked: boolean;
+  unlock_expires_at: string | null;
 }
 export interface KtvMessage {
   id: string;
@@ -57,6 +61,7 @@ export class KtvChatService {
   constructor(
     private readonly db: DataSource,
     private readonly providers: ProvidersService,
+    private readonly privacy: KtvChatPrivacyService,
   ) {}
 
   private seededProviders(manager: EntityManager = this.db.manager): Promise<SeedChatProvider[]> {
@@ -134,14 +139,21 @@ export class KtvChatService {
       EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id<>$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS blocked_by_other,
       (SELECT expires_at FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id=$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS my_block_expires_at,
       NOT EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS can_send,
-      (SELECT body FROM ktv_chat_messages WHERE thread_id=t.id ORDER BY seq DESC LIMIT 1) AS last_message,
+      (t.customer_user_id=$1 AND COALESCE(privacy.value ? 'passwordHash',false)) AS privacy_enabled,
+      (t.customer_user_id=$1 AND COALESCE(privacy.value ? 'passwordHash',false)
+        AND COALESCE((privacy.value->'grants'->$2::text->>'expiresAt')::bigint,0)<=extract(epoch FROM clock_timestamp())*1000) AS history_locked,
+      CASE WHEN t.customer_user_id=$1 AND COALESCE((privacy.value->'grants'->$2::text->>'expiresAt')::bigint,0)>extract(epoch FROM clock_timestamp())*1000
+        THEN to_timestamp((privacy.value->'grants'->$2::text->>'expiresAt')::bigint/1000.0) ELSE NULL END AS unlock_expires_at,
+      CASE WHEN t.customer_user_id=$1 AND COALESCE(privacy.value ? 'passwordHash',false) THEN NULL
+        ELSE (SELECT body FROM ktv_chat_messages WHERE thread_id=t.id ORDER BY seq DESC LIMIT 1) END AS last_message,
       (SELECT count(*)::int FROM ktv_chat_messages m WHERE m.thread_id=t.id AND m.sender_user_id<>$1
         AND m.seq>CASE WHEN t.customer_user_id=$1 THEN t.customer_read_seq ELSE t.provider_read_seq END) AS unread_count
       FROM ktv_chat_threads t JOIN provider_applications p ON p.id=t.provider_application_id
       JOIN users u ON u.id=t.customer_user_id
       JOIN users provider ON provider.id=t.provider_user_id
+      LEFT JOIN app_metadata privacy ON privacy.key='mocmaria.chat.privacy.'||t.id::text
       WHERE t.customer_user_id=$1 OR t.provider_user_id=$1 ORDER BY t.updated_at DESC,t.id`,
-      [actor.id],
+      [actor.id, actor.sessionId],
     );
     const seeded = new Set((await this.seededProviders()).map((p) => p.id));
     return rows.map(({ provider_status, provider_active, customer_active, ...thread }) => ({
@@ -202,35 +214,45 @@ export class KtvChatService {
     return thread;
   }
 
-  async messages(actor: AuthUserContext, threadId: string, before?: string): Promise<KtvMessage[]> {
-    await this.member(this.db.manager, actor.id, threadId);
-    if (before) {
-      const [cursor] = await this.db.query<{ id: string }[]>(
-        `SELECT id FROM ktv_chat_messages WHERE id=$1 AND thread_id=$2`,
-        [before, threadId],
-      );
-      if (!cursor) throw new BadRequestException('Mốc tin nhắn không hợp lệ.');
-    }
-    const rows = await this.db.query<KtvMessage[]>(
-      `SELECT id,thread_id,sender_user_id,body,created_at
+  async messages(
+    actor: AuthUserContext,
+    threadId: string,
+    before?: string,
+    token?: string,
+  ): Promise<KtvMessage[]> {
+    return this.db.transaction(async (manager) => {
+      const thread = await this.member(manager, actor.id, threadId, true);
+      await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
+      if (before) {
+        const [cursor] = await manager.query<{ id: string }[]>(
+          `SELECT id FROM ktv_chat_messages WHERE id=$1 AND thread_id=$2`,
+          [before, threadId],
+        );
+        if (!cursor) throw new BadRequestException('Mốc tin nhắn không hợp lệ.');
+      }
+      const rows = await manager.query<KtvMessage[]>(
+        `SELECT id,thread_id,sender_user_id,body,created_at
       FROM ktv_chat_messages WHERE thread_id=$1
       AND ($2::uuid IS NULL OR seq<(SELECT seq FROM ktv_chat_messages WHERE id=$2 AND thread_id=$1))
       ORDER BY seq DESC LIMIT 50`,
-      [threadId, before ?? null],
-    );
-    return rows.reverse();
+        [threadId, before ?? null],
+      );
+      return rows.reverse();
+    });
   }
 
   async send(
     actor: AuthUserContext,
     threadId: string,
     dto: SendKtvMessageDto,
+    token?: string,
   ): Promise<KtvMessage> {
     const body = dto.body.trim();
     if (!body || body.length > 2000)
       throw new BadRequestException('Tin nhắn cần từ 1 đến 2000 ký tự.');
     return this.db.transaction(async (manager) => {
       const thread = await this.member(manager, actor.id, threadId, true);
+      await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
       const clientId = dto.clientMessageId ?? randomUUID();
       const [existing] = await manager.query<KtvMessage[]>(
         `SELECT id,thread_id,sender_user_id,body,created_at FROM ktv_chat_messages
@@ -278,9 +300,15 @@ export class KtvChatService {
     });
   }
 
-  async read(actor: AuthUserContext, threadId: string, messageId: string): Promise<void> {
+  async read(
+    actor: AuthUserContext,
+    threadId: string,
+    messageId: string,
+    token?: string,
+  ): Promise<void> {
     await this.db.transaction(async (manager) => {
       const thread = await this.member(manager, actor.id, threadId, true);
+      await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
       const column =
         thread.customer_user_id === actor.id ? 'customer_read_seq' : 'provider_read_seq';
       const [message] = await manager.query<{ id: string }[]>(
@@ -294,6 +322,19 @@ export class KtvChatService {
         [threadId, messageId],
       );
     });
+  }
+  async privacyUpdate(
+    actor: AuthUserContext,
+    threadId: string,
+    action: 'set' | 'unlock' | 'lock' | 'remove' | 'recover',
+    password?: string,
+    currentPassword?: string,
+  ): Promise<KtvThread & { unlock_token?: string }> {
+    const token = await this.privacy.update(actor, threadId, action, password, currentPassword);
+    return {
+      ...(await this.list(actor)).find((thread) => thread.id === threadId)!,
+      ...(token ? { unlock_token: token } : {}),
+    };
   }
   async block(actor: AuthUserContext, threadId: string, dto: BlockKtvChatDto): Promise<KtvThread> {
     if (dto.mode === 'PERMANENT' && dto.durationMinutes !== undefined)

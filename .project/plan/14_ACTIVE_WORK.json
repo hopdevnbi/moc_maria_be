@@ -298,6 +298,20 @@
         "test": "25 BE unit, 71 disposable PostgreSQL integrations/all17 migrations, 27 FE tests/full quality/build PASS; source PR/main CI and Vercel PASS; live browser registration preserves KTV/service, customer emoji send and KTV UI reply, reciprocal block/unblock; live API outsider404, distinct private KTV conversations, denied blocked writes/history preservation; mobile320/390, reduced500px height and desktop1440 checked",
         "businessData": "Owner opt-in flags for existing ten THERAPIST accounts; one ordinary CUSTOMER registered through production UI. Five scheduled/five unset remain. No provider approvals, certificates, customer reservations or public ratings seeded."
       }
+    },
+    {
+      "agent": "Codex customer per-chat password 2026-10-10",
+      "status": "ACTIVE",
+      "frontendBranch": "codex/customer-chat-password",
+      "backendBranch": "codex/customer-chat-password",
+      "ownedPaths": [
+        "BE/src/modules/ktv-chat/**",
+        "BE/test/ktv-chat.e2e-spec.ts and scoped privacy tests",
+        "BE app_metadata mocmaria.chat.privacy.* namespace only",
+        "FE/src/features/mobile/chat*",
+        "Plan own release evidence and docs/PRIVATE_KTV_CHAT.md"
+      ],
+      "note": "Customer-owned per-thread password, session-scoped expiring unlock, masked preview/API gates and recovery by own account password. No migration or shared identity/provider/booking writes; use existing private app_metadata store with thread-row transaction locking. Existing E2a ownership preserved."
     }
   ]
 }
