@@ -15,6 +15,20 @@ export class OpenKtvChatDto {
   @IsUUID()
   providerApplicationId!: string;
 }
+export class KtvChatPasswordDto {
+  @IsString()
+  @Length(1, 128)
+  password!: string;
+}
+export class SetKtvChatPasswordDto {
+  @IsString()
+  @Length(6, 128)
+  password!: string;
+  @IsOptional()
+  @IsString()
+  @Length(1, 128)
+  currentPassword?: string;
+}
 export class SendKtvMessageDto {
   @IsString()
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))

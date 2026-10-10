@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Header,
+  Headers,
   HttpCode,
   Param,
   ParseUUIDPipe,
@@ -21,6 +22,8 @@ import {
   OpenKtvChatDto,
   ReadKtvChatDto,
   SendKtvMessageDto,
+  KtvChatPasswordDto,
+  SetKtvChatPasswordDto,
 } from './ktv-chat.dto';
 
 @ApiTags('ktv-chat')
@@ -45,6 +48,50 @@ export class KtvChatController {
   list(@CurrentUser() actor: AuthUserContext): ReturnType<KtvChatService['list']> {
     return this.chat.list(actor);
   }
+  @Post(':id/privacy/password')
+  @Header('Cache-Control', 'private, no-store')
+  setPassword(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: SetKtvChatPasswordDto,
+  ): ReturnType<KtvChatService['privacyUpdate']> {
+    return this.chat.privacyUpdate(actor, id, 'set', dto.password, dto.currentPassword);
+  }
+  @Post(':id/privacy/unlock')
+  @Header('Cache-Control', 'private, no-store')
+  unlockPrivacy(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: KtvChatPasswordDto,
+  ): ReturnType<KtvChatService['privacyUpdate']> {
+    return this.chat.privacyUpdate(actor, id, 'unlock', dto.password);
+  }
+  @Post(':id/privacy/lock')
+  @Header('Cache-Control', 'private, no-store')
+  lockPrivacy(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): ReturnType<KtvChatService['privacyUpdate']> {
+    return this.chat.privacyUpdate(actor, id, 'lock');
+  }
+  @Post(':id/privacy/remove')
+  @Header('Cache-Control', 'private, no-store')
+  removePrivacy(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: KtvChatPasswordDto,
+  ): ReturnType<KtvChatService['privacyUpdate']> {
+    return this.chat.privacyUpdate(actor, id, 'remove', dto.password);
+  }
+  @Post(':id/privacy/recover')
+  @Header('Cache-Control', 'private, no-store')
+  recoverPrivacy(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: KtvChatPasswordDto,
+  ): ReturnType<KtvChatService['privacyUpdate']> {
+    return this.chat.privacyUpdate(actor, id, 'recover', dto.password);
+  }
   @Post()
   @Header('Cache-Control', 'private, no-store')
   open(
@@ -59,8 +106,9 @@ export class KtvChatController {
     @CurrentUser() actor: AuthUserContext,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Query() query: KtvHistoryDto,
+    @Headers('x-chat-unlock') token?: string,
   ): ReturnType<KtvChatService['messages']> {
-    return this.chat.messages(actor, id, query.before);
+    return this.chat.messages(actor, id, query.before, token);
   }
   @Post(':id/messages')
   @Header('Cache-Control', 'private, no-store')
@@ -68,8 +116,9 @@ export class KtvChatController {
     @CurrentUser() actor: AuthUserContext,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: SendKtvMessageDto,
+    @Headers('x-chat-unlock') token?: string,
   ): ReturnType<KtvChatService['send']> {
-    return this.chat.send(actor, id, dto);
+    return this.chat.send(actor, id, dto, token);
   }
   @Post(':id/read')
   @HttpCode(204)
@@ -78,8 +127,9 @@ export class KtvChatController {
     @CurrentUser() actor: AuthUserContext,
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() dto: ReadKtvChatDto,
+    @Headers('x-chat-unlock') token?: string,
   ): Promise<void> {
-    return this.chat.read(actor, id, dto.lastMessageId);
+    return this.chat.read(actor, id, dto.lastMessageId, token);
   }
   @Post(':id/block')
   @Header('Cache-Control', 'private, no-store')
