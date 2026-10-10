@@ -1372,5 +1372,12 @@
     "limitations": "Web GPS needs visible foreground page; native background tracking is future work. SOS needs network and an on-duty operator, no automatic calls/SMS. Real device GPS was not enabled during QA. OSM tiles unreachable from QA machine network; fallback coordinates/stale status verified, map background availability not verified. Existing internal seed/database IDs preserved.",
     "businessData": "No production safety sessions, GPS points, SOS alerts, bookings, approvals or public reviews created. Dedicated production encryption key stored in Kubernetes Secret only. Safety feature requires no new schema migration.",
     "releasedAt": "2026-10-10T09:07:01.505Z"
+  },
+  "zaloAdminDelivery": {
+    "status": "CODE_TEST_PASS_RECIPIENT_PENDING",
+    "implementation": "3e058ec",
+    "pr": "https://github.com/hopdevnbi/moc_maria_be/pull/17",
+    "test": "46 unit tests; 27 chat/inquiry isolated cases; 3 PostgreSQL outbox cases. Format/lint/typecheck/build PASS.",
+    "live": "Bot API getMe verified BASIC account. Recipient bootstrap still waiting for a new incoming message; no live delivery claimed."
   }
 }

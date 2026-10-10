@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-return -- Supertest responses are untyped. */
 import { randomBytes, randomUUID } from 'node:crypto';
 import { INestApplication } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import request from 'supertest';
 import { DataSource } from 'typeorm';
@@ -27,6 +28,9 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
     configureApplication(app);
     await app.init();
     db = app.get(DataSource);
+    // Set after init so the worker does not run; the test inspects the committed outbox.
+    app.get(ConfigService).set('ZALO_BOT_TOKEN', 'isolated-test');
+    app.get(ConfigService).set('ZALO_ADMIN_CHAT_IDS', 'isolated-admin');
     for (let i = 0; i < 4; i++) {
       const email = `chat-${randomUUID()}@mocmaria.test`;
       const password = randomBytes(24).toString('base64url') + '1!';
@@ -150,6 +154,12 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
     messageId = rows[0].body.id;
     expect(rows[0].body.sender_user_id).toBe(actors[0].id);
     expect(rows[0].body.body).toBe('Xin chào 🌿');
+    const alerts = await db.query<{ value: { text: string } }[]>(
+      "SELECT value FROM app_metadata WHERE key LIKE 'mocmaria.zalo.outbox.%' AND value->>'text' LIKE $1",
+      ['%' + messageId + '%'],
+    );
+    expect(alerts).toHaveLength(1);
+    expect(alerts[0].value.text).not.toContain('Xin chào');
     await api(0)
       .post(`/api/v1/ktv-chat/threads/${threadId}/messages`)
       .send({ body: 'changed', clientMessageId })
@@ -161,6 +171,12 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
       .send({ body: 'Chào bạn' })
       .expect(201);
     lastMessageId = reply.body.id;
+    expect(
+      await db.query(
+        "SELECT key FROM app_metadata WHERE key LIKE 'mocmaria.zalo.outbox.%' AND value->>'text' LIKE $1",
+        ['%' + lastMessageId + '%'],
+      ),
+    ).toHaveLength(0);
     const list = await api(0).get('/api/v1/ktv-chat/threads').expect(200);
     expect(list.body.find((t: { id: string }) => t.id === threadId).unread_count).toBe(1);
     await api(0)

@@ -386,6 +386,20 @@
         "businessData": "No production safety sessions, GPS points, SOS alerts, bookings, approvals or public reviews created. Dedicated production encryption key stored in Kubernetes Secret only. Safety feature requires no new schema migration.",
         "releasedAt": "2026-10-10T09:07:01.505Z"
       }
+    },
+    {
+      "agent": "Codex Zalo admin delivery 2026-10-10",
+      "status": "ACTIVE",
+      "backendBranch": "codex/zalo-admin-delivery",
+      "backendWorktree": "C:/Users/admin/AppData/Local/Temp/moc-zalo-delivery-20261010",
+      "ownedPaths": [
+        "BE new zalo-alerts module",
+        "BE ktv-chat.service.ts new customer-message outbox hook only",
+        "BE customer-experience/experience.service.ts new inquiry outbox hook only",
+        "BE app.module.ts registration only",
+        "Own tests/docs/Plan"
+      ],
+      "note": "Preserve newly merged email alerts and E2a ownership. Use existing app_metadata, no migration or legacy booking edits. Token remains private."
     }
   ]
 }
