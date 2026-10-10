@@ -355,6 +355,25 @@
         "businessData": "No production inquiries or description approvals created by verification. Inquiry CONTACTED is not a confirmed reservation. Existing eligibility and booking transactions retained.",
         "releasedAt": "2026-10-10T05:03:40.972Z"
       }
+    },
+    {
+      "agent": "Codex KTV safety tracking 2026-10-10",
+      "status": "ACTIVE",
+      "frontendBranch": "codex/ktv-safety-tracking",
+      "backendBranch": "codex/ktv-safety-tracking",
+      "ownedPaths": [
+        "BE/src/modules/ktv-safety/**",
+        "BE/src/app.module.ts module registration only",
+        "BE/test/ktv-safety.e2e-spec.ts",
+        "FE/src/features/safety/**",
+        "FE/src/app/ktv/an-toan and quan-tri/an-toan-ktv",
+        "FE/src/app/tai-khoan/page.tsx additive safety links only",
+        "FE/src/features/mobile/inquiries.tsx additive provider safety link only",
+        "Own docs and Plan release evidence",
+        "FE public route aliases and provider-slugs integration from existing remote commit d33f44d",
+        "FE mobile links/profile/service/booking/chat routes and scoped tests; no underlying business identifier changes"
+      ],
+      "note": "Voluntary web location sharing for home visits; SUPER_ADMIN private monitoring, stale status, check-in/out, SOS, encrypted latest point and retention. Read-only inquiry association. Preserve other ownership and all booking/eligibility behavior."
     }
   ]
 }
