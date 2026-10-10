@@ -28,3 +28,9 @@ export class ProviderReviewPageDto {
 export class EligibleProviderReviewDto {
   @IsOptional() @IsUUID() providerApplicationId?: string;
 }
+export class AdminProviderReviewPageDto {
+  @IsOptional() @Type(() => Number) @IsInt() @Min(1) @Max(10000) page?: number;
+  @IsOptional()
+  @IsIn(['ALL', 'PENDING', 'PUBLISHED', 'HIDDEN'])
+  status?: 'ALL' | 'PENDING' | 'PUBLISHED' | 'HIDDEN';
+}

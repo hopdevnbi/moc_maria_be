@@ -162,6 +162,31 @@ describe('Verified provider reviews in disposable PostgreSQL', () => {
       .expect(409);
   });
   it('publishes genuine scores and comments without customer identity or booking details', async () => {
+    const before = await api()
+      .get('/api/v1/providers/' + provider + '/reviews')
+      .expect(200);
+    expect(before.body.summary).toMatchObject({ average: null, count: 0 });
+    expect(before.body.items).toEqual([]);
+    await api(0).get('/api/v1/admin/provider-reviews?status=PENDING').expect(403);
+    const pendingQueue = await api(3)
+      .get('/api/v1/admin/provider-reviews?status=PENDING')
+      .expect(200);
+    expect(pendingQueue.body.items).toContainEqual(
+      expect.objectContaining({
+        id: reviewId,
+        moderation_status: 'PENDING',
+        stars: 5,
+      }),
+    );
+    await api(3)
+      .patch('/api/v1/admin/provider-reviews/' + reviewId + '/visibility')
+      .send({
+        visibility: 'PUBLISHED',
+        reason: 'Verified review passed independent check',
+        expectedVersion: 1,
+      })
+      .expect(200);
+
     const page = await api().get(`/api/v1/providers/${provider}/reviews`).expect(200);
     expect(page.body.summary).toMatchObject({ average: 5, count: 1, distribution: { '5': 1 } });
     expect(page.body.items[0]).toMatchObject({
@@ -186,25 +211,39 @@ describe('Verified provider reviews in disposable PostgreSQL', () => {
       .expect(201);
     const edit = await api(0)
       .patch(`/api/v1/provider-reviews/${reviewId}`)
-      .send({ stars: 4, comment: 'Dịch vụ tốt, có thể đúng giờ hơn.', expectedVersion: 1 })
+      .send({ stars: 4, comment: 'Dịch vụ tốt, có thể đúng giờ hơn.', expectedVersion: 2 })
       .expect(200);
-    expect(edit.body).toMatchObject({ version: 2, stars: 4 });
+    expect(edit.body).toMatchObject({ version: 3, stars: 4 });
     await api(0)
       .patch(`/api/v1/provider-reviews/${reviewId}`)
-      .send({ stars: 3, comment: 'stale', expectedVersion: 1 })
-      .expect(409);
+      .send({ stars: 3, comment: 'stale', expectedVersion: 2 })
+      .expect(403);
     await api(2)
       .patch(`/api/v1/provider-reviews/${reviewId}`)
-      .send({ stars: 1, comment: 'intruder', expectedVersion: 2 })
+      .send({ stars: 1, comment: 'intruder', expectedVersion: 3 })
       .expect(404);
     const page = await api().get(`/api/v1/providers/${provider}/reviews`).expect(200);
-    expect(page.body.summary.average).toBe(4);
+    expect(page.body.summary.count).toBe(0);
+    const queue = await api(3).get('/api/v1/admin/provider-reviews?status=PENDING').expect(200);
+    expect(queue.body.items).toContainEqual(expect.objectContaining({ id: reviewId, stars: 4 }));
+    await api(3)
+      .patch('/api/v1/admin/provider-reviews/' + reviewId + '/visibility')
+      .send({
+        visibility: 'PUBLISHED',
+        reason: 'Edited review checked independently',
+        expectedVersion: 3,
+      })
+      .expect(200);
+    const visible = await api()
+      .get('/api/v1/providers/' + provider + '/reviews')
+      .expect(200);
+    expect(visible.body.summary.average).toBe(4);
   });
   it('allows only independent moderation with a reason and auditable history', async () => {
     const path = `/api/v1/admin/provider-reviews/${reviewId}/visibility`;
     await api(1)
       .patch(path)
-      .send({ visibility: 'HIDDEN', reason: 'KTV wants to hide', expectedVersion: 2 })
+      .send({ visibility: 'HIDDEN', reason: 'KTV wants to hide', expectedVersion: 4 })
       .expect(403);
     await db.query(
       `INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='SUPER_ADMIN' ON CONFLICT DO NOTHING`,
@@ -212,41 +251,48 @@ describe('Verified provider reviews in disposable PostgreSQL', () => {
     );
     await api(1)
       .patch(path)
-      .send({ visibility: 'HIDDEN', reason: 'KTV wants to hide', expectedVersion: 2 })
+      .send({ visibility: 'HIDDEN', reason: 'KTV wants to hide', expectedVersion: 4 })
       .expect(403);
     await api(3)
       .patch(path)
-      .send({ visibility: 'HIDDEN', reason: 'short', expectedVersion: 2 })
+      .send({ visibility: 'HIDDEN', reason: 'short', expectedVersion: 4 })
       .expect(400);
     const moderated = await api(3)
       .patch(path)
       .send({
         visibility: 'HIDDEN',
         reason: 'Independent QA moderation reason',
-        expectedVersion: 2,
+        expectedVersion: 4,
       })
       .expect(200);
-    expect(moderated.body.version).toBe(3);
+    expect(moderated.body.version).toBe(5);
     const page = await api().get(`/api/v1/providers/${provider}/reviews`).expect(200);
     expect(page.body.summary).toMatchObject({ average: null, count: 0 });
     expect(page.body.items).toEqual([]);
     await api(0)
       .patch(`/api/v1/provider-reviews/${reviewId}`)
-      .send({ stars: 5, comment: 'overwrite moderation', expectedVersion: 3 })
+      .send({ stars: 5, comment: 'overwrite moderation', expectedVersion: 5 })
       .expect(403);
     await api(3)
       .patch(path)
       .send({
         visibility: 'PUBLISHED',
         reason: 'Review restored after QA check',
-        expectedVersion: 3,
+        expectedVersion: 5,
       })
       .expect(200);
     const history = await db.query<{ action: string }[]>(
       'SELECT action FROM provider_review_history WHERE review_id=$1 ORDER BY version',
       [reviewId],
     );
-    expect(history.map((row) => row.action)).toEqual(['CREATE', 'EDIT', 'MODERATE', 'MODERATE']);
+    expect(history.map((row) => row.action)).toEqual([
+      'CREATE',
+      'MODERATE',
+      'EDIT',
+      'MODERATE',
+      'MODERATE',
+      'MODERATE',
+    ]);
   });
   it('enforces the seven-day edit window', async () => {
     await db.query(
@@ -255,7 +301,7 @@ describe('Verified provider reviews in disposable PostgreSQL', () => {
     );
     await api(0)
       .patch(`/api/v1/provider-reviews/${reviewId}`)
-      .send({ stars: 5, comment: 'too late', expectedVersion: 4 })
+      .send({ stars: 5, comment: 'too late', expectedVersion: 6 })
       .expect(403);
   });
 });
