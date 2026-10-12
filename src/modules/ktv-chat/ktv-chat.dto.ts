@@ -47,6 +47,11 @@ export class KtvHistoryDto {
   @IsUUID()
   before?: string;
 }
+export class KtvUpdatesDto {
+  @IsOptional()
+  @IsUUID()
+  after?: string;
+}
 export class BlockKtvChatDto {
   @IsIn(['TEMPORARY', 'PERMANENT'])
   mode!: 'TEMPORARY' | 'PERMANENT';

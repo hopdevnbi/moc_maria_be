@@ -72,13 +72,22 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
 
   // Called with the message/inquiry transaction: external HTTP never runs in the request path.
   async enqueue(manager: EntityManager, alert: ZaloAlert): Promise<void> {
-    const { token, recipients } = this.settings();
+    const { token } = this.settings();
     if (!token) return;
     const text = alertText(alert);
+    await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text);
+  }
+
+  configuredRecipients(): string[] {
+    const { token, recipients } = this.settings();
+    return token ? recipients : [];
+  }
+
+  async enqueueText(manager: EntityManager, eventId: string, text: string): Promise<void> {
+    const { token, recipients } = this.settings();
+    if (!token) return;
     for (const recipient of recipients) {
-      const key =
-        prefix +
-        createHash('sha256').update(`${alert.kind}:${alert.eventId}:${recipient}`).digest('hex');
+      const key = prefix + createHash('sha256').update(`${eventId}:${recipient}`).digest('hex');
       const delivery: Delivery = {
         recipient,
         text,

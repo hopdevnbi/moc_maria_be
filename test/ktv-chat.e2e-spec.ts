@@ -8,6 +8,7 @@ import { DataSource } from 'typeorm';
 import { AppModule } from '../src/app.module';
 import { configureApplication } from '../src/bootstrap/configure-application';
 import { ProvidersService } from '../src/modules/providers/providers.service';
+import { KtvChatService } from '../src/modules/ktv-chat/ktv-chat.service';
 import { requireIsolatedDatabase } from './isolated-database';
 
 describe('Private KTV chat in disposable PostgreSQL', () => {
@@ -158,8 +159,8 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
       "SELECT value FROM app_metadata WHERE key LIKE 'mocmaria.zalo.outbox.%' AND value->>'text' LIKE $1",
       ['%' + messageId + '%'],
     );
-    expect(alerts).toHaveLength(1);
-    expect(alerts[0].value.text).not.toContain('Xin chào');
+    // Chat is now aggregated by the scheduled digest, not one alert per message.
+    expect(alerts).toHaveLength(0);
     await api(0)
       .post(`/api/v1/ktv-chat/threads/${threadId}/messages`)
       .send({ body: 'changed', clientMessageId })
@@ -193,6 +194,42 @@ describe('Private KTV chat in disposable PostgreSQL', () => {
       .post(`/api/v1/ktv-chat/threads/${threadId}/read`)
       .send({ lastMessageId: randomUUID() })
       .expect(400);
+  });
+  it('delivers only newer messages to a held request as soon as the send commits', async () => {
+    const start = Date.now();
+    const held = api(0)
+      .get(`/api/v1/ktv-chat/threads/${threadId}/updates?after=${lastMessageId}`)
+      .expect(200)
+      .then((r) => r);
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    const sent = await api(1)
+      .post(`/api/v1/ktv-chat/threads/${threadId}/messages`)
+      .send({ body: 'Realtime reply' })
+      .expect(201);
+    const result = await held;
+    expect(result.body.map((m: { id: string }) => m.id)).toEqual([sent.body.id]);
+    expect(Date.now() - start).toBeLessThan(3000);
+    expect(result.headers['cache-control']).toBe('private, no-store');
+    await db.query('DELETE FROM ktv_chat_messages WHERE id=$1', [sent.body.id]);
+  });
+  it('rejects foreign cursors/nonmembers on the incremental endpoint and releases cancelled waits', async () => {
+    await api(3).get(`/api/v1/ktv-chat/threads/${threadId}/updates`).expect(404);
+    await api(0)
+      .get(`/api/v1/ktv-chat/threads/${threadId}/updates?after=${randomUUID()}`)
+      .expect(400);
+    const actor = { id: actors[0].id, sessionId: randomUUID() } as Parameters<
+      KtvChatService['updates']
+    >[0];
+    const [latest] = await db.query<{ id: string }[]>(
+      'SELECT id FROM ktv_chat_messages WHERE thread_id=$1 ORDER BY seq DESC LIMIT 1',
+      [threadId],
+    );
+    const stop = new AbortController();
+    const wait = app
+      .get(KtvChatService)
+      .updates(actor, threadId, latest.id, undefined, stop.signal);
+    setTimeout(() => stop.abort(), 100);
+    await expect(wait).resolves.toEqual([]);
   });
   it('paginates more than 50 messages without losing chronological order', async () => {
     await db.query(

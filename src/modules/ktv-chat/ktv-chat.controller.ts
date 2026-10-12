@@ -9,8 +9,10 @@ import {
   ParseUUIDPipe,
   Post,
   Query,
+  Res,
   UseGuards,
 } from '@nestjs/common';
+import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -19,6 +21,7 @@ import { KtvChatService } from './ktv-chat.service';
 import {
   BlockKtvChatDto,
   KtvHistoryDto,
+  KtvUpdatesDto,
   OpenKtvChatDto,
   ReadKtvChatDto,
   SendKtvMessageDto,
@@ -119,6 +122,22 @@ export class KtvChatController {
     @Headers('x-chat-unlock') token?: string,
   ): ReturnType<KtvChatService['send']> {
     return this.chat.send(actor, id, dto, token);
+  }
+  @Get(':id/updates')
+  @Header('Cache-Control', 'private, no-store')
+  updates(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query() query: KtvUpdatesDto,
+    @Res({ passthrough: true }) response: Response,
+    @Headers('x-chat-unlock') token?: string,
+  ): ReturnType<KtvChatService['updates']> {
+    const cancellation = new AbortController();
+    const closed = (): void => cancellation.abort();
+    response.on('close', closed);
+    return this.chat
+      .updates(actor, id, query.after, token, cancellation.signal)
+      .finally(() => response.off('close', closed));
   }
   @Post(':id/read')
   @HttpCode(204)

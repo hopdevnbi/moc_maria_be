@@ -1,5 +1,4 @@
 import { randomUUID } from 'node:crypto';
-import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 import {
   BadRequestException,
   ForbiddenException,
@@ -59,11 +58,15 @@ interface SeedChatProvider {
 
 @Injectable()
 export class KtvChatService {
+  private readonly listeners = new Map<string, Set<() => void>>();
+
+  private changed(threadId: string): void {
+    for (const wake of this.listeners.get(threadId) ?? []) wake();
+  }
   constructor(
     private readonly db: DataSource,
     private readonly providers: ProvidersService,
     private readonly privacy: KtvChatPrivacyService,
-    private readonly zaloAlerts: ZaloAlertsService,
   ) {}
 
   private seededProviders(manager: EntityManager = this.db.manager): Promise<SeedChatProvider[]> {
@@ -252,7 +255,7 @@ export class KtvChatService {
     const body = dto.body.trim();
     if (!body || body.length > 2000)
       throw new BadRequestException('Tin nhắn cần từ 1 đến 2000 ký tự.');
-    return this.db.transaction(async (manager) => {
+    const saved = await this.db.transaction(async (manager) => {
       const thread = await this.member(manager, actor.id, threadId, true);
       await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
       const clientId = dto.clientMessageId ?? randomUUID();
@@ -298,20 +301,61 @@ export class KtvChatService {
       await manager.query(`UPDATE ktv_chat_threads SET updated_at=clock_timestamp() WHERE id=$1`, [
         threadId,
       ]);
-      if (actor.id === thread.customer_user_id) {
-        const [provider] = await manager.query<{ public_name: string }[]>(
-          'SELECT public_name FROM provider_applications WHERE id=$1',
-          [thread.provider_application_id],
-        );
-        await this.zaloAlerts.enqueue(manager, {
-          kind: 'chat',
-          eventId: message.id,
-          customerName: actor.displayName,
-          providerName: provider?.public_name || 'KTV Mộc Maria',
-        });
-      }
       return message;
     });
+    this.changed(threadId);
+    return saved;
+  }
+
+  // A held request receives only new rows. Register before reading to avoid a lost wakeup.
+  // The periodic check also supports multiple API replicas without shared socket infrastructure.
+  async updates(
+    actor: AuthUserContext,
+    threadId: string,
+    after?: string,
+    token?: string,
+    signal?: AbortSignal,
+  ): Promise<KtvMessage[]> {
+    const deadline = Date.now() + 20000;
+    while (!signal?.aborted) {
+      let wake!: () => void;
+      const notification = new Promise<void>((resolve) => {
+        wake = resolve;
+      });
+      const listeners = this.listeners.get(threadId) ?? new Set<() => void>();
+      listeners.add(wake);
+      this.listeners.set(threadId, listeners);
+      const timer = setTimeout(wake, Math.min(4000, Math.max(0, deadline - Date.now())));
+      signal?.addEventListener('abort', wake, { once: true });
+      try {
+        const rows = await this.db.transaction(async (manager) => {
+          const thread = await this.member(manager, actor.id, threadId, true);
+          await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
+          if (after) {
+            const [cursor] = await manager.query<{ id: string }[]>(
+              'SELECT id FROM ktv_chat_messages WHERE id=$1 AND thread_id=$2',
+              [after, threadId],
+            );
+            if (!cursor) throw new BadRequestException('Mốc tin nhắn không hợp lệ.');
+          }
+          return manager.query<KtvMessage[]>(
+            `SELECT id,thread_id,sender_user_id,body,created_at
+            FROM ktv_chat_messages WHERE thread_id=$1
+            AND ($2::uuid IS NULL OR seq>(SELECT seq FROM ktv_chat_messages WHERE id=$2 AND thread_id=$1))
+            ORDER BY seq ASC LIMIT 50`,
+            [threadId, after ?? null],
+          );
+        });
+        if (rows.length || Date.now() >= deadline || signal?.aborted) return rows;
+        await notification;
+      } finally {
+        clearTimeout(timer);
+        signal?.removeEventListener('abort', wake);
+        listeners.delete(wake);
+        if (!listeners.size) this.listeners.delete(threadId);
+      }
+    }
+    return [];
   }
 
   async read(
