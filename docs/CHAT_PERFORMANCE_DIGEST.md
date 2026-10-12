@@ -31,3 +31,19 @@ Zalo recipient setup can be completed later: the owner opens Bot Mộc Maria and
 ## BUSINESS_DATA / rollback
 
 No customer, KTV, booking, review, password or chat fixture is added to production. Existing message storage and settings remain. Roll back application images/frontend if needed; retain real message data, digest watermarks and pending deliveries. For a notification-only incident disable the schedule in admin rather than deleting history.
+
+## Production release evidence
+
+CODE / COMMIT: BE `396bd847fd1b6134b069563d072479ac4448bad2` (implementation `85658bc`); FE `07daed7f3f50f5b1f135679976f417ca6b93c751`. Both released to main by an ancestry-checked fast-forward through the already authorized Git identity. GitHub CLI used another account and could not create a pull request; no PR was created.
+
+TEST: BE quality CI `38204145119` and image publish `38204145125` succeeded. FE quality CI `38204414044` succeeded. Local validation: 49 BE unit tests, 99 disposable PostgreSQL integration tests and 82 FE tests; typecheck, changed-file lint and builds passed. The complete integration rerun fixed two issues found during QA: collector timing now uses PostgreSQL's clock, and claimed email rows use a SELECT-returning CTE compatible with TypeORM.
+
+DEPLOY: BE image `ghcr.io/hopdevnbi/moc_maria_be@sha256:f0a8f9e3bb958391a5f9ec19c76e19efb304a50b84fec86a031264f37ab41b78`, Ready 1/1, zero restarts. Changed Recreate to RollingUpdate with maxSurge=1/maxUnavailable=0. Queue URL and dedicated Secret reference added without replacing existing secrets. HTTPS ready 200; new private digest/incremental endpoints anonymous 401. Shared Acutis Chat and Queue remain Ready 1/1.
+
+FE production deployment `7006570380` succeeded. `https://mocmaria.com/quan-tri/thong-bao` returns 200 and its live JavaScript bundle contains `/admin/chat-digest`. UI interactions were covered by component tests; a new authenticated live browser walkthrough was not completed because native Chrome capture reported minimized windows and `failed to activate captured window`.
+
+DELIVERY: Email setup job `moc-maria.chat-digest.setup.20261012` was accepted with HTTP 202 and finished `completed`, attemptsMade=1, addressed to the existing enabled admin recipient. This confirms the email provider accepted transmission, not mailbox inbox placement. The actual scheduled first report has not run yet.
+
+SCHEDULE: enabled, daily 09:00 Vietnam time; nextAt `2026-10-13T02:00:00.000Z` (13 October 09:00 Vietnam). Email ready=true; Zalo ready=false; pending=0/failed=0 at verification. The owner explicitly deferred the fresh Bot connection message while coding proceeded. Zalo end-to-end delivery remains pending that recipient step.
+
+BUSINESS_DATA: Production still has the original 9 threads/27 messages; no chat, provider, booking or password fixtures were added. Rollback image is `sha256:4811bdda3f581beff6493c2942499abe15716d920768707c0ec3841aa317938a`; retain message/history/watermark data. The shared Plan's booking phase/ledger remains separately owned; this scoped release is recorded in its own coordination claim and this document.
