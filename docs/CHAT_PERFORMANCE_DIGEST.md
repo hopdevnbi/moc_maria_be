@@ -31,4 +31,3 @@ Zalo recipient setup can be completed later: the owner opens Bot Mộc Maria and
 ## BUSINESS_DATA / rollback
 
 No customer, KTV, booking, review, password or chat fixture is added to production. Existing message storage and settings remain. Roll back application images/frontend if needed; retain real message data, digest watermarks and pending deliveries. For a notification-only incident disable the schedule in admin rather than deleting history.
-
