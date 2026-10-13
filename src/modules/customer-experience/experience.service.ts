@@ -61,6 +61,55 @@ export class CustomerExperienceService {
     private readonly adminAlerts: AdminAlertsService,
     private readonly zaloAlerts: ZaloAlertsService,
   ) {}
+  private profileAdmin(actor: AuthUserContext): void {
+    if (!actor.permissions.includes('roles.manage'))
+      throw new ForbiddenException('Cần quyền quản trị KTV.');
+  }
+  async publicProfileData(): Promise<Array<{ providerId: string; age: number }>> {
+    return this.db.query(`SELECT p.id AS "providerId",(m.value->>'age')::int AS age
+      FROM provider_applications p JOIN users u ON u.id=p.user_id AND u.is_active
+      JOIN app_metadata m ON m.key='mocmaria.provider.profile.'||p.id::text
+      WHERE p.status NOT IN ('REJECTED','SUSPENDED') AND m.value->>'age' IS NOT NULL`);
+  }
+  async adminPublicProfile(
+    actor: AuthUserContext,
+    id: string,
+  ): Promise<{ providerId: string; age: number | null }> {
+    this.profileAdmin(actor);
+    const [row] = await this.db.query<{ providerId: string; age: number | null }[]>(
+      `SELECT p.id AS "providerId",(m.value->>'age')::int AS age
+      FROM provider_applications p LEFT JOIN app_metadata m ON m.key='mocmaria.provider.profile.'||p.id::text WHERE p.id=$1`,
+      [id],
+    );
+    if (!row) throw new NotFoundException('Không tìm thấy KTV.');
+    return row;
+  }
+  async savePublicAge(
+    actor: AuthUserContext,
+    id: string,
+    age: number,
+  ): Promise<{ providerId: string; age: number }> {
+    this.profileAdmin(actor);
+    if (!Number.isInteger(age) || age < 18 || age > 100)
+      throw new BadRequestException('Tuổi cần từ 18 đến 100.');
+    return this.db.transaction(async (m) => {
+      const [provider] = await m.query<{ id: string }[]>(
+        'SELECT id FROM provider_applications WHERE id=$1 FOR UPDATE',
+        [id],
+      );
+      if (!provider) throw new NotFoundException('Không tìm thấy KTV.');
+      await this.save(m, 'mocmaria.provider.profile.' + id, {
+        age,
+        source: 'ADMIN',
+        updatedBy: actor.id,
+      });
+      await m.query(
+        `INSERT INTO audit_logs(event,actor_user_id,metadata) VALUES('provider.public_age.updated',$1,$2::jsonb)`,
+        [actor.id, JSON.stringify({ providerId: id, age })],
+      );
+      return { providerId: id, age };
+    });
+  }
   private superAdmin(actor: AuthUserContext): void {
     if (!actor.roles.includes('SUPER_ADMIN'))
       throw new ForbiddenException('Chỉ super admin được duyệt mô tả công khai.');

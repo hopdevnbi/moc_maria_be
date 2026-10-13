@@ -18,11 +18,17 @@ import {
   ReplyInquiryDto,
   ReviewPresentationDto,
   SubmitPresentationDto,
+  ProviderAgeDto,
 } from './experience.dto';
 
 @Controller('provider-presentation')
 export class PublicPresentationController {
   constructor(private readonly service: CustomerExperienceService) {}
+  @Get('profiles') @Header('Cache-Control', 'no-store') profiles(): ReturnType<
+    CustomerExperienceService['publicProfileData']
+  > {
+    return this.service.publicProfileData();
+  }
   @Get() @Header('Cache-Control', 'no-store') public(): ReturnType<
     CustomerExperienceService['publicPresentations']
   > {
@@ -33,6 +39,21 @@ export class PublicPresentationController {
 @UseGuards(AccessTokenGuard)
 export class CustomerExperienceController {
   constructor(private readonly service: CustomerExperienceService) {}
+  @Get('admin/provider-public-profile/:id')
+  @Header('Cache-Control', 'private, no-store')
+  publicProfile(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): ReturnType<CustomerExperienceService['adminPublicProfile']> {
+    return this.service.adminPublicProfile(actor, id);
+  }
+  @Patch('admin/provider-public-profile/:id') @Header('Cache-Control', 'private, no-store') age(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() dto: ProviderAgeDto,
+  ): ReturnType<CustomerExperienceService['savePublicAge']> {
+    return this.service.savePublicAge(actor, id, dto.age);
+  }
   @Get('provider-presentation/me') @Header('Cache-Control', 'private, no-store') own(
     @CurrentUser() actor: AuthUserContext,
   ): ReturnType<CustomerExperienceService['ownPresentation']> {

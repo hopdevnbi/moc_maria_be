@@ -1,4 +1,18 @@
-import { IsIn, IsISO8601, IsOptional, IsString, IsUUID, Length } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsISO8601,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Min,
+  Max,
+} from 'class-validator';
+
+export class ProviderAgeDto {
+  @IsInt() @Min(18) @Max(100) age!: number;
+}
 
 export class SubmitPresentationDto {
   @IsString() @Length(30, 2000) introduction!: string;

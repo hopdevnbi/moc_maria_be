@@ -92,6 +92,26 @@ describe('Moderated presentations and appointment inquiries in isolated PostgreS
     await api(1).get('/api/v1/admin/provider-presentation').expect(403);
     await api(0).get('/api/v1/admin/provider-presentation').expect(403);
   });
+  it('allows an admin to persist public age without approving the application, and rejects other users', async () => {
+    const path = '/api/v1/admin/provider-public-profile/' + providerId;
+    await api().get(path).expect(401);
+    await api(0).patch(path).send({ age: 22 }).expect(403);
+    for (const age of [17, 101, 22.5]) await api(2).patch(path).send({ age }).expect(400);
+    await api(2).patch(path).send({ age: 22 }).expect(200);
+    const saved = await api(2).get(path).expect(200);
+    expect(saved.body.age).toBe(22);
+    const publicRows = await api().get('/api/v1/provider-presentation/profiles').expect(200);
+    expect(
+      publicRows.body.find((row: { providerId: string }) => row.providerId === providerId),
+    ).toEqual({ providerId, age: 22 });
+    const [app] = await db.query<{ status: string }[]>(
+      'SELECT status FROM provider_applications WHERE id=$1',
+      [providerId],
+    );
+    expect(app.status).toBe('APPLIED');
+    await api(2).patch(path).send({ age: 24 }).expect(200);
+    expect((await api(2).get(path)).body.age).toBe(24);
+  });
   it('keeps pending description private and rejects stale review versions', async () => {
     const r = await api(1)
       .post('/api/v1/provider-presentation/me')
