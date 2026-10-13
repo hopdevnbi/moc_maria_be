@@ -1,0 +1,115 @@
+{
+  "apiVersion": "v1",
+  "kind": "List",
+  "items": [
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolume",
+      "metadata": { "name": "moc-maria-email-redis" },
+      "spec": {
+        "capacity": { "storage": "1Gi" },
+        "accessModes": ["ReadWriteOnce"],
+        "storageClassName": "",
+        "persistentVolumeReclaimPolicy": "Retain",
+        "claimRef": { "namespace": "moc-maria", "name": "moc-maria-email-redis" },
+        "hostPath": { "path": "/var/lib/moc-maria/email-redis", "type": "DirectoryOrCreate" }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "PersistentVolumeClaim",
+      "metadata": { "name": "moc-maria-email-redis", "namespace": "moc-maria" },
+      "spec": {
+        "accessModes": ["ReadWriteOnce"],
+        "storageClassName": "",
+        "volumeName": "moc-maria-email-redis",
+        "resources": { "requests": { "storage": "1Gi" } }
+      }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": { "name": "moc-maria-email-redis", "namespace": "moc-maria" },
+      "spec": {
+        "replicas": 1,
+        "strategy": { "type": "Recreate" },
+        "selector": { "matchLabels": { "app": "moc-maria-email-redis" } },
+        "template": {
+          "metadata": { "labels": { "app": "moc-maria-email-redis" } },
+          "spec": {
+            "terminationGracePeriodSeconds": 30,
+            "initContainers": [{
+              "name": "storage-owner",
+              "image": "redis:7.4.5-bookworm",
+              "command": ["sh", "-c", "chown 999:999 /data"],
+              "securityContext": { "runAsUser": 0 },
+              "volumeMounts": [{ "name": "data", "mountPath": "/data" }]
+            }],
+            "containers": [{
+              "name": "redis",
+              "image": "redis:7.4.5-bookworm",
+              "args": ["redis-server", "--appendonly", "yes", "--appendfsync", "everysec", "--maxmemory", "96mb", "--maxmemory-policy", "noeviction", "--requirepass", "$(REDISCLI_AUTH)"],
+              "env": [{ "name": "REDISCLI_AUTH", "valueFrom": { "secretKeyRef": { "name": "moc-maria-email-secrets", "key": "REDIS_PASSWORD" } } }],
+              "ports": [{ "name": "redis", "containerPort": 6379 }],
+              "resources": { "requests": { "cpu": "25m", "memory": "32Mi" }, "limits": { "cpu": "250m", "memory": "192Mi" } },
+              "securityContext": { "runAsNonRoot": true, "runAsUser": 999, "runAsGroup": 999, "allowPrivilegeEscalation": false, "capabilities": { "drop": ["ALL"] } },
+              "readinessProbe": { "exec": { "command": ["redis-cli", "ping"] }, "initialDelaySeconds": 3, "periodSeconds": 5 },
+              "livenessProbe": { "exec": { "command": ["redis-cli", "ping"] }, "initialDelaySeconds": 10, "periodSeconds": 15 },
+              "volumeMounts": [{ "name": "data", "mountPath": "/data" }]
+            }],
+            "volumes": [{ "name": "data", "persistentVolumeClaim": { "claimName": "moc-maria-email-redis" } }]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": { "name": "moc-maria-email-redis", "namespace": "moc-maria" },
+      "spec": { "selector": { "app": "moc-maria-email-redis" }, "ports": [{ "name": "redis", "port": 6379, "targetPort": "redis" }] }
+    },
+    {
+      "apiVersion": "apps/v1",
+      "kind": "Deployment",
+      "metadata": { "name": "moc-maria-email-queue", "namespace": "moc-maria" },
+      "spec": {
+        "replicas": 1,
+        "selector": { "matchLabels": { "app": "moc-maria-email-queue" } },
+        "template": {
+          "metadata": { "labels": { "app": "moc-maria-email-queue" } },
+          "spec": {
+            "dnsConfig": { "options": [{ "name": "ndots", "value": "1" }] },
+            "containers": [{
+              "name": "queue",
+              "image": "ghcr.io/hopdevnbi/acutis_education_queue:bb2b24c561d90d2fde2856e3f960ecdd0efc6038@sha256:1fd3b5d63346729da03cf32d8ea52f670359c069f0711e8d212c599a2afb1f05",
+              "envFrom": [{ "secretRef": { "name": "moc-maria-email-secrets" } }],
+              "env": [
+                { "name": "NODE_ENV", "value": "production" },
+                { "name": "PORT", "value": "4002" },
+                { "name": "EMAIL_TRANSPORT", "value": "smtp" },
+                { "name": "SMTP_HOST", "value": "smtp.resend.com" },
+                { "name": "SMTP_PORT", "value": "465" },
+                { "name": "SMTP_SECURE", "value": "true" },
+                { "name": "SMTP_USER", "value": "resend" },
+                { "name": "SMTP_FROM", "value": "Mộc Maria <no-reply@mocmaria.com>" },
+                { "name": "WORKER_CONCURRENCY", "value": "1" },
+                { "name": "CORS_ORIGIN", "value": "https://mocmaria.com" }
+              ],
+              "ports": [{ "name": "http", "containerPort": 4002 }],
+              "resources": { "requests": { "cpu": "50m", "memory": "64Mi" }, "limits": { "cpu": "300m", "memory": "192Mi" } },
+              "securityContext": { "runAsNonRoot": true, "runAsUser": 1000, "runAsGroup": 1000, "allowPrivilegeEscalation": false, "capabilities": { "drop": ["ALL"] } },
+              "readinessProbe": { "httpGet": { "path": "/health/ready", "port": "http" }, "initialDelaySeconds": 5, "periodSeconds": 5 },
+              "livenessProbe": { "httpGet": { "path": "/health/live", "port": "http" }, "initialDelaySeconds": 15, "periodSeconds": 15 }
+            }]
+          }
+        }
+      }
+    },
+    {
+      "apiVersion": "v1",
+      "kind": "Service",
+      "metadata": { "name": "moc-maria-email-queue", "namespace": "moc-maria" },
+      "spec": { "selector": { "app": "moc-maria-email-queue" }, "ports": [{ "name": "http", "port": 80, "targetPort": "http" }] }
+    }
+  ]
+}

@@ -22,7 +22,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: api
-          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:dc3cb89ee11a0b536c4dfedc535efb078ddc57ed4244bbfeac3a9ed694ef343b
+          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:a84a956d9c2ebc52ce5855f632143d9d6a01816dc45d3ed6d75fbf5f6f62e69d
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
@@ -37,6 +37,13 @@ spec:
               value: MOC_MARIA
             - name: QUEUE_SOURCE
               value: MOC_MARIA
+            - name: QUEUE_SERVICE_URL
+              value: http://moc-maria-email-queue.moc-maria.svc.cluster.local
+            - name: QUEUE_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: moc-maria-email-secrets
+                  key: QUEUE_API_KEY
             - name: DATABASE_POOL_MAX
               value: '3'
             - name: NODE_EXTRA_CA_CERTS
