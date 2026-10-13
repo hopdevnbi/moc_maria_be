@@ -7,18 +7,26 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { RequirePermissions } from '../access-control/decorators/require-permissions.decorator';
+import { PermissionsGuard } from '../access-control/guards/permissions.guard';
+import { PERMISSIONS } from '../identity/identity.constants';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { CustomerExperienceService } from './experience.service';
+import { AdminAppointmentInquiriesService } from './admin-appointment-inquiries.service';
 import {
   CreateInquiryDto,
   ReplyInquiryDto,
   ReviewPresentationDto,
   SubmitPresentationDto,
   ProviderAgeDto,
+  AdminInquiryQueryDto,
+  AdminReplyInquiryDto,
 } from './experience.dto';
 
 @Controller('provider-presentation')
@@ -94,5 +102,42 @@ export class CustomerExperienceController {
     @Body() dto: ReplyInquiryDto,
   ): ReturnType<CustomerExperienceService['replyInquiry']> {
     return this.service.replyInquiry(actor, id, dto);
+  }
+}
+
+@ApiTags('admin-appointment-inquiries')
+@ApiBearerAuth()
+@Controller('admin/appointment-inquiries')
+@UseGuards(AccessTokenGuard, PermissionsGuard)
+@RequirePermissions(PERMISSIONS.CUSTOMER_MANAGE)
+export class AdminAppointmentInquiriesController {
+  constructor(private readonly service: AdminAppointmentInquiriesService) {}
+
+  @Get()
+  @Header('Cache-Control', 'private, no-store')
+  list(
+    @CurrentUser() actor: AuthUserContext,
+    @Query() query: AdminInquiryQueryDto,
+  ): ReturnType<AdminAppointmentInquiriesService['list']> {
+    return this.service.list(actor, query);
+  }
+
+  @Get(':id')
+  @Header('Cache-Control', 'private, no-store')
+  detail(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id') id: string,
+  ): ReturnType<AdminAppointmentInquiriesService['detail']> {
+    return this.service.detail(actor, id);
+  }
+
+  @Patch(':id')
+  @Header('Cache-Control', 'private, no-store')
+  update(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id') id: string,
+    @Body() dto: AdminReplyInquiryDto,
+  ): ReturnType<AdminAppointmentInquiriesService['update']> {
+    return this.service.update(actor, id, dto);
   }
 }

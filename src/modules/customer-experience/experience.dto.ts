@@ -8,7 +8,9 @@ import {
   Length,
   Min,
   Max,
+  MaxLength,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class ProviderAgeDto {
   @IsInt() @Min(18) @Max(100) age!: number;
@@ -33,4 +35,31 @@ export class CreateInquiryDto {
 }
 export class ReplyInquiryDto {
   @IsIn(['CONTACTED', 'DECLINED', 'CANCELLED']) status!: 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+}
+
+export class AdminInquiryQueryDto {
+  @IsOptional()
+  @IsIn(['ALL', 'PENDING', 'CONTACTED', 'DECLINED', 'CANCELLED'])
+  status?: 'ALL' | 'PENDING' | 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+
+  @IsOptional() @IsString() @MaxLength(120) q?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(10000)
+  page: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit: number = 20;
+}
+
+export class AdminReplyInquiryDto {
+  @IsIn(['CONTACTED', 'DECLINED']) status!: 'CONTACTED' | 'DECLINED';
+  @IsString() @Length(10, 500) reason!: string;
 }
