@@ -33,6 +33,15 @@ describe('Mộc Maria email branding and delivery contract', () => {
     expect(content.html).toContain('role="presentation"');
   });
 
+  it('renders Vietnamese text with a Unicode-friendly email-safe font across branding and headings', () => {
+    const html = bookingEmail(booking).html;
+    expect(html).toContain('<html lang="vi"><head><meta charset="UTF-8">');
+    expect(html).toContain('Một yêu cầu đặt lịch mới');
+    expect(html).toContain('Một chút an yên. Một ngày nhẹ nhàng.');
+    expect(html).not.toMatch(/font-family:\s*Georgia/i);
+    expect(html.match(/font-family:Arial,Helvetica,Tahoma,sans-serif/g)).toHaveLength(5);
+  });
+
   it('formats appointment time in Vietnam and preserves actual service, price and notes', () => {
     const content = bookingEmail(booking);
     expect(content.text).toContain('15:30 13/10/2026');

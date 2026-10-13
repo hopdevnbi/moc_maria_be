@@ -78,23 +78,23 @@ function emailLayout(input: {
   return `<!doctype html>
 <html lang="vi"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${escape(input.title)} · Mộc Maria</title>
 <style>@media only screen and (max-width:600px){.outer{padding:16px 8px!important}.content{padding:24px 18px!important}.headline{font-size:28px!important}.brand{padding:24px 18px!important}.cta{display:block!important;text-align:center!important}}</style></head>
-<body style="margin:0;padding:0;background:#f4f5ee;font-family:Arial,Helvetica,sans-serif;color:#244331">
+<body style="margin:0;padding:0;background:#f4f5ee;font-family:Arial,Helvetica,Tahoma,sans-serif;color:#244331">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all">${escape(input.preheader)}</div>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f5ee"><tr><td class="outer" align="center" style="padding:36px 16px">
+<table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f5ee;font-family:Arial,Helvetica,Tahoma,sans-serif"><tr><td class="outer" align="center" style="padding:36px 16px">
 <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="width:100%;max-width:600px;background:#fffef9;border:1px solid #dfe5d7;border-radius:20px;overflow:hidden">
 <tr><td class="brand" style="padding:28px 32px;background:#edf1e5;border-bottom:1px solid #dfe5d7">
-<table role="presentation" cellspacing="0" cellpadding="0"><tr><td width="72" valign="middle"><a href="${site}"><img src="${logo}" width="64" height="64" alt="Logo Mộc Maria" style="display:block;border:0;width:64px;height:64px"></a></td><td valign="middle"><a href="${site}" style="font-family:Georgia,serif;font-size:25px;font-weight:bold;line-height:30px;color:#244331;text-decoration:none">Mộc Maria</a><div style="margin-top:5px;font-size:10px;letter-spacing:2px;color:#927231;font-weight:bold">WELLNESS LOUNGE</div></td></tr></table>
+<table role="presentation" cellspacing="0" cellpadding="0"><tr><td width="72" valign="middle"><a href="${site}"><img src="${logo}" width="64" height="64" alt="Logo Mộc Maria" style="display:block;border:0;width:64px;height:64px"></a></td><td valign="middle"><a href="${site}" style="font-family:Arial,Helvetica,Tahoma,sans-serif;font-size:25px;font-weight:bold;line-height:30px;color:#244331;text-decoration:none">Mộc Maria</a><div style="margin-top:5px;font-size:10px;letter-spacing:2px;color:#927231;font-weight:bold">WELLNESS LOUNGE</div></td></tr></table>
 </td></tr>
 <tr><td class="content" style="padding:32px">
 <div style="font-size:11px;letter-spacing:1.6px;color:#927231;font-weight:bold;text-transform:uppercase">${escape(input.category)}</div>
-<h1 class="headline" style="font-family:Georgia,serif;font-size:32px;font-weight:normal;line-height:1.2;margin:12px 0 16px;color:#244331">${escape(input.title)}</h1>
+<h1 class="headline" style="font-family:Arial,Helvetica,Tahoma,sans-serif;font-size:32px;font-weight:normal;line-height:1.2;margin:12px 0 16px;color:#244331">${escape(input.title)}</h1>
 <p style="font-size:15px;line-height:1.7;margin:0 0 24px;color:#68796c">${escape(input.introduction)}</p>
 ${input.body}
 <table role="presentation" cellspacing="0" cellpadding="0" width="100%" style="margin-top:28px"><tr><td><a class="cta" href="${escape(action)}" style="display:inline-block;background:#2e583f;border:1px solid #2e583f;border-radius:10px;padding:15px 22px;color:#ffffff;font-size:14px;font-weight:bold;text-decoration:none;mso-padding-alt:15px 22px">${escape(input.actionLabel)} &rarr;</a></td></tr></table>
 <p style="font-size:12px;line-height:1.7;color:#68796c;margin:16px 0 0">Nếu nút không mở được, truy cập:<br><a href="${escape(action)}" style="color:#2e583f;overflow-wrap:anywhere;word-break:break-word">${escape(action)}</a></p>
 <p style="font-size:11px;line-height:1.6;color:#889184;margin:24px 0 0;overflow-wrap:anywhere;word-break:break-word">Mã tham chiếu: ${escape(input.reference)}</p>
 </td></tr>
-<tr><td align="center" style="padding:24px 24px;background:#edf1e5;border-top:1px solid #dfe5d7"><p style="font-family:Georgia,serif;font-size:17px;margin:0;color:#2e583f">Một chút an yên. Một ngày nhẹ nhàng.</p><p style="font-size:12px;line-height:1.7;color:#68796c;margin:10px 0 0">Thông báo tự động từ Mộc Maria · Vui lòng không trả lời email này.<br><a href="${site}" style="color:#2e583f;text-decoration:none">mocmaria.com</a></p></td></tr>
+<tr><td align="center" style="padding:24px 24px;background:#edf1e5;border-top:1px solid #dfe5d7"><p style="font-family:Arial,Helvetica,Tahoma,sans-serif;font-size:17px;margin:0;color:#2e583f">Một chút an yên. Một ngày nhẹ nhàng.</p><p style="font-size:12px;line-height:1.7;color:#68796c;margin:10px 0 0">Thông báo tự động từ Mộc Maria · Vui lòng không trả lời email này.<br><a href="${site}" style="color:#2e583f;text-decoration:none">mocmaria.com</a></p></td></tr>
 </table></td></tr></table></body></html>`;
 }
 
