@@ -54,6 +54,7 @@ describe('Zalo durable notifications', () => {
     expect(query).toHaveBeenCalledTimes(2);
     expect(query.mock.calls[0][1][0]).toBe(query.mock.calls[1][1][0]);
     expect(query.mock.calls[0][0]).toContain('ON CONFLICT(key) DO NOTHING');
+    expect(query.mock.calls[0][0]).toContain("jsonb_build_object('nextAt',clock_timestamp())");
     expect(fetch).not.toHaveBeenCalled();
   });
   it.each([false, true])(

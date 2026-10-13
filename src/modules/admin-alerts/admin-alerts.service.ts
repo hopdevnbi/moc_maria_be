@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BadRequestException } from '@nestjs/common';
 import { AdminAlertRecipient } from './admin-alert-recipient.entity';
+import { bookingEmail, mocMariaEmailJob } from '../../shared/email/moc-maria-email';
 
 export interface BookingAlert {
   appointmentId: string;
@@ -53,20 +54,6 @@ export class AdminAlertsService {
       this.logger.warn('Booking alert email not configured');
       return;
     }
-    const lines = [
-      'Mộc Maria - Yêu cầu đặt lịch mới',
-      `Mã lịch: ${alert.appointmentId}`,
-      `Khách hàng: ${alert.customerName}`,
-      `Email khách: ${alert.customerEmail || 'Chưa cung cấp'}`,
-      `Số điện thoại: ${alert.customerPhone || 'Chưa cung cấp'}`,
-      `KTV: ${alert.providerName}`,
-      `Dịch vụ: ${alert.serviceName}`,
-      `Cơ sở: ${alert.branchName}`,
-      `Thời gian (ISO): ${alert.startsAt}`,
-      `Giá dự kiến (VND): ${alert.totalVnd}`,
-      `Ghi chú: ${alert.notes || 'Không có'}`,
-      'Đăng nhập hệ thống quản trị để xác nhận yêu cầu.',
-    ];
     try {
       const response = await fetch(`${base.replace(/\/$/, '')}/jobs`, {
         method: 'POST',
@@ -74,13 +61,12 @@ export class AdminAlertsService {
         body: JSON.stringify({
           queue: 'email',
           name: 'email.send',
-          data: {
-            to: recipient,
-            subject: `[Mộc Maria] Đặt lịch mới ${alert.appointmentId.slice(0, 8)}`,
-            text: lines.join('\n'),
-            purpose: 'moc-maria-admin-booking',
-            correlationId: alert.appointmentId,
-          },
+          data: mocMariaEmailJob(
+            bookingEmail(alert),
+            recipient,
+            'moc-maria-admin-booking',
+            alert.appointmentId,
+          ),
           options: { attempts: 5, jobId: `moc-maria.booking.${alert.appointmentId}` },
         }),
         signal: AbortSignal.timeout(5000),

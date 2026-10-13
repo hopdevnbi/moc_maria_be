@@ -88,15 +88,16 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     if (!token) return;
     for (const recipient of recipients) {
       const key = prefix + createHash('sha256').update(`${eventId}:${recipient}`).digest('hex');
-      const delivery: Delivery = {
+      const delivery: Omit<Delivery, 'nextAt'> = {
         recipient,
         text,
         status: 'pending',
         attempts: 0,
-        nextAt: new Date().toISOString(),
       };
       await manager.query(
-        `INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb) ON CONFLICT(key) DO NOTHING`,
+        `INSERT INTO app_metadata(key,value)
+        VALUES($1,$2::jsonb||jsonb_build_object('nextAt',clock_timestamp()))
+        ON CONFLICT(key) DO NOTHING`,
         [key, JSON.stringify(delivery)],
       );
     }

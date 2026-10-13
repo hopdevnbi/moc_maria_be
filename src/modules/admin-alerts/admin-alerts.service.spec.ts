@@ -58,7 +58,7 @@ describe('Mộc Maria booking admin notifications', () => {
       queue: string;
       name: string;
       options: { jobId: string };
-      data: { to: string; text: string };
+      data: { to: string; text: string; html: string; from: string };
     };
     expect(body).toMatchObject({
       queue: 'email',
@@ -68,5 +68,8 @@ describe('Mộc Maria booking admin notifications', () => {
     expect(body.data.to).toEqual(['admin@example.com']);
     expect(body.data.text).toContain(event.providerName);
     expect(body.data.text).toContain(event.customerName);
+    expect(body.data.from).toBe('no-reply@mocmaria.com');
+    expect(body.data.html).toContain(event.providerName);
+    expect(body.data.html).toContain('WELLNESS LOUNGE');
   });
 });

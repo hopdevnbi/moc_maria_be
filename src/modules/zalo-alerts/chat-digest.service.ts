@@ -9,6 +9,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
 import { ZaloAlertsService } from './zalo-alerts.service';
+import {
+  chatDigestEmail,
+  legacyChatDigestEmail,
+  mocMariaEmailJob,
+} from '../../shared/email/moc-maria-email';
 
 export interface DigestSettings {
   enabled: boolean;
@@ -219,6 +224,7 @@ export class ChatDigestService implements OnModuleInit, OnModuleDestroy {
               JSON.stringify({
                 recipient: email,
                 text,
+                html: chatDigestEmail(row, text).html,
                 threadId: row.id,
                 status: 'pending',
                 attempts: 0,
@@ -288,7 +294,13 @@ export class ChatDigestService implements OnModuleInit, OnModuleDestroy {
       const [row] = await this.db.query<
         {
           key: string;
-          value: { recipient: string; text: string; threadId: string; attempts: number };
+          value: {
+            recipient: string;
+            text: string;
+            html?: string;
+            threadId: string;
+            attempts: number;
+          };
         }[]
       >(
         `WITH candidate AS (SELECT key FROM app_metadata WHERE key LIKE $1 AND value->>'status'='pending'
@@ -306,13 +318,17 @@ export class ChatDigestService implements OnModuleInit, OnModuleDestroy {
           body: JSON.stringify({
             queue: 'email',
             name: 'email.send',
-            data: {
-              to: row.value.recipient,
-              subject: `[Mộc Maria] Báo cáo chat ${row.value.threadId.slice(0, 8)}`,
-              text: row.value.text,
-              purpose: 'moc-maria-chat-digest',
-              correlationId: row.value.threadId,
-            },
+            data: mocMariaEmailJob(
+              {
+                subject: `[Mộc Maria] Báo cáo chat ${row.value.threadId.slice(0, 8)}`,
+                text: row.value.text,
+                html:
+                  row.value.html ?? legacyChatDigestEmail(row.value.threadId, row.value.text).html,
+              },
+              row.value.recipient,
+              'moc-maria-chat-digest',
+              row.value.threadId,
+            ),
             options: { attempts: 5, jobId: row.key },
           }),
           signal: AbortSignal.timeout(8000),

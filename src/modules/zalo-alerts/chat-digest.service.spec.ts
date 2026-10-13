@@ -1,4 +1,7 @@
-import { digestText, nextDigestAt, DigestSettings } from './chat-digest.service';
+import { ChatDigestService, digestText, nextDigestAt, DigestSettings } from './chat-digest.service';
+import { ConfigService } from '@nestjs/config';
+import type { DataSource } from 'typeorm';
+import type { ZaloAlertsService } from './zalo-alerts.service';
 const settings: DigestSettings = {
   enabled: true,
   mode: 'daily',
@@ -39,4 +42,62 @@ describe('Chat digest schedule', () => {
     expect(text).toContain('Khách: Khách Fake');
     expect(text.length).toBeLessThan(2000);
   });
+});
+
+describe('Chat digest email sender and pending-report compatibility', () => {
+  const originalFetch = global.fetch;
+  afterEach(() => {
+    global.fetch = originalFetch;
+  });
+
+  it.each([undefined, '<html><body>Saved branded report</body></html>'])(
+    'uses the dedicated sender and handles stored html=%s without changing retry identity',
+    async (html) => {
+      const query = jest
+        .fn()
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([
+          {
+            key: 'mocmaria.chat.digest.email.existing',
+            value: {
+              recipient: 'admin@example.com',
+              threadId: 'thread-existing',
+              text: 'Khách: An\nTin mới từ khách: 2',
+              attempts: 3,
+              html,
+            },
+          },
+        ])
+        .mockResolvedValueOnce([])
+        .mockResolvedValueOnce([]);
+      const config = new Map([
+        ['QUEUE_SERVICE_URL', 'https://queue.test'],
+        ['QUEUE_API_KEY', 'test-only'],
+      ]);
+      const fetchMock = jest.fn().mockResolvedValue({ ok: true });
+      global.fetch = fetchMock as typeof fetch;
+      const service = new ChatDigestService(
+        { query } as unknown as DataSource,
+        { get: (key: string) => config.get(key) } as ConfigService,
+        {} as ZaloAlertsService,
+      );
+      await service.drainEmail();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const [, options] = fetchMock.mock.calls[0] as [string, RequestInit];
+      const payload = JSON.parse(options.body as string) as {
+        data: { from: string; html: string; text: string };
+        options: { jobId: string };
+      };
+      expect(payload.data.from).toBe('no-reply@mocmaria.com');
+      expect(payload.options.jobId).toBe('mocmaria.chat.digest.email.existing');
+      expect(payload.data.text).toBe('Khách: An\nTin mới từ khách: 2');
+      expect(payload.data.html).toContain(html ? 'Saved branded report' : 'WELLNESS LOUNGE');
+      expect(payload.data.html).not.toContain('giangxa.com');
+      const [, updateValues] = query.mock.calls[2] as [string, [string, string, string]];
+      expect(JSON.parse(updateValues[1])).toMatchObject({
+        status: 'queued',
+        attempts: 4,
+      });
+    },
+  );
 });
