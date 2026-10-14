@@ -21,6 +21,7 @@ import { CustomerManagementModule } from './modules/customer-management/customer
 import { AdminAccessModule } from './modules/admin-access/admin-access.module';
 import { ProviderDisplayModule } from './modules/provider-display/provider-display.module';
 import { AdminIntakeModule } from './modules/admin-intake/admin-intake.module';
+import { InquiryFulfillmentModule } from './modules/inquiry-fulfillment/inquiry-fulfillment.module';
 
 @Module({
   imports: [
@@ -44,6 +45,7 @@ import { AdminIntakeModule } from './modules/admin-intake/admin-intake.module';
     AdminAccessModule,
     ProviderDisplayModule,
     AdminIntakeModule,
+    InquiryFulfillmentModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],

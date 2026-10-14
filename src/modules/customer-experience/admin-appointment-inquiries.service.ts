@@ -33,7 +33,9 @@ export interface AdminInquiryPage {
   limit: number;
   total: number;
   hasMore: boolean;
-  counts: Record<InquiryStatus | 'ALL', number> & { ARCHIVED: number };
+  counts: Record<InquiryStatus | 'ALL' | 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED', number> & {
+    ARCHIVED: number;
+  };
 }
 export interface AdminInquiryHistory {
   event: string;
@@ -85,9 +87,11 @@ export class AdminAppointmentInquiriesService {
       customerPhone: row.customerPhone,
       updatedAt: new Date(row.updatedAt).toISOString(),
       allowedActions: actor?.roles.includes('SUPER_ADMIN')
-        ? (['PENDING', 'CONTACTED', 'DECLINED', 'CANCELLED'] as InquiryStatus[]).filter(
-            (v) => v !== row.value.status,
-          )
+        ? row.value.appointmentId
+          ? []
+          : (['PENDING', 'CONTACTED', 'DECLINED', 'CANCELLED'] as InquiryStatus[]).filter(
+              (v) => v !== row.value.status,
+            )
         : row.value.status === 'PENDING'
           ? ['CONTACTED', 'DECLINED']
           : [],
@@ -98,6 +102,7 @@ export class AdminAppointmentInquiriesService {
     this.authorize(actor);
     const q = query.q?.trim() || null;
     const status = !query.status || query.status === 'ALL' ? null : query.status;
+    const isFulfillment = !!status && ['CONFIRMED', 'IN_SERVICE', 'COMPLETED'].includes(status);
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const archiveClause = query.archived === true ? 'IS NOT NULL' : 'IS NULL';
@@ -119,20 +124,28 @@ export class AdminAppointmentInquiriesService {
         contacted: number;
         declined: number;
         cancelled: number;
+        confirmed: number;
+        in_service: number;
+        completed: number;
       }>
     >(
       `SELECT COUNT(*)::int AS "all",
         COUNT(*) FILTER (WHERE m.value->>'status'='PENDING')::int AS pending,
-        COUNT(*) FILTER (WHERE m.value->>'status'='CONTACTED')::int AS contacted,
+        COUNT(*) FILTER (WHERE m.value->>'status'='CONTACTED' AND m.value->>'appointmentId' IS NULL)::int AS contacted,
         COUNT(*) FILTER (WHERE m.value->>'status'='DECLINED')::int AS declined,
-        COUNT(*) FILTER (WHERE m.value->>'status'='CANCELLED')::int AS cancelled
+        COUNT(*) FILTER (WHERE m.value->>'status'='CANCELLED')::int AS cancelled,
+        COUNT(*) FILTER (WHERE m.value->>'fulfillmentStatus'='CONFIRMED')::int AS confirmed,
+        COUNT(*) FILTER (WHERE m.value->>'fulfillmentStatus'='IN_SERVICE')::int AS in_service,
+        COUNT(*) FILTER (WHERE m.value->>'fulfillmentStatus'='COMPLETED')::int AS completed
         ${base}`,
       [q],
     );
     const rows = await this.db.query<AdminInquiryRow[]>(
       `SELECT m.value, m.updated_at AS "updatedAt",
         u.email AS "customerEmail", u.phone AS "customerPhone"
-       ${base} AND ($2::text IS NULL OR m.value->>'status'=$2::text)
+       ${base} AND ($2::text IS NULL OR
+         (${isFulfillment ? "m.value->>'fulfillmentStatus'" : "m.value->>'status'"}=$2::text
+          ${status === 'CONTACTED' ? "AND m.value->>'appointmentId' IS NULL" : ''}))
        ORDER BY m.updated_at DESC, m.key DESC LIMIT $3::int OFFSET $4::int`,
       [q, status, limit, (page - 1) * limit],
     );
@@ -142,6 +155,9 @@ export class AdminAppointmentInquiriesService {
       CONTACTED: Number(counts.contacted),
       DECLINED: Number(counts.declined),
       CANCELLED: Number(counts.cancelled),
+      CONFIRMED: Number(counts.confirmed ?? 0),
+      IN_SERVICE: Number(counts.in_service ?? 0),
+      COMPLETED: Number(counts.completed ?? 0),
       ARCHIVED: query.archived ? Number(counts.all) : 0,
     };
     const total = status ? statusCounts[status] : statusCounts.ALL;
@@ -202,6 +218,8 @@ export class AdminAppointmentInquiriesService {
         [inquiryKey(id)],
       );
       if (!row) throw new NotFoundException('Không tìm thấy yêu cầu.');
+      if (row.value.appointmentId)
+        throw new ConflictException('Lịch đã được xác nhận. Hãy xử lý trong mục lịch chính thức.');
       if (row.value.archivedAt)
         throw new ConflictException('Yêu cầu đã lưu trữ. Hãy khôi phục trước.');
       if (dto.expectedStatus && row.value.status !== dto.expectedStatus)
@@ -305,6 +323,10 @@ export class AdminAppointmentInquiriesService {
         [inquiryKey(id)],
       );
       if (!row) throw new NotFoundException('Không tìm thấy yêu cầu.');
+      if (row.value.appointmentId)
+        throw new ConflictException(
+          'Lịch đã được tạo. Không lưu trữ yêu cầu liên kết; hãy quản lý trong lịch chính thức.',
+        );
       if (!!row.value.archivedAt === archived)
         throw new ConflictException('Yêu cầu đã ở trạng thái này.');
       const next = {

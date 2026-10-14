@@ -176,7 +176,10 @@ export class ProviderReviewsService {
     if (!access.canReview) return [];
     return this.db.query(
       `SELECT a.id AS appointment_id,s.provider_application_id,p.public_name AS provider_name,
-      COALESCE(i.service_name,'Dịch vụ chăm sóc') AS service_name,a.ends_at AS completed_at,
+      COALESCE(i.service_name,
+        (SELECT h.metadata->>'serviceName' FROM appointment_status_history h
+         WHERE h.appointment_id=a.id AND h.previous_status IS NULL ORDER BY h.created_at LIMIT 1),
+        'Dịch vụ chăm sóc') AS service_name,a.ends_at AS completed_at,
       r.id AS review_id,r.stars,r.comment,r.visibility,
       CASE WHEN r.id IS NULL THEN NULL
         WHEN r.visibility='PUBLISHED' THEN 'PUBLISHED'

@@ -40,8 +40,25 @@ export class ReplyInquiryDto {
 
 export class AdminInquiryQueryDto {
   @IsOptional()
-  @IsIn(['ALL', 'PENDING', 'CONTACTED', 'DECLINED', 'CANCELLED'])
-  status?: 'ALL' | 'PENDING' | 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+  @IsIn([
+    'ALL',
+    'PENDING',
+    'CONTACTED',
+    'DECLINED',
+    'CANCELLED',
+    'CONFIRMED',
+    'IN_SERVICE',
+    'COMPLETED',
+  ])
+  status?:
+    | 'ALL'
+    | 'PENDING'
+    | 'CONTACTED'
+    | 'DECLINED'
+    | 'CANCELLED'
+    | 'CONFIRMED'
+    | 'IN_SERVICE'
+    | 'COMPLETED';
 
   @IsOptional() @IsString() @MaxLength(120) q?: string;
 

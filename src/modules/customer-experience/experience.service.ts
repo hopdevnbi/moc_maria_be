@@ -51,6 +51,8 @@ export interface Inquiry {
   signature: string;
   archivedAt?: string;
   createdByAdmin?: boolean;
+  appointmentId?: string;
+  fulfillmentStatus?: 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'CANCELLED';
 }
 const presentationKey = (id: string): string => 'mocmaria.presentation.' + id;
 const inquiryKey = (id: string): string => 'mocmaria.inquiry.' + id;
@@ -388,6 +390,10 @@ export class CustomerExperienceService {
       const value = await this.read<Inquiry>(m, inquiryKey(id));
       if (!value || (value.customerId !== actor.id && value.providerUserId !== actor.id))
         throw new NotFoundException('Không tìm thấy yêu cầu.');
+      if (value.appointmentId)
+        throw new ConflictException(
+          'Lịch chính thức đã được xác nhận. Hãy liên hệ quản trị viên để thay đổi.',
+        );
       if (
         dto.status === 'CANCELLED'
           ? value.customerId !== actor.id
