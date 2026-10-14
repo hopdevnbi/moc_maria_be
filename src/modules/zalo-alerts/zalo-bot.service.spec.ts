@@ -34,7 +34,7 @@ describe('Zalo webhook and operator connection', () => {
     expect(await bot.receive('test-webhook-secret', {})).toEqual({
       ok: true,
     });
-    expect(query).not.toHaveBeenCalled();
+    expect(query).toHaveBeenCalledTimes(1);
   });
   it('does not enroll a sender using the old unqualified connection phrase', async () => {
     await bot.receive('test-webhook-secret', {

@@ -87,6 +87,17 @@ describe('Bot connection and delayed Zalo channel in isolated PostgreSQL', () =>
     await bot.receive('test-secret', message(fresh.command, 'group-admin', 'GROUP'));
     expect(await alerts.configuredRecipients()).toEqual(['group-admin']);
   });
+  it('accepts a bare webhook event with omitted optional is_bot metadata', async () => {
+    const pair = await bot.createPairing();
+    const update = message(pair.command, 'bare-admin').result!;
+    delete update.message!.from!.is_bot;
+    await bot.receive('test-secret', update);
+    expect(await alerts.configuredRecipients()).toEqual(['bare-admin']);
+    const [state] = await db.query<{ value: { eventName: string } }[]>(
+      "SELECT value FROM app_metadata WHERE key='mocmaria.zalo.webhook.state'",
+    );
+    expect(state.value.eventName).toBe('message.text.received');
+  });
   it('does not lose the Zalo report when email collected the thread before Bot connection', async () => {
     const [customer] = await db.query<{ id: string }[]>(
       `INSERT INTO users(email,display_name,password_hash) VALUES($1,'Bot QA customer','not-a-password') RETURNING id`,
@@ -123,8 +134,7 @@ describe('Bot connection and delayed Zalo channel in isolated PostgreSQL', () =>
       db.query(
         "UPDATE app_metadata SET value=jsonb_build_object('nextAt',clock_timestamp()-interval '1 second') WHERE key='mocmaria.chat.digest.state'",
       );
-    await due();
-    await digest.collect();
+    await digest.runNow();
     expect(
       await db.query('SELECT key FROM app_metadata WHERE key=$1', [
         'mocmaria.chat.digest.watermark.' + thread.id,
@@ -132,8 +142,7 @@ describe('Bot connection and delayed Zalo channel in isolated PostgreSQL', () =>
     ).toHaveLength(1);
     const pair = await bot.createPairing();
     await bot.receive('test-secret', message(pair.command));
-    await due();
-    await digest.collect();
+    await digest.runNow();
     const reports = (): Promise<{ value: unknown }[]> =>
       db.query(
         `SELECT value FROM app_metadata WHERE key LIKE 'mocmaria.zalo.outbox.%' AND value->>'text' LIKE $1`,

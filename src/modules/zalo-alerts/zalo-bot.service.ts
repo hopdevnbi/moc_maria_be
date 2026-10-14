@@ -8,6 +8,13 @@ const pairKey = 'mocmaria.zalo.pairing';
 const hash = (value: string): string => createHash('sha256').update(value).digest('hex');
 type Update = {
   ok?: boolean;
+  event_name?: string;
+  message?: {
+    from?: { id?: string; is_bot?: boolean; display_name?: string };
+    chat?: { id?: string; chat_type?: string };
+    text?: string;
+    message_id?: string;
+  };
   result?: {
     event_name?: string;
     message?: {
@@ -80,23 +87,38 @@ export class ZaloBotService {
       !timingSafeEqual(Buffer.from(hash(configured)), Buffer.from(hash(secret)))
     )
       throw new UnauthorizedException('Webhook không hợp lệ.');
-    // Verification probes and unsupported event types are acknowledged without subscribing anyone.
-    if (update?.result?.event_name !== 'message.text.received') return { ok: true };
-    const msg = update.result.message;
+    // Some deliveries use the bare event while API examples wrap it in ok/result.
+    const event = update?.result ?? update;
+    const msg = event?.message;
+    const match =
+      typeof msg?.text === 'string'
+        ? /^Kết nối Mộc Maria\s+([A-F0-9]{16})$/iu.exec(msg.text.trim().normalize('NFC'))
+        : null;
+    await this.db.query(
+      `INSERT INTO app_metadata(key,value) VALUES('mocmaria.zalo.webhook.state',$1::jsonb||jsonb_build_object('at',clock_timestamp()))
+      ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=clock_timestamp()`,
+      [
+        JSON.stringify({
+          eventName: event?.event_name ?? null,
+          envelopeKeys: Object.keys(update ?? {}).slice(0, 12),
+          eventKeys: Object.keys(event ?? {}).slice(0, 12),
+          messageKeys: Object.keys(msg ?? {}).slice(0, 12),
+          fromKeys: Object.keys(msg?.from ?? {}).slice(0, 12),
+          chatKeys: Object.keys(msg?.chat ?? {}).slice(0, 12),
+          pairingCommandDetected: !!match,
+        }),
+      ],
+    );
+    // Only a valid private pairing code can enroll a recipient; probes never do.
+    if (event?.event_name !== 'message.text.received') return { ok: true };
     if (
       !msg ||
-      msg.from?.is_bot !== false ||
+      msg.from?.is_bot === true ||
       !/^[A-Za-z0-9._-]{1,160}$/.test(msg.chat?.id || '') ||
       !['PRIVATE', 'GROUP'].includes(msg.chat?.chat_type || '')
     )
       return { ok: true };
-    const match =
-      typeof msg.text === 'string'
-        ? /^Kết nối Mộc Maria\s+([A-F0-9]{16})$/iu.exec(msg.text.trim().normalize('NFC'))
-        : null;
     await this.db.transaction(async (m) => {
-      await m.query(`INSERT INTO app_metadata(key,value) VALUES('mocmaria.zalo.webhook.state',jsonb_build_object('at',clock_timestamp()))
-        ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=clock_timestamp()`);
       if (!match) return;
       const [pair] = await m.query<{ value: { hash: string }; valid: boolean }[]>(
         `SELECT value,
