@@ -1,0 +1,18 @@
+{
+  "source": "85310a2f19718b3a6245b70d517df1b460b2fbab",
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:ccddca51558fb4fbfad9c8c77533d12bcd06432ed7d0a267d7841ccaa47f72ea",
+  "previousImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:4680c056565e77886331e6b7459e90e2338a33ea7be510e09100318f213af6fa",
+  "namespace": "moc-maria",
+  "webhookUrl": "https://api.mocmaria.com/api/v1/zalo/webhook",
+  "verifiedAt": "2026-10-14",
+  "webhookVerification": "webhook.ok",
+  "backendQualityRun": 38508814752,
+  "backendImageRun": 38508815342,
+  "frontendSource": "98c71de5fe2cf79528123f3cf11f7508c919dd29",
+  "frontendQualityRun": 38508683249,
+  "frontendDeployment": 7056415987,
+  "tests": "70 BE unit;103 full isolated integrations plus10 targeted after webhook compatibility fix;132 FE tests;format/lint/typecheck/build PASS",
+  "receiptVerification": "Owner screenshot confirmed successful connection on14/10/2026 at11:02 Vietnam time;1 recipient;confirmation sent attempts1",
+  "liveFrontendSource": "862fcdfd8144518197b703b339b36de815f6698b",
+  "operatorTest": "Transport test and1 actual changed-thread report queued through deployed code; no booking/message fixture created"
+}
