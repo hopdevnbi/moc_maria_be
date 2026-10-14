@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ProviderWorkspaceModule } from './modules/provider-workspace/provider-workspace.module';
 import { ZaloAlertsModule } from './modules/zalo-alerts/zalo-alerts.module';
 import { KtvSafetyModule } from './modules/ktv-safety/safety.module';
 import { CustomerExperienceModule } from './modules/customer-experience/experience.module';
@@ -26,6 +27,7 @@ import { InquiryFulfillmentModule } from './modules/inquiry-fulfillment/inquiry-
 @Module({
   imports: [
     ApplicationConfigModule,
+    ProviderWorkspaceModule,
     ZaloAlertsModule,
     ApplicationLoggingModule,
     AdminAlertsModule,

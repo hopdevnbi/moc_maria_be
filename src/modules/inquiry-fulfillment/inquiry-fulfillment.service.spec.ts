@@ -65,7 +65,7 @@ function harness(): {
     }
     if (sql.startsWith('SELECT id,status,version,starts_at'))
       return Promise.resolve(appointment ? [appointment] : []);
-    if (sql.startsWith('UPDATE appointments SET')) {
+    if (sql.includes('UPDATE appointments SET')) {
       if (
         !appointment ||
         appointment['version'] !== params[2] ||

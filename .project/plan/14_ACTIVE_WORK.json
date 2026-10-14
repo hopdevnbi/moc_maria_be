@@ -408,6 +408,19 @@
         "recipientConfigured": false,
         "releasedAt": "2026-10-10T16:57:37.146Z"
       }
+    },
+    {
+      "agent": "Codex KTV workspace 2026-10-14",
+      "status": "ACTIVE",
+      "backendBranch": "codex/ktv-workspace-redesign",
+      "ownedPaths": [
+        "BE provider-workspace module new DTO/controller/service/tests",
+        "BE app.module.ts registration only",
+        "BE inquiry-fulfillment.service.ts SQL return fix only",
+        "Own isolated integration tests/docs/Plan",
+        "BE customer-experience/experience.service.ts reported-completion terminal guard only"
+      ],
+      "note": "Provider-reported completion stored separately from official appointment completion, with owner/role/state/time checks and audit. Preserve existing appointment/review eligibility and E2a. No migration."
     }
   ]
 }
