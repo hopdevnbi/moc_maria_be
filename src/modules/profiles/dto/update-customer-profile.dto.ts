@@ -4,7 +4,6 @@ import {
   IsObject,
   IsOptional,
   IsString,
-  IsUrl,
   MaxLength,
   MinLength,
   ValidateIf,
@@ -30,11 +29,6 @@ export class UpdateCustomerProfileDto {
   @IsOptional()
   @IsISO8601({ strict: true })
   birthday?: string | null;
-
-  @IsOptional()
-  @IsUrl({ require_protocol: true })
-  @MaxLength(2048)
-  avatarUrl?: string | null;
 
   @IsOptional()
   @IsObject()

@@ -46,6 +46,18 @@ export class ProfilesController {
     return this.service.updateCustomer(user.id, dto);
   }
 
+  @Post('customers/me/avatar')
+  @RequirePermissions(PERMISSIONS.CUSTOMER_PORTAL)
+  @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
+  async uploadCustomerAvatar(
+    @CurrentUser() user: AuthUserContext,
+    @UploadedFile() file: ProfileAvatarFile | undefined,
+  ): Promise<unknown> {
+    // The API never trusts user-supplied avatar URLs. The CDN path is generated server-side.
+    const url = await this.avatarStorage.upload(user.id, file, 'customer-avatars');
+    return this.service.updateCustomerAvatar(user.id, url);
+  }
+
   @Post('staff/me/avatar')
   @RequirePermissions(PERMISSIONS.STAFF_PORTAL)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))

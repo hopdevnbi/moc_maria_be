@@ -25,6 +25,7 @@ export interface CustomerSummary {
   createdAt: Date;
   lastLoginAt: Date | null;
   birthday: string | null;
+  avatarUrl: string | null;
   vipStatus: Tier;
   vipExpiresAt: string | null;
   inquiryCount: number;
@@ -104,6 +105,7 @@ const customerFrom = `FROM users u
 const customerFields = `u.id, u.display_name AS "displayName", u.email, u.phone,
   u.is_active AS "isActive", u.created_at AS "createdAt",
   u.last_login_at AS "lastLoginAt", c.birthday::text AS birthday,
+  c.avatar_url AS "avatarUrl",
   CASE WHEN ${activeVip} THEN 'VIP' ELSE 'STANDARD' END AS "vipStatus",
   vip.value->>'expiresAt' AS "vipExpiresAt",
   COALESCE(iq.inquiry_count,0)::int AS "inquiryCount",

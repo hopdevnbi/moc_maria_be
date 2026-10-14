@@ -38,6 +38,22 @@ export class ProfilesService {
     return this.toCustomerView(user);
   }
 
+  async updateCustomerAvatar(userId: string, avatarUrl: string): Promise<unknown> {
+    await this.dataSource.transaction(async (manager) => {
+      const customer = await manager.getRepository(Customer).findOne({ where: { userId } });
+      if (!customer) throw new NotFoundException('Không tìm thấy hồ sơ khách hàng.');
+      customer.avatarUrl = avatarUrl;
+      await manager.getRepository(Customer).save(customer);
+      await manager.getRepository(AuditLog).insert({
+        event: 'CUSTOMER_AVATAR_UPDATED',
+        actorUserId: userId,
+        targetUserId: userId,
+        metadata: { storage: 'customer-avatars', optimizedFormat: 'webp', size: 384 },
+      });
+    });
+    return this.getCustomer(userId);
+  }
+
   async updateCustomer(userId: string, dto: UpdateCustomerProfileDto): Promise<unknown> {
     try {
       await this.dataSource.transaction(async (manager) => {
@@ -60,7 +76,6 @@ export class ProfilesService {
         }
 
         if (dto.birthday !== undefined) customer.birthday = dto.birthday || null;
-        if (dto.avatarUrl !== undefined) customer.avatarUrl = dto.avatarUrl || null;
         if (dto.contactPreferences !== undefined) {
           customer.contactPreferences = dto.contactPreferences;
         }
@@ -153,15 +168,39 @@ export class ProfilesService {
     return this.getStaff(user);
   }
 
-  private toCustomerView(user: User): Record<string, unknown> {
+  private async toCustomerView(user: User): Promise<Record<string, unknown>> {
     const customer = user.customer;
     if (!customer) throw new NotFoundException('Không tìm thấy hồ sơ khách hàng.');
+    const rows: Array<{ isVip: boolean; expiresAt: string | null; startedAt: string | null }> =
+      await this.dataSource.query(
+        `SELECT COALESCE(value->>'isVip'='true',false) AS "isVip",
+           value->>'expiresAt' AS "expiresAt",value->>'startedAt' AS "startedAt"
+         FROM app_metadata WHERE key=$1`,
+        ['mocmaria.customer.vip.' + user.id],
+      );
+    const record = rows[0];
+    const isVip = Boolean(
+      record?.isVip &&
+      (!record.expiresAt ||
+        (Number.isFinite(Date.parse(record.expiresAt)) &&
+          Date.parse(record.expiresAt) > Date.now())),
+    );
     return {
       id: user.id,
       displayName: user.displayName,
       email: user.email,
       phone: user.phone,
       roles: user.userRoles.map((item) => item.role.name).sort(),
+      membership: {
+        tier: isVip ? 'VIP' : 'STANDARD',
+        expiresAt: isVip ? record?.expiresAt || null : null,
+        startedAt: isVip ? record?.startedAt || null : null,
+      },
+      avatarUploadEnabled: Boolean(
+        process.env['BUNNY_STORAGE_ZONE'] &&
+        (process.env['BUNNY_STORAGE_ACCESS_KEY'] || process.env['BUNNY_STORAGE_API_KEY']) &&
+        (process.env['BUNNY_CDN_BASE_URL'] || process.env['BUNNY_STORAGE_CDN_URL']),
+      ),
       customer: {
         id: customer.id,
         birthday: customer.birthday,

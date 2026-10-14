@@ -15,7 +15,11 @@ export interface ProfileAvatarFile {
 
 @Injectable()
 export class StaffAvatarStorage {
-  async upload(userId: string, file?: ProfileAvatarFile): Promise<string> {
+  async upload(
+    userId: string,
+    file?: ProfileAvatarFile,
+    scope: 'staff-avatars' | 'customer-avatars' = 'staff-avatars',
+  ): Promise<string> {
     if (!file?.buffer || file.size <= 0 || file.size > 5 * 1024 * 1024)
       throw new BadRequestException('Avatar must be an image smaller than 5MB.');
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype))
@@ -59,7 +63,7 @@ export class StaffAvatarStorage {
       throw new BadRequestException('Invalid image content. Please choose another image.');
     }
 
-    const path = 'moc-maria/staff-avatars/' + userId + '/' + randomUUID() + '.webp';
+    const path = 'moc-maria/' + scope + '/' + userId + '/' + randomUUID() + '.webp';
     const url = 'https://' + region + '.storage.bunnycdn.com/' + zone + '/' + path;
     let result: Response;
     try {

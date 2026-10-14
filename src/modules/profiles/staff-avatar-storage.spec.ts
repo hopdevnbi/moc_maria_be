@@ -62,4 +62,31 @@ describe('StaffAvatarStorage', () => {
     expect(body.toString('ascii', 0, 4)).toBe('RIFF');
     expect(body.length).toBeLessThan(data.length);
   });
+
+  it('uses a separate customer CDN prefix and retains the 384px square WebP pipeline', async () => {
+    process.env['BUNNY_STORAGE_ZONE'] = 'sample-zone';
+    process.env['BUNNY_STORAGE_ACCESS_KEY'] = 'test-secret';
+    process.env['BUNNY_CDN_BASE_URL'] = 'https://cdn.example.com';
+    const source = await sharp({
+      create: { width: 1100, height: 700, channels: 3, background: '#d8c89f' },
+    })
+      .png()
+      .toBuffer();
+    const uploader = jest.fn().mockResolvedValue({ ok: true });
+    global.fetch = uploader as typeof fetch;
+    const cdnUrl = await storage.upload(
+      'customer-123',
+      {
+        buffer: source,
+        size: source.length,
+        mimetype: 'image/png',
+      },
+      'customer-avatars',
+    );
+    expect(cdnUrl).toMatch(/\/moc-maria\/customer-avatars\/customer-123\/[a-f0-9-]+\.webp$/);
+    const [endpoint, options] = uploader.mock.calls[0] as [string, RequestInit];
+    expect(endpoint).toContain('/customer-avatars/customer-123/');
+    const meta = await sharp(Buffer.from(options.body as Uint8Array)).metadata();
+    expect([meta.width, meta.height, meta.format]).toEqual([384, 384, 'webp']);
+  });
 });
