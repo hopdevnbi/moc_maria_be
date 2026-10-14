@@ -8,6 +8,7 @@ import { DataSource, type EntityManager } from 'typeorm';
 import { AuditLog } from '../identity/entities/audit-log.entity';
 import { PERMISSIONS } from '../identity/identity.constants';
 import type { AuthUserContext } from '../identity/identity.types';
+import { vipLevel } from '../../shared/membership/vip-level';
 import {
   CustomerListQueryDto,
   UpdateCustomerNoteDto,
@@ -27,6 +28,7 @@ export interface CustomerSummary {
   birthday: string | null;
   avatarUrl: string | null;
   vipStatus: Tier;
+  vipLevel: number | null;
   vipExpiresAt: string | null;
   inquiryCount: number;
   appointmentCount: number;
@@ -36,6 +38,7 @@ export interface CustomerSummary {
 
 export type VipRecord = {
   isVip: boolean;
+  level?: number | null;
   expiresAt: string | null;
   startedAt: string | null;
   reason: string | null;
@@ -107,6 +110,8 @@ const customerFields = `u.id, u.display_name AS "displayName", u.email, u.phone,
   u.last_login_at AS "lastLoginAt", c.birthday::text AS birthday,
   c.avatar_url AS "avatarUrl",
   CASE WHEN ${activeVip} THEN 'VIP' ELSE 'STANDARD' END AS "vipStatus",
+  CASE WHEN ${activeVip} THEN CASE WHEN vip.value->>'level' ~ '^[1-9][0-9]?$'
+    THEN (vip.value->>'level')::int ELSE 1 END ELSE NULL END AS "vipLevel",
   vip.value->>'expiresAt' AS "vipExpiresAt",
   COALESCE(iq.inquiry_count,0)::int AS "inquiryCount",
   COALESCE(ap.appointment_count,0)::int AS "appointmentCount",
@@ -116,6 +121,7 @@ const customerFields = `u.id, u.display_name AS "displayName", u.email, u.phone,
 
 const emptyVip: VipRecord = {
   isVip: false,
+  level: null,
   expiresAt: null,
   startedAt: null,
   reason: null,
@@ -276,6 +282,8 @@ export class CustomerManagementService {
     if (reason.length < 10 || reason.length > 500) {
       throw new BadRequestException('Lý do thay đổi VIP phải từ 10 đến 500 ký tự.');
     }
+    if (dto.level != null && (!Number.isInteger(dto.level) || dto.level < 1 || dto.level > 99))
+      throw new BadRequestException('Cấp VIP phải là số nguyên từ 1 đến 99.');
     const expiresAt = dto.isVip ? dto.expiresAt || null : null;
     if (
       expiresAt &&
@@ -293,8 +301,10 @@ export class CustomerManagementService {
       const now = new Date().toISOString();
       const previousStillActive =
         previous.isVip && (!previous.expiresAt || Date.parse(previous.expiresAt) > Date.now());
+      const level = dto.isVip ? (dto.level ?? vipLevel(previous.level)) : null;
       await this.saveMetadata(manager, vipKey(id), {
         isVip: dto.isVip,
+        level,
         expiresAt,
         startedAt: dto.isVip ? (previousStillActive ? previous.startedAt || now : now) : null,
         reason,
@@ -309,6 +319,8 @@ export class CustomerManagementService {
           reason,
           previousVip: previous.isVip,
           newVip: dto.isVip,
+          previousLevel: previous.isVip ? vipLevel(previous.level) : null,
+          level,
           previousExpiresAt: previous.expiresAt,
           expiresAt,
         },

@@ -54,6 +54,7 @@ export class ProfilesController {
     @UploadedFile() file: ProfileAvatarFile | undefined,
   ): Promise<unknown> {
     // The API never trusts user-supplied avatar URLs. The CDN path is generated server-side.
+    await this.service.assertCustomerAvatarAccess(user.id);
     const url = await this.avatarStorage.upload(user.id, file, 'customer-avatars');
     return this.service.updateCustomerAvatar(user.id, url);
   }

@@ -84,12 +84,13 @@ describe('CustomerManagementService', () => {
     jest.spyOn(service, 'detail').mockResolvedValue({ id: customerId } as never);
 
     const reason = 'Chăm sóc hội viên lâu năm';
-    await service.updateVip(admin, customerId, { isVip: true, reason });
+    await service.updateVip(admin, customerId, { isVip: true, level: 3, reason });
     const queries = managerQuery.mock.calls as unknown as Array<[string, unknown[]]>;
     expect(managerQuery).toHaveBeenCalledTimes(3);
     expect(queries[2][1][0]).toBe(`mocmaria.customer.vip.${customerId}`);
     expect(JSON.parse(queries[2][1][1] as string) as unknown).toMatchObject({
       isVip: true,
+      level: 3,
       expiresAt: null,
       reason,
       updatedBy: admin.id,

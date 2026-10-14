@@ -1,11 +1,13 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
+import { vipLevel } from '../../shared/membership/vip-level';
 import { AuditLog } from '../identity/entities/audit-log.entity';
 import { Customer } from '../identity/entities/customer.entity';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
@@ -40,6 +42,7 @@ export class ProfilesService {
 
   async updateCustomerAvatar(userId: string, avatarUrl: string): Promise<unknown> {
     await this.dataSource.transaction(async (manager) => {
+      await this.assertCustomerAvatarAccess(userId, manager);
       const customer = await manager.getRepository(Customer).findOne({ where: { userId } });
       if (!customer) throw new NotFoundException('Không tìm thấy hồ sơ khách hàng.');
       customer.avatarUrl = avatarUrl;
@@ -52,6 +55,21 @@ export class ProfilesService {
       });
     });
     return this.getCustomer(userId);
+  }
+
+  async assertCustomerAvatarAccess(
+    userId: string,
+    manager: DataSource | EntityManager = this.dataSource,
+  ): Promise<void> {
+    const rows = await manager.query<{ id: string }[]>(
+      `SELECT u.id FROM users u JOIN app_metadata vip ON vip.key='mocmaria.customer.vip.'||u.id::text
+       WHERE u.id=$1 AND u.is_active AND vip.value->>'isVip'='true'
+       AND (vip.value->>'expiresAt' IS NULL OR (vip.value->>'expiresAt')::timestamptz>clock_timestamp())
+       FOR SHARE OF u,vip`,
+      [userId],
+    );
+    if (!rows.length)
+      throw new ForbiddenException('Đổi ảnh đại diện dành cho hội viên VIP còn hiệu lực.');
   }
 
   async updateCustomer(userId: string, dto: UpdateCustomerProfileDto): Promise<unknown> {
@@ -171,13 +189,17 @@ export class ProfilesService {
   private async toCustomerView(user: User): Promise<Record<string, unknown>> {
     const customer = user.customer;
     if (!customer) throw new NotFoundException('Không tìm thấy hồ sơ khách hàng.');
-    const rows: Array<{ isVip: boolean; expiresAt: string | null; startedAt: string | null }> =
-      await this.dataSource.query(
-        `SELECT COALESCE(value->>'isVip'='true',false) AS "isVip",
-           value->>'expiresAt' AS "expiresAt",value->>'startedAt' AS "startedAt"
+    const rows: Array<{
+      isVip: boolean;
+      level: unknown;
+      expiresAt: string | null;
+      startedAt: string | null;
+    }> = await this.dataSource.query(
+      `SELECT COALESCE(value->>'isVip'='true',false) AS "isVip",
+           value->>'expiresAt' AS "expiresAt",value->>'startedAt' AS "startedAt",value->'level' AS level
          FROM app_metadata WHERE key=$1`,
-        ['mocmaria.customer.vip.' + user.id],
-      );
+      ['mocmaria.customer.vip.' + user.id],
+    );
     const record = rows[0];
     const isVip = Boolean(
       record?.isVip &&
@@ -193,14 +215,17 @@ export class ProfilesService {
       roles: user.userRoles.map((item) => item.role.name).sort(),
       membership: {
         tier: isVip ? 'VIP' : 'STANDARD',
+        level: isVip ? vipLevel(record?.level) : null,
         expiresAt: isVip ? record?.expiresAt || null : null,
         startedAt: isVip ? record?.startedAt || null : null,
       },
-      avatarUploadEnabled: Boolean(
-        process.env['BUNNY_STORAGE_ZONE'] &&
-        (process.env['BUNNY_STORAGE_ACCESS_KEY'] || process.env['BUNNY_STORAGE_API_KEY']) &&
-        (process.env['BUNNY_CDN_BASE_URL'] || process.env['BUNNY_STORAGE_CDN_URL']),
-      ),
+      avatarUploadEnabled:
+        isVip &&
+        Boolean(
+          process.env['BUNNY_STORAGE_ZONE'] &&
+          (process.env['BUNNY_STORAGE_ACCESS_KEY'] || process.env['BUNNY_STORAGE_API_KEY']) &&
+          (process.env['BUNNY_CDN_BASE_URL'] || process.env['BUNNY_STORAGE_CDN_URL']),
+        ),
       customer: {
         id: customer.id,
         birthday: customer.birthday,

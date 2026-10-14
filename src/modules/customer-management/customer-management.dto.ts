@@ -51,6 +51,12 @@ export class UpdateCustomerVipDto {
   isVip!: boolean;
 
   @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  level?: number;
+
+  @IsOptional()
   @IsISO8601({ strict: true })
   expiresAt?: string | null;
 
