@@ -13,3 +13,9 @@ members cannot upload or persist a new avatar. Staff avatar behavior is unchange
 The existing storage pipeline and generated URLs remain intact. Only Mộc Maria
 storage env/Secret is provisioned. No migrations, shared Giang Xá changes or actual
 customer profile writes are needed for this release.
+
+Verification: merged-main local quality99 tests, TypeScript/lint/format/build PASS.
+All4 new VIP/avatar SQL integration cases pass. The broader combined suite has6
+existing fixture failures in review policy/publication and provider-display audit
+counting; those runtime modules are preserved. CDN transport was tested with a
+generated QA image: upload succeeded, public HEAD200/image-webp, QA object removed.
