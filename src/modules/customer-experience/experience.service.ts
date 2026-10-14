@@ -49,6 +49,8 @@ export interface Inquiry {
   createdAt: string;
   status: 'PENDING' | 'CONTACTED' | 'DECLINED' | 'CANCELLED';
   signature: string;
+  archivedAt?: string;
+  createdByAdmin?: boolean;
 }
 const presentationKey = (id: string): string => 'mocmaria.presentation.' + id;
 const inquiryKey = (id: string): string => 'mocmaria.inquiry.' + id;

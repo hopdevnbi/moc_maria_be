@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Delete,
   Post,
   Query,
   UseGuards,
@@ -27,6 +28,8 @@ import {
   ProviderAgeDto,
   AdminInquiryQueryDto,
   AdminReplyInquiryDto,
+  AdminArchiveInquiryDto,
+  AdminCreateInquiryDto,
 } from './experience.dto';
 
 @Controller('provider-presentation')
@@ -120,6 +123,35 @@ export class AdminAppointmentInquiriesController {
     @Query() query: AdminInquiryQueryDto,
   ): ReturnType<AdminAppointmentInquiriesService['list']> {
     return this.service.list(actor, query);
+  }
+
+  @Post()
+  @Header('Cache-Control', 'private, no-store')
+  create(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: AdminCreateInquiryDto,
+  ): ReturnType<AdminAppointmentInquiriesService['create']> {
+    return this.service.create(actor, dto);
+  }
+
+  @Delete(':id')
+  @Header('Cache-Control', 'private, no-store')
+  archive(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id') id: string,
+    @Body() dto: AdminArchiveInquiryDto,
+  ): ReturnType<AdminAppointmentInquiriesService['archive']> {
+    return this.service.archive(actor, id, dto, true);
+  }
+
+  @Post(':id/restore')
+  @Header('Cache-Control', 'private, no-store')
+  restore(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id') id: string,
+    @Body() dto: AdminArchiveInquiryDto,
+  ): ReturnType<AdminAppointmentInquiriesService['archive']> {
+    return this.service.archive(actor, id, dto, false);
   }
 
   @Get(':id')

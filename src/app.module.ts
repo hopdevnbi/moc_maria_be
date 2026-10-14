@@ -20,6 +20,7 @@ import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
 import { CustomerManagementModule } from './modules/customer-management/customer-management.module';
 import { AdminAccessModule } from './modules/admin-access/admin-access.module';
 import { ProviderDisplayModule } from './modules/provider-display/provider-display.module';
+import { AdminIntakeModule } from './modules/admin-intake/admin-intake.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { ProviderDisplayModule } from './modules/provider-display/provider-displ
     CustomerManagementModule,
     AdminAccessModule,
     ProviderDisplayModule,
+    AdminIntakeModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],
