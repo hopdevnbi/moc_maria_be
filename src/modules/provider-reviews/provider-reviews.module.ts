@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
-import { ProvidersModule } from '../providers/providers.module';
+import { ProviderDisplayModule } from '../provider-display/provider-display.module';
 import { AccessControlModule } from '../access-control/access-control.module';
 import { ProviderReviewsService } from './provider-reviews.service';
 import {
@@ -10,7 +10,7 @@ import {
   PublicProviderRatingsController,
 } from './provider-reviews.controller';
 @Module({
-  imports: [AuthModule, ProvidersModule, AccessControlModule],
+  imports: [AuthModule, ProviderDisplayModule, AccessControlModule],
   providers: [ProviderReviewsService],
   controllers: [
     PublicProviderReviewsController,

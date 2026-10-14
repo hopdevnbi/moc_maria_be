@@ -5,7 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource, type EntityManager } from 'typeorm';
-import { ProvidersService } from '../providers/providers.service';
+import { ProviderDisplayService } from '../provider-display/provider-display.service';
 import type { AuthUserContext } from '../identity/identity.types';
 import type {
   CreateProviderReviewDto,
@@ -75,7 +75,7 @@ export interface EligibleReview {
 export class ProviderReviewsService {
   constructor(
     private readonly db: DataSource,
-    private readonly providers: ProvidersService,
+    private readonly display: ProviderDisplayService,
   ) {}
   private customer(actor: AuthUserContext): void {
     if (!actor.permissions.includes('customer.portal'))
@@ -280,20 +280,25 @@ export class ProviderReviewsService {
     });
   }
   async ratingSummaries(): Promise<Record<string, { average: number | null; count: number }>> {
-    const providers = await this.providers.publicProviders();
-    if (!providers.length) return {};
+    // The storefront can show opted-in KTVs before their separate appointment
+    // approval workflow reaches APPROVED. Ratings must use that same visibility
+    // contract rather than publicProviders() alone.
+    const ids = (await this.display.publicDisplay()).rows
+      .filter((row) => row.visible)
+      .map((row) => row.providerId);
+    if (!ids.length) return {};
     const rows = await this.db.query<
       { provider_application_id: string; average: string; count: number }[]
     >(
       `SELECT r.provider_application_id,round(avg(r.stars),1) AS average,count(*)::int AS count
       FROM provider_reviews r JOIN appointments a ON a.id=r.appointment_id WHERE r.visibility='PUBLISHED'
       AND a.status='COMPLETED' AND r.provider_application_id=ANY($1::uuid[]) GROUP BY r.provider_application_id`,
-      [providers.map((p) => p.id)],
+      [ids],
     );
     return Object.fromEntries(
-      providers.map((p) => {
-        const row = rows.find((r) => r.provider_application_id === p.id);
-        return [p.id, { average: row ? Number(row.average) : null, count: row?.count ?? 0 }];
+      ids.map((id) => {
+        const row = rows.find((r) => r.provider_application_id === id);
+        return [id, { average: row ? Number(row.average) : null, count: row?.count ?? 0 }];
       }),
     );
   }
@@ -301,7 +306,12 @@ export class ProviderReviewsService {
     providerId: string,
     page = 1,
   ): Promise<{ summary: RatingSummary; items: PublicReview[]; page: number; hasMore: boolean }> {
-    await this.providers.publicProvider(providerId);
+    // Match the actual public KTV directory, including seeded/opted-in profiles;
+    // never reveal a hidden, archived or non-publishable KTV's feedback.
+    const visible = (await this.display.publicDisplay()).rows.some(
+      (row) => row.providerId === providerId && row.visible,
+    );
+    if (!visible) throw new NotFoundException('Không tìm thấy KTV đang hiển thị.');
     const rows = await this.db.query<{ stars: number; count: number }[]>(
       `SELECT r.stars,count(*)::int AS count FROM provider_reviews r
       JOIN appointments a ON a.id=r.appointment_id WHERE r.provider_application_id=$1 AND r.visibility='PUBLISHED'

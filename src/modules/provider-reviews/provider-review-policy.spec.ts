@@ -2,7 +2,7 @@ import { ConflictException, ForbiddenException } from '@nestjs/common';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import type { DataSource, EntityManager } from 'typeorm';
-import type { ProvidersService } from '../providers/providers.service';
+import type { ProviderDisplayService } from '../provider-display/provider-display.service';
 import type { AuthUserContext } from '../identity/identity.types';
 import { CreateProviderReviewDto, UpdateProviderReviewPolicyDto } from './provider-reviews.dto';
 import { ProviderReviewsService, REVIEW_POLICY_KEY } from './provider-reviews.service';
@@ -56,7 +56,7 @@ function harness(
     query,
     transaction: (fn: (m: EntityManager) => unknown) => fn({ query } as unknown as EntityManager),
   } as unknown as DataSource;
-  const service = new ProviderReviewsService(db, {} as ProvidersService);
+  const service = new ProviderReviewsService(db, {} as ProviderDisplayService);
   return { service, calls };
 }
 

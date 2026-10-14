@@ -1,6 +1,6 @@
 import type { DataSource, EntityManager } from 'typeorm';
 import { ProviderReviewsService } from './provider-reviews.service';
-import type { ProvidersService } from '../providers/providers.service';
+import type { ProviderDisplayService } from '../provider-display/provider-display.service';
 import type { AuthUserContext } from '../identity/identity.types';
 
 const customer = {
@@ -19,6 +19,41 @@ const privateReview = {
 };
 
 describe('Provider reviews require moderation', () => {
+  it('shows empty reviews and unrated badge for publicly visible KTV with APPLIED enrollment', async () => {
+    const display = {
+      publicDisplay: jest
+        .fn()
+        .mockResolvedValue({ rows: [{ providerId: 'ktv-1', visible: true }] }),
+    } as unknown as ProviderDisplayService;
+    const query = jest.fn().mockResolvedValue([]);
+    const service = new ProviderReviewsService({ query } as unknown as DataSource, display);
+    const result = await service.publicReviews('ktv-1');
+    expect(result).toEqual({
+      summary: {
+        count: 0,
+        average: null,
+        distribution: { '1': 0, '2': 0, '3': 0, '4': 0, '5': 0 },
+      },
+      items: [],
+      page: 1,
+      hasMore: false,
+    });
+    expect(await service.ratingSummaries()).toEqual({ 'ktv-1': { average: null, count: 0 } });
+    expect(query.mock.calls.some(([sql]: [string]) => sql.includes('provider_reviews'))).toBe(true);
+  });
+
+  it('keeps hidden KTV reviews private even when a direct profile URL is known', async () => {
+    const display = {
+      publicDisplay: jest
+        .fn()
+        .mockResolvedValue({ rows: [{ providerId: 'ktv-1', visible: false }] }),
+    } as unknown as ProviderDisplayService;
+    const query = jest.fn();
+    const service = new ProviderReviewsService({ query } as unknown as DataSource, display);
+    await expect(service.publicReviews('ktv-1')).rejects.toHaveProperty('status', 404);
+    expect(await service.ratingSummaries()).toEqual({});
+    expect(query).not.toHaveBeenCalled();
+  });
   it('always stores newly submitted comments hidden, even before running migration', async () => {
     const query = jest.fn((sql: string) => {
       if (sql.includes('SELECT a.id')) return Promise.resolve([{ id: 'appt-1' }]);
@@ -29,7 +64,7 @@ describe('Provider reviews require moderation', () => {
       transaction: (run: (manager: EntityManager) => unknown) =>
         run({ query } as unknown as EntityManager),
     } as unknown as DataSource;
-    const service = new ProviderReviewsService(db, {} as ProvidersService);
+    const service = new ProviderReviewsService(db, {} as ProviderDisplayService);
     const saved = await service.create(customer, {
       appointmentId: 'appt-1',
       providerApplicationId: 'ktv-1',
@@ -60,7 +95,7 @@ describe('Provider reviews require moderation', () => {
       transaction: (run: (manager: EntityManager) => unknown) =>
         run({ query } as unknown as EntityManager),
     } as unknown as DataSource;
-    const service = new ProviderReviewsService(db, {} as ProvidersService);
+    const service = new ProviderReviewsService(db, {} as ProviderDisplayService);
     const saved = await service.edit(customer, 'review-1', {
       stars: 4,
       comment: 'Có thể cải thiện thời gian',
@@ -93,7 +128,7 @@ describe('Provider reviews require moderation', () => {
       ]);
     const service = new ProviderReviewsService(
       { query } as unknown as DataSource,
-      {} as ProvidersService,
+      {} as ProviderDisplayService,
     );
     const result = await service.adminReviews({ page: 1, status: 'PENDING' });
     expect(result).toMatchObject({ pending: 1, total: 1, hasMore: false });
