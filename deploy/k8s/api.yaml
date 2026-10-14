@@ -22,7 +22,7 @@ spec:
       terminationGracePeriodSeconds: 30
       containers:
         - name: api
-          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:a84a956d9c2ebc52ce5855f632143d9d6a01816dc45d3ed6d75fbf5f6f62e69d
+          image: ghcr.io/hopdevnbi/moc_maria_be@sha256:aa51d243fee2a5027a4f8acfa114eefcb45d7506964ab91e2f5b24980a5dad3c
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
@@ -58,6 +58,26 @@ spec:
               value: 'true'
             - name: SWAGGER_ENABLED
               value: 'false'
+            - name: BUNNY_STORAGE_ZONE
+              valueFrom:
+                secretKeyRef:
+                  name: moc-maria-avatar-storage
+                  key: zone
+            - name: BUNNY_STORAGE_REGION
+              valueFrom:
+                secretKeyRef:
+                  name: moc-maria-avatar-storage
+                  key: region
+            - name: BUNNY_CDN_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: moc-maria-avatar-storage
+                  key: cdn
+            - name: BUNNY_STORAGE_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: moc-maria-avatar-storage
+                  key: access-key
           envFrom:
             - secretRef:
                 name: moc-maria-api-secrets

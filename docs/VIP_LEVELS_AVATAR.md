@@ -19,3 +19,9 @@ All4 new VIP/avatar SQL integration cases pass. The broader combined suite has6
 existing fixture failures in review policy/publication and provider-display audit
 counting; those runtime modules are preserved. CDN transport was tested with a
 generated QA image: upload succeeded, public HEAD200/image-webp, QA object removed.
+
+Production14/10/2026: API image `aa51d243fee2` ready1 with Secret references;
+owner membership reads VIP1 and avatarUploadEnabled=true. FE `70b1ee2` deployed,
+admin input supports1–99; desktop1440/mobile390 both fit without horizontal overflow.
+The base API manifest now pins this image and references the avatar Secret so a
+later apply preserves the VIP gate/configuration. See deploy/vip-levels-avatar-release.json.
