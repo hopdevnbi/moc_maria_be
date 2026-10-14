@@ -18,6 +18,7 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { KtvChatService } from './ktv-chat.service';
+import { ProviderDisplayService } from '../provider-display/provider-display.service';
 import {
   BlockKtvChatDto,
   KtvHistoryDto,
@@ -32,11 +33,14 @@ import {
 @ApiTags('ktv-chat')
 @Controller('ktv-chat/providers')
 export class KtvChatDirectoryController {
-  constructor(private readonly chat: KtvChatService) {}
+  constructor(
+    private readonly chat: KtvChatService,
+    private readonly display: ProviderDisplayService,
+  ) {}
   @Get()
   @Header('Cache-Control', 'no-store')
   directory(): ReturnType<KtvChatService['directory']> {
-    return this.chat.directory();
+    return this.chat.directory().then((cards) => this.display.applyDirectory(cards));
   }
 }
 

@@ -19,6 +19,7 @@ import { ApplicationLoggingModule } from './logging/logging.module';
 import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
 import { CustomerManagementModule } from './modules/customer-management/customer-management.module';
 import { AdminAccessModule } from './modules/admin-access/admin-access.module';
+import { ProviderDisplayModule } from './modules/provider-display/provider-display.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { AdminAccessModule } from './modules/admin-access/admin-access.module';
     CustomerExperienceModule,
     CustomerManagementModule,
     AdminAccessModule,
+    ProviderDisplayModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],
