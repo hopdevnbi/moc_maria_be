@@ -17,6 +17,7 @@ import { HealthModule } from './health/health.module';
 import { GlobalExceptionFilter } from './http/global-exception.filter';
 import { ApplicationLoggingModule } from './logging/logging.module';
 import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
+import { CustomerManagementModule } from './modules/customer-management/customer-management.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
     KtvChatModule,
     ProviderReviewsModule,
     CustomerExperienceModule,
+    CustomerManagementModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],
