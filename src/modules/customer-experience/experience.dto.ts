@@ -9,8 +9,9 @@ import {
   Min,
   Max,
   MaxLength,
+  IsBoolean,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class ProviderAgeDto {
   @IsInt() @Min(18) @Max(100) age!: number;
@@ -57,9 +58,35 @@ export class AdminInquiryQueryDto {
   @Min(1)
   @Max(100)
   limit: number = 20;
+
+  @IsOptional()
+  @IsBoolean()
+  @Transform(({ value }: { value: unknown }) =>
+    value === 'true' ? true : value === 'false' ? false : value,
+  )
+  archived?: boolean;
 }
 
 export class AdminReplyInquiryDto {
-  @IsIn(['CONTACTED', 'DECLINED']) status!: 'CONTACTED' | 'DECLINED';
+  @IsIn(['PENDING', 'CONTACTED', 'DECLINED', 'CANCELLED'])
+  status!: 'PENDING' | 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+  @IsString() @Length(10, 500) reason!: string;
+  @IsOptional()
+  @IsIn(['PENDING', 'CONTACTED', 'DECLINED', 'CANCELLED'])
+  expectedStatus?: 'PENDING' | 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+}
+
+export class AdminCreateInquiryDto {
+  @IsUUID() customerId!: string;
+  @IsUUID() providerId!: string;
+  @IsString() @Length(1, 100) serviceId!: string;
+  @IsIn(['AT_BRANCH', 'AT_HOME']) location!: 'AT_BRANCH' | 'AT_HOME';
+  @IsString() @Length(12, 300) address!: string;
+  @IsISO8601({ strict: true }) requestedAt!: string;
+  @IsOptional() @IsString() @Length(0, 500) notes?: string;
+  @IsString() @Length(10, 500) reason!: string;
+}
+
+export class AdminArchiveInquiryDto {
   @IsString() @Length(10, 500) reason!: string;
 }
