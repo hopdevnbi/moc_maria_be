@@ -52,6 +52,7 @@ export interface Inquiry {
   archivedAt?: string;
   createdByAdmin?: boolean;
   appointmentId?: string;
+  providerCompletedAt?: string;
   fulfillmentStatus?: 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'CANCELLED';
 }
 const presentationKey = (id: string): string => 'mocmaria.presentation.' + id;
@@ -393,6 +394,10 @@ export class CustomerExperienceService {
       if (value.appointmentId)
         throw new ConflictException(
           'Lịch chính thức đã được xác nhận. Hãy liên hệ quản trị viên để thay đổi.',
+        );
+      if (value.providerCompletedAt)
+        throw new ConflictException(
+          'KTV đã báo hoàn thành buổi chăm sóc. Hãy liên hệ quản trị viên nếu cần điều chỉnh.',
         );
       if (
         dto.status === 'CANCELLED'

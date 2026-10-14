@@ -83,6 +83,10 @@ export class InquiryFulfillmentService {
     lock: boolean,
   ): Promise<InquiryWithFulfillment> {
     if (!validInquiryId.test(id)) throw new NotFoundException('Không tìm thấy yêu cầu đặt lịch.');
+    if (lock)
+      await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
+        metadataKey(id),
+      ]);
     const [row] = await manager.query<Array<{ value: InquiryWithFulfillment }>>(
       `SELECT value FROM app_metadata WHERE key=$1${lock ? ' FOR UPDATE' : ''}`,
       [metadataKey(id)],
@@ -355,9 +359,10 @@ export class InquiryFulfillmentService {
           'Lịch chưa đến giờ phục vụ; KTV chỉ có thể bắt đầu sớm tối đa 30 phút.',
         );
       const [updated] = await manager.query<AppointmentRow[]>(
-        `UPDATE appointments SET status=$2,version=version+1,updated_at=clock_timestamp()
+        `WITH changed AS (UPDATE appointments SET status=$2,version=version+1,updated_at=clock_timestamp()
          WHERE id=$1::uuid AND version=$3 AND status=$4
-         RETURNING id,status,version,starts_at,ends_at,customer_user_id`,
+         RETURNING id,status,version,starts_at,ends_at,customer_user_id)
+         SELECT * FROM changed`,
         [current.id, dto.status, dto.expectedVersion, current.status],
       );
       if (!updated) throw new ConflictException('Lịch thay đổi đồng thời; hãy tải lại.');
