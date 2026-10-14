@@ -18,6 +18,7 @@ import { GlobalExceptionFilter } from './http/global-exception.filter';
 import { ApplicationLoggingModule } from './logging/logging.module';
 import { AdminAlertsModule } from './modules/admin-alerts/admin-alerts.module';
 import { CustomerManagementModule } from './modules/customer-management/customer-management.module';
+import { AdminAccessModule } from './modules/admin-access/admin-access.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { CustomerManagementModule } from './modules/customer-management/customer
     ProviderReviewsModule,
     CustomerExperienceModule,
     CustomerManagementModule,
+    AdminAccessModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],
