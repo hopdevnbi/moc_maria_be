@@ -25,6 +25,7 @@ import {
   ModerateProviderReviewDto,
   ProviderReviewPageDto,
   AdminProviderReviewPageDto,
+  UpdateProviderReviewPolicyDto,
 } from './provider-reviews.dto';
 @ApiTags('provider-reviews')
 @Controller('providers')
@@ -55,6 +56,13 @@ export class PublicProviderRatingsController {
 @UseGuards(AccessTokenGuard)
 export class OwnProviderReviewsController {
   constructor(private readonly reviews: ProviderReviewsService) {}
+  @Get('me/access')
+  @Header('Cache-Control', 'private, no-store')
+  access(
+    @CurrentUser() actor: AuthUserContext,
+  ): ReturnType<ProviderReviewsService['reviewAccess']> {
+    return this.reviews.reviewAccess(actor);
+  }
   @Get('me/eligible')
   @Header('Cache-Control', 'private, no-store')
   eligible(
@@ -87,6 +95,22 @@ export class OwnProviderReviewsController {
 @UseGuards(AccessTokenGuard, PermissionsGuard)
 export class AdminProviderReviewsController {
   constructor(private readonly reviews: ProviderReviewsService) {}
+  @Get('policy')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @Header('Cache-Control', 'private, no-store')
+  policy(@CurrentUser() actor: AuthUserContext): ReturnType<ProviderReviewsService['adminPolicy']> {
+    return this.reviews.adminPolicy(actor);
+  }
+
+  @Patch('policy')
+  @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
+  @Header('Cache-Control', 'private, no-store')
+  updatePolicy(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: UpdateProviderReviewPolicyDto,
+  ): ReturnType<ProviderReviewsService['updatePolicy']> {
+    return this.reviews.updatePolicy(actor, dto);
+  }
   @Get()
   @RequirePermissions(PERMISSIONS.STAFF_MANAGE)
   @Header('Cache-Control', 'private, no-store')

@@ -1,19 +1,37 @@
 import { Transform, Type } from 'class-transformer';
-import { IsIn, IsInt, IsOptional, IsString, IsUUID, Length, Max, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  IsUUID,
+  Length,
+  Max,
+  Min,
+} from 'class-validator';
+export class UpdateProviderReviewPolicyDto {
+  @IsBoolean() vipOnly!: boolean;
+  @IsInt() @Min(0) expectedVersion!: number;
+  @IsString()
+  @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
+  @Length(10, 500)
+  reason!: string;
+}
 export class CreateProviderReviewDto {
   @IsUUID() appointmentId!: string;
   @IsUUID() providerApplicationId!: string;
   @IsInt() @Min(1) @Max(5) stars!: number;
   @IsString()
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
-  @Length(1, 2000)
+  @Length(15, 2000)
   comment!: string;
 }
 export class EditProviderReviewDto {
   @IsInt() @Min(1) @Max(5) stars!: number;
   @IsString()
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
-  @Length(1, 2000)
+  @Length(15, 2000)
   comment!: string;
   @IsInt() @Min(1) expectedVersion!: number;
 }

@@ -12,7 +12,11 @@ import type {
   EditProviderReviewDto,
   ModerateProviderReviewDto,
   AdminProviderReviewPageDto,
+  UpdateProviderReviewPolicyDto,
 } from './provider-reviews.dto';
+
+export const REVIEW_POLICY_KEY = 'mocmaria.provider.reviews.policy.v1';
+export type ReviewPolicy = { vipOnly: boolean; version: number };
 
 interface Review {
   id: string;
@@ -77,8 +81,99 @@ export class ProviderReviewsService {
     if (!actor.permissions.includes('customer.portal'))
       throw new ForbiddenException('Chỉ khách hàng đã sử dụng dịch vụ được đánh giá.');
   }
+  private reviewAdmin(actor: AuthUserContext): void {
+    if (
+      !actor.permissions.includes('staff.manage') ||
+      !actor.roles.some((role) => role === 'ADMIN' || role === 'SUPER_ADMIN')
+    ) {
+      throw new ForbiddenException('Chỉ Admin được cấu hình quyền đánh giá KTV.');
+    }
+  }
+
+  private async policy(manager: Pick<DataSource, 'query'>): Promise<ReviewPolicy> {
+    const [row] = await manager.query<Array<{ value: Partial<ReviewPolicy> }>>(
+      'SELECT value FROM app_metadata WHERE key=$1',
+      [REVIEW_POLICY_KEY],
+    );
+    return { vipOnly: row?.value?.vipOnly === true, version: row?.value?.version ?? 0 };
+  }
+
+  async adminPolicy(actor: AuthUserContext): Promise<ReviewPolicy> {
+    this.reviewAdmin(actor);
+    return this.policy(this.db);
+  }
+
+  async updatePolicy(
+    actor: AuthUserContext,
+    dto: UpdateProviderReviewPolicyDto,
+  ): Promise<ReviewPolicy> {
+    this.reviewAdmin(actor);
+    return this.db.transaction(async (manager) => {
+      await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
+        REVIEW_POLICY_KEY,
+      ]);
+      const existing = await this.policy(manager);
+      if (existing.version !== dto.expectedVersion)
+        throw new ConflictException(
+          'Cấu hình đánh giá đã được thay đổi. Vui lòng tải lại trước khi lưu.',
+        );
+      if (existing.vipOnly === dto.vipOnly) return existing;
+      const next = { vipOnly: dto.vipOnly, version: existing.version + 1 };
+      await manager.query(
+        `INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb)
+         ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=clock_timestamp()`,
+        [REVIEW_POLICY_KEY, JSON.stringify(next)],
+      );
+      await manager.query(
+        'INSERT INTO audit_logs(event,actor_user_id,metadata) VALUES($1,$2,$3::jsonb)',
+        [
+          'provider.reviews.policy.updated',
+          actor.id,
+          JSON.stringify({
+            previousVipOnly: existing.vipOnly,
+            vipOnly: next.vipOnly,
+            version: next.version,
+            reason: dto.reason,
+          }),
+        ],
+      );
+      return next;
+    });
+  }
+
+  private async activeVip(manager: Pick<DataSource, 'query'>, userId: string): Promise<boolean> {
+    const [row] = await manager.query<
+      Array<{ value: { isVip?: boolean; expiresAt?: string | null } }>
+    >('SELECT value FROM app_metadata WHERE key=$1', ['mocmaria.customer.vip.' + userId]);
+    if (row?.value?.isVip !== true) return false;
+    const expiry = row.value.expiresAt;
+    return !expiry || (Number.isFinite(Date.parse(expiry)) && Date.parse(expiry) > Date.now());
+  }
+
+  async reviewAccess(
+    actor: AuthUserContext,
+  ): Promise<{ vipOnly: boolean; isVip: boolean; canReview: boolean }> {
+    this.customer(actor);
+    const policy = await this.policy(this.db);
+    const isVip = policy.vipOnly ? await this.activeVip(this.db, actor.id) : false;
+    return { vipOnly: policy.vipOnly, isVip, canReview: !policy.vipOnly || isVip };
+  }
+
+  private async assertReviewAllowed(manager: EntityManager, actor: AuthUserContext): Promise<void> {
+    // Serialize review submission with policy updates; a stale browser cannot bypass VIP-only.
+    await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))', [
+      REVIEW_POLICY_KEY,
+    ]);
+    if ((await this.policy(manager)).vipOnly && !(await this.activeVip(manager, actor.id))) {
+      throw new ForbiddenException(
+        'Chỉ hội viên VIP còn hiệu lực mới được gửi hoặc sửa đánh giá KTV.',
+      );
+    }
+  }
   async eligible(actor: AuthUserContext, providerId?: string): Promise<EligibleReview[]> {
     this.customer(actor);
+    const access = await this.reviewAccess(actor);
+    if (!access.canReview) return [];
     return this.db.query(
       `SELECT a.id AS appointment_id,s.provider_application_id,p.public_name AS provider_name,
       COALESCE(i.service_name,'Dịch vụ chăm sóc') AS service_name,a.ends_at AS completed_at,
@@ -124,6 +219,7 @@ export class ProviderReviewsService {
   async create(actor: AuthUserContext, dto: CreateProviderReviewDto): Promise<Review> {
     this.customer(actor);
     return this.db.transaction(async (manager) => {
+      await this.assertReviewAllowed(manager, actor);
       const [appointment] = await manager.query<{ id: string }[]>(
         `SELECT a.id FROM appointments a
         JOIN appointment_staff s ON s.appointment_id=a.id
@@ -156,6 +252,7 @@ export class ProviderReviewsService {
   async edit(actor: AuthUserContext, id: string, dto: EditProviderReviewDto): Promise<Review> {
     this.customer(actor);
     return this.db.transaction(async (manager) => {
+      await this.assertReviewAllowed(manager, actor);
       const [review] = await manager.query<Review[]>(
         `SELECT * FROM provider_reviews WHERE id=$1 AND customer_user_id=$2 FOR UPDATE`,
         [id, actor.id],
