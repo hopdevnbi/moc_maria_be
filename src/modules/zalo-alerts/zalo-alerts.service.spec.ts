@@ -29,6 +29,7 @@ describe('Zalo durable notifications', () => {
     const query = jest.fn<Promise<unknown[]>, [string, string[]]>().mockResolvedValue([]);
     const config = { get: (key: string) => values.get(key) } as ConfigService;
     const service = new ZaloAlertsService({ query } as unknown as DataSource, config);
+    if (configured) jest.spyOn(service, 'configuredRecipients').mockResolvedValue(['admin-1']);
     return { service, query, manager: { query } as unknown as EntityManager };
   }
   it('keeps message bodies, addresses and credentials out of notification text', () => {
@@ -45,6 +46,18 @@ describe('Zalo durable notifications', () => {
     await service.drain();
     expect(query).not.toHaveBeenCalled();
     expect(fetch).not.toHaveBeenCalled();
+  });
+  it('loads connected recipients on demand without requiring a restart or an environment chat ID', async () => {
+    const query = jest.fn().mockResolvedValue([{ id: 'new-recipient' }, { id: 'bad/id' }]);
+    const service = new ZaloAlertsService(
+      { query } as unknown as DataSource,
+      {
+        get: (key: string) => (key === 'ZALO_BOT_TOKEN' ? 'test-only' : undefined),
+      } as ConfigService,
+    );
+    expect(await service.configuredRecipients()).toEqual(['new-recipient']);
+    query.mockResolvedValue([{ id: 'second-recipient' }]);
+    expect(await service.configuredRecipients()).toEqual(['second-recipient']);
   });
   it('persists one deterministic event per valid distinct recipient without network', async () => {
     const { service, query, manager } = setup();

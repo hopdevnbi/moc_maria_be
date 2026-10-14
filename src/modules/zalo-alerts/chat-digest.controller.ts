@@ -23,6 +23,11 @@ export class ChatDigestController {
   get(): ReturnType<ChatDigestService['getSettings']> {
     return this.digest.getSettings();
   }
+  @Post('run')
+  @Header('Cache-Control', 'private, no-store')
+  run(): ReturnType<ChatDigestService['runNow']> {
+    return this.digest.runNow();
+  }
   @Post()
   @Header('Cache-Control', 'private, no-store')
   save(@Body() dto: DigestSettingsDto): ReturnType<ChatDigestService['saveSettings']> {

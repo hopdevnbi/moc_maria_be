@@ -18,7 +18,9 @@ interface Delivery {
   nextAt: string;
   lease?: string;
   sentAt?: string;
+  errorCode?: number;
 }
+export const zaloRecipientPrefix = 'mocmaria.zalo.recipient.';
 const prefix = 'mocmaria.zalo.outbox.';
 // eslint-disable-next-line no-control-regex -- Strip untrusted name controls from notification lines.
 const line = (value: string): string => value.replace(/[\r\n\u0000-\u001f]/g, ' ').slice(0, 120);
@@ -31,7 +33,7 @@ export function alertText(alert: ZaloAlert): string {
     ...(alert.serviceName ? [`Dịch vụ: ${line(alert.serviceName)}`] : []),
     `Mã ${alert.kind === 'chat' ? 'tin' : 'yêu cầu'}: ${line(alert.eventId)}`,
     'Vui lòng liên hệ KTV để hỗ trợ khách.',
-    'https://mocmaria.com/tai-khoan',
+    'https://mocmaria.com/quan-tri/lich-hen',
   ].join('\n');
 }
 
@@ -59,8 +61,8 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
   }
 
   onModuleInit(): void {
-    const { token, recipients } = this.settings();
-    if (!token || !recipients.length) return;
+    const { token } = this.settings();
+    if (!token || this.config.get<string>('NODE_ENV') === 'test') return;
     this.timer = setInterval(() => {
       void this.drain();
     }, 2000);
@@ -78,14 +80,22 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text);
   }
 
-  configuredRecipients(): string[] {
+  async configuredRecipients(manager: Pick<EntityManager, 'query'> = this.db): Promise<string[]> {
     const { token, recipients } = this.settings();
-    return token ? recipients : [];
+    if (!token) return [];
+    const saved = await manager.query<{ id: string }[]>(
+      `SELECT value->>'chatId' AS id FROM app_metadata WHERE key LIKE $1 AND value->>'enabled'='true'`,
+      [zaloRecipientPrefix + '%'],
+    );
+    return [...new Set([...recipients, ...saved.map((row) => row.id)])].filter((id) =>
+      /^[A-Za-z0-9._-]{1,160}$/.test(id),
+    );
   }
 
   async enqueueText(manager: EntityManager, eventId: string, text: string): Promise<void> {
-    const { token, recipients } = this.settings();
+    const { token } = this.settings();
     if (!token) return;
+    const recipients = await this.configuredRecipients(manager);
     for (const recipient of recipients) {
       const key = prefix + createHash('sha256').update(`${eventId}:${recipient}`).digest('hex');
       const delivery: Omit<Delivery, 'nextAt'> = {
@@ -107,8 +117,10 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     if (this.running) return;
     this.running = true;
     try {
-      const { token, recipients } = this.settings();
-      if (!token || !recipients.length) return;
+      const { token } = this.settings();
+      if (!token) return;
+      const recipients = await this.configuredRecipients();
+      if (!recipients.length) return;
       for (let i = 0; i < 10; i++) {
         const lease = randomUUID();
         // Row locks and a lease allow multiple API replicas without concurrent sends.
@@ -127,6 +139,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
         );
         if (!row) break;
         let sent = false;
+        let errorCode: number | undefined;
         try {
           const response = await fetch(
             `https://bot-api.zaloplatforms.com/bot${token}/sendMessage`,
@@ -137,8 +150,13 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
               signal: AbortSignal.timeout(8000),
             },
           );
-          const result = (await response.json()) as { ok?: boolean };
+          const result = (await response.json()) as {
+            ok?: boolean;
+            error_code?: number;
+            errorCode?: number;
+          };
           sent = response.ok && result.ok === true;
+          if (!sent) errorCode = result.error_code ?? result.errorCode ?? response.status;
         } catch {
           /* Never log fetch errors: request URLs contain the bot credential. */
         }
@@ -151,7 +169,9 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
             Date.now() + Math.min(3600000, 10000 * 2 ** Math.min(attempts, 9)),
           ).toISOString(),
           ...(sent ? { sentAt: new Date().toISOString() } : {}),
+          ...(!sent && Number.isInteger(errorCode) ? { errorCode } : {}),
         };
+        if (sent) delete value.errorCode;
         delete value.lease;
         await this.db.query(
           `UPDATE app_metadata SET value=$2::jsonb,updated_at=clock_timestamp() WHERE key=$1 AND value->>'lease'=$3`,

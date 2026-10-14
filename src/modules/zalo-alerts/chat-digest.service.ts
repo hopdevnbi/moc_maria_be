@@ -118,7 +118,7 @@ export class ChatDigestService implements OnModuleInit, OnModuleDestroy {
       ...defaults,
       ...record?.value,
       nextAt: state?.value.nextAt ?? null,
-      zaloReady: this.zalo.configuredRecipients().length > 0,
+      zaloReady: (await this.zalo.configuredRecipients()).length > 0,
       emailReady:
         !!this.config.get('QUEUE_SERVICE_URL') &&
         !!this.config.get('QUEUE_API_KEY') &&
@@ -165,7 +165,12 @@ export class ChatDigestService implements OnModuleInit, OnModuleDestroy {
       [key, JSON.stringify(value)],
     );
   }
-  async collect(at?: Date): Promise<void> {
+  async runNow(): Promise<Awaited<ReturnType<ChatDigestService['getSettings']>>> {
+    await this.collect(undefined, true);
+    return this.getSettings();
+  }
+
+  async collect(at?: Date, force = false): Promise<void> {
     await this.db.transaction(async (m) => {
       const [lock] = await m.query<{ locked: boolean; now: Date }[]>(
         'SELECT pg_try_advisory_xact_lock(7240112) AS locked,clock_timestamp() AS now',
@@ -182,12 +187,12 @@ export class ChatDigestService implements OnModuleInit, OnModuleDestroy {
         'SELECT value FROM app_metadata WHERE key=$1',
         [stateKey],
       );
-      if (!state) {
+      if (!state && !force) {
         await this.put(m, stateKey, { nextAt: nextDigestAt(settings, now).toISOString() });
         return;
       }
-      if (new Date(state.value.nextAt) > now) return;
-      const zaloReady = settings.zalo && this.zalo.configuredRecipients().length > 0;
+      if (!force && state && new Date(state.value.nextAt) > now) return;
+      const zaloReady = settings.zalo && (await this.zalo.configuredRecipients(m)).length > 0;
       const emails: { email: string }[] =
         settings.email && this.config.get('QUEUE_SERVICE_URL') && this.config.get('QUEUE_API_KEY')
           ? await m.query('SELECT email FROM admin_alert_recipients WHERE enabled ORDER BY email')
@@ -196,49 +201,60 @@ export class ChatDigestService implements OnModuleInit, OnModuleDestroy {
       const since = new Date(
         now.getTime() - (settings.mode === 'daily' ? 24 : settings.intervalHours) * 3600000,
       );
-      const rows = await m.query<Summary[]>(
-        `SELECT t.id,u.display_name AS customer_name,p.public_name AS provider_name,
+      const changedThreads = new Set<string>();
+      // Email retains its historical watermark. Zalo has an independent cursor so an email
+      // delivery cannot consume reports before the Bot has a connected recipient.
+      for (const channel of ['zalo', 'email'] as const) {
+        if (channel === 'zalo' ? !zaloReady : !emails.length) continue;
+        const watermarkPrefix =
+          channel === 'zalo'
+            ? 'mocmaria.chat.digest.zalo.watermark.'
+            : 'mocmaria.chat.digest.watermark.';
+        const rows = await m.query<Summary[]>(
+          `SELECT t.id,u.display_name AS customer_name,p.public_name AS provider_name,
         count(*) FILTER(WHERE msg.sender_user_id=t.customer_user_id)::int AS customer_messages,
         count(*) FILTER(WHERE msg.sender_user_id=t.provider_user_id)::int AS provider_messages,
         max(msg.seq)::text AS last_seq,max(msg.created_at) AS last_at
         FROM ktv_chat_threads t JOIN users u ON u.id=t.customer_user_id
         JOIN provider_applications p ON p.id=t.provider_application_id
         JOIN ktv_chat_messages msg ON msg.thread_id=t.id
-        LEFT JOIN app_metadata mark ON mark.key='mocmaria.chat.digest.watermark.'||t.id::text
+        LEFT JOIN app_metadata mark ON mark.key=$3||t.id::text
         WHERE msg.seq>COALESCE((mark.value->>'seq')::bigint,0)
           AND (mark.key IS NOT NULL OR msg.created_at>=$1) AND msg.created_at<=$2
         GROUP BY t.id,u.display_name,p.public_name ORDER BY t.id`,
-        [since, now],
-      );
-      for (const row of rows) {
-        const text = digestText(row);
-        const eventId = `digest:${row.id}:${row.last_seq}`;
-        if (zaloReady) await this.zalo.enqueueText(m, eventId, text);
-        for (const { email } of emails) {
-          const key =
-            emailPrefix + createHash('sha256').update(`${eventId}:${email}`).digest('hex');
-          await m.query(
-            `INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb) ON CONFLICT(key) DO NOTHING`,
-            [
-              key,
-              JSON.stringify({
-                recipient: email,
-                text,
-                html: chatDigestEmail(row, text).html,
-                threadId: row.id,
-                status: 'pending',
-                attempts: 0,
-                nextAt: now.toISOString(),
-              }),
-            ],
-          );
+          [since, now, watermarkPrefix],
+        );
+        for (const row of rows) {
+          const text = digestText(row);
+          const eventId = `digest:${row.id}:${row.last_seq}`;
+          changedThreads.add(row.id);
+          if (channel === 'zalo') await this.zalo.enqueueText(m, eventId, text);
+          for (const { email } of channel === 'email' ? emails : []) {
+            const key =
+              emailPrefix + createHash('sha256').update(`${eventId}:${email}`).digest('hex');
+            await m.query(
+              `INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb) ON CONFLICT(key) DO NOTHING`,
+              [
+                key,
+                JSON.stringify({
+                  recipient: email,
+                  text,
+                  html: chatDigestEmail(row, text).html,
+                  threadId: row.id,
+                  status: 'pending',
+                  attempts: 0,
+                  nextAt: now.toISOString(),
+                }),
+              ],
+            );
+          }
+          await this.put(m, watermarkPrefix + row.id, { seq: row.last_seq });
         }
-        await this.put(m, 'mocmaria.chat.digest.watermark.' + row.id, { seq: row.last_seq });
       }
       await this.put(m, stateKey, {
         nextAt: nextDigestAt(settings, now).toISOString(),
         lastRunAt: now.toISOString(),
-        threads: rows.length,
+        threads: changedThreads.size,
       });
       // Keep failed/pending rows; bounded retention for acknowledged deliveries only.
       await m.query(
