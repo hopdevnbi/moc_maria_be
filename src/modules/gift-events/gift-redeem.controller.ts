@@ -5,13 +5,17 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { GiftRedeemService } from './gift-redeem.service';
 import { GiftCounterGrantDto, RedeemGiftDto, VerifyGiftDto } from './gift-redeem.dto';
+import { GiftAbuseService } from './gift-abuse.service';
 
 @ApiBearerAuth()
 @ApiTags('Event - Quầy xác minh nhận quà')
 @Controller('staff/gift-redemptions')
 @UseGuards(AccessTokenGuard)
 export class GiftRedeemController {
-  constructor(private readonly service: GiftRedeemService) {}
+  constructor(
+    private readonly service: GiftRedeemService,
+    private readonly abuse: GiftAbuseService,
+  ) {}
   @Get('branches')
   @Header('Cache-Control', 'private, no-store')
   branches(@CurrentUser() actor: AuthUserContext): ReturnType<GiftRedeemService['branches']> {
@@ -20,19 +24,21 @@ export class GiftRedeemController {
   @Post('verify')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
-  verify(
+  async verify(
     @CurrentUser() actor: AuthUserContext,
     @Body() dto: VerifyGiftDto,
   ): ReturnType<GiftRedeemService['verify']> {
+    await this.abuse.consume(actor, 'VERIFY', dto.branchId);
     return this.service.verify(actor, dto);
   }
   @Post('redeem')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
-  redeem(
+  async redeem(
     @CurrentUser() actor: AuthUserContext,
     @Body() dto: RedeemGiftDto,
   ): ReturnType<GiftRedeemService['redeem']> {
+    await this.abuse.consume(actor, 'REDEEM', dto.branchId);
     return this.service.redeem(actor, dto);
   }
 }

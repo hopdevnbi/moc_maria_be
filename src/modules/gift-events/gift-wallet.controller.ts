@@ -5,13 +5,17 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { GiftWalletService, type EventMeView, type WalletReward } from './gift-wallet.service';
 import type { GiftOpenResult } from './gift-open.dto';
+import { GiftAbuseService } from './gift-abuse.service';
 
 @ApiBearerAuth()
 @ApiTags('Event - Ví quà cá nhân')
 @Controller('gift-events')
 @UseGuards(AccessTokenGuard)
 export class GiftWalletController {
-  constructor(private readonly service: GiftWalletService) {}
+  constructor(
+    private readonly service: GiftWalletService,
+    private readonly abuse: GiftAbuseService,
+  ) {}
   @Get('me')
   @Header('Cache-Control', 'private, no-store')
   me(@CurrentUser() actor: AuthUserContext): Promise<EventMeView> {
@@ -34,10 +38,11 @@ export class GiftWalletController {
   }
   @Post('me/rewards/:id/qr')
   @Header('Cache-Control', 'private, no-store')
-  qr(
+  async qr(
     @CurrentUser() actor: AuthUserContext,
     @Param('id') id: string,
   ): ReturnType<GiftWalletService['issueQr']> {
+    await this.abuse.consume(actor, 'ISSUE_QR', id);
     return this.service.issueQr(actor, id);
   }
 }

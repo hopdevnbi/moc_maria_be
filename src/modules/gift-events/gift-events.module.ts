@@ -13,6 +13,7 @@ import { GiftRedeemController, GiftCounterAccessController } from './gift-redeem
 import { GiftRedeemService } from './gift-redeem.service';
 import { GiftReportController } from './gift-report.controller';
 import { GiftReportService } from './gift-report.service';
+import { GiftAbuseService } from './gift-abuse.service';
 
 @Module({
   imports: [AuthModule],
@@ -35,6 +36,7 @@ import { GiftReportService } from './gift-report.service';
     GiftWalletService,
     GiftRedeemService,
     GiftReportService,
+    GiftAbuseService,
   ],
   exports: [GiftEventsService],
 })
