@@ -30,7 +30,12 @@ describe('P06 validated prize catalog and cap/stock control', () => {
     expect(
       validateGiftPrize(
         'VOUCHER_PERCENT',
-        { percent: 30, maxDiscountVnd: 100000, minSpendVnd: 0 },
+        {
+          percent: 30,
+          maxDiscountVnd: 100000,
+          minSpendVnd: 0,
+          allowedServiceIds: ['11111111-1111-4111-8111-111111111111'],
+        },
         true,
       ).liabilityVnd,
     ).toBe(100000);

@@ -97,6 +97,23 @@ export function validateGiftPrize(
       throw new Error('Phần trăm giảm phải từ 1 đến 100.');
     liabilityVnd = money(config['maxDiscountVnd'], 'Mức giảm tối đa', 1000);
     money(config['minSpendVnd'] ?? 0, 'Đơn tối thiểu');
+    if (
+      enabled &&
+      (!Array.isArray(config['allowedServiceIds']) || !config['allowedServiceIds'].length)
+    )
+      throw new Error('Voucher % phải chọn ít nhất một dịch vụ hoặc sản phẩm áp dụng.');
+    if (
+      config['allowedServiceIds'] !== undefined &&
+      (!Array.isArray(config['allowedServiceIds']) ||
+        config['allowedServiceIds'].length < 1 ||
+        config['allowedServiceIds'].length > 100 ||
+        config['allowedServiceIds'].some(
+          (id: unknown) =>
+            typeof id !== 'string' ||
+            !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id),
+        ))
+    )
+      throw new Error('Danh mục dịch vụ áp dụng không hợp lệ.');
   } else if (kind === 'GIFT_CARD') {
     liabilityVnd = money(config['valueVnd'], 'Mệnh giá thẻ dùng một lần', 1000);
   } else if (kind === 'CASH_COUNTER') {

@@ -53,7 +53,15 @@ spec:
             - name: DATABASE_SSL_REJECT_UNAUTHORIZED
               value: 'true'
             - name: CORS_ORIGINS
-              value: https://mocmaria.com,https://www.mocmaria.com
+              value: https://mocmaria.com,https://www.mocmaria.com,https://event.mocmaria.com
+            - name: GIFT_EVENTS_ENABLED
+              value: 'false'
+            - name: GIFT_COUNTER_PIN_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: moc-maria-gift-counter
+                  key: pin-secret
+                  optional: true
             - name: AUTH_COOKIE_SECURE
               value: 'true'
             - name: SWAGGER_ENABLED

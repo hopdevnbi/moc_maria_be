@@ -126,6 +126,19 @@ export class GiftPrizesService {
       );
       if (Number(n) !== branches.length)
         throw new BadRequestException('Cơ sở không hợp lệ hoặc đã tắt.');
+      if (dto.kind === 'VOUCHER_PERCENT' && dto.enabled === true) {
+        const ids = [...new Set(rules.config['allowedServiceIds'] as string[])];
+        const [{ n: catalogCount }] = await m.query<Array<{ n: number }>>(
+          `SELECT COUNT(*)::int n FROM services s
+           JOIN service_categories c ON c.id=s.category_id AND c.is_published
+           WHERE s.id=ANY($1::uuid[]) AND s.is_published`,
+          [ids],
+        );
+        if (Number(catalogCount) !== ids.length)
+          throw new BadRequestException(
+            'Có dịch vụ/đồ uống áp dụng không tồn tại hoặc chưa công khai.',
+          );
+      }
       const [row] = await m.query<Array<{ id: string }>>(
         `INSERT INTO gift_event_prizes
         (event_id,name,description,kind,config,weight,stock_total,liability_vnd,enabled,created_by)
@@ -212,6 +225,19 @@ export class GiftPrizesService {
         [branches],
       );
       if (Number(n) !== branches.length) throw new BadRequestException('Cơ sở không hợp lệ.');
+      if (row.kind === 'VOUCHER_PERCENT' && enabled) {
+        const ids = [...new Set(rules.config['allowedServiceIds'] as string[])];
+        const [{ n: catalogCount }] = await m.query<Array<{ n: number }>>(
+          `SELECT COUNT(*)::int n FROM services s
+           JOIN service_categories c ON c.id=s.category_id AND c.is_published
+           WHERE s.id=ANY($1::uuid[]) AND s.is_published`,
+          [ids],
+        );
+        if (Number(catalogCount) !== ids.length)
+          throw new BadRequestException(
+            'Có dịch vụ/đồ uống áp dụng không tồn tại hoặc chưa công khai.',
+          );
+      }
       await m.query(
         `UPDATE gift_event_prizes SET name=$2,description=$3,config=$4::jsonb,weight=$5,
         stock_total=$6,liability_vnd=$7,enabled=$8,version=version+1,updated_at=clock_timestamp()

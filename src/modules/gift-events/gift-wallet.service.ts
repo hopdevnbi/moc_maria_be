@@ -4,7 +4,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, createHmac, randomBytes, randomInt } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
 import { GiftEventsService } from './gift-events.service';
@@ -59,6 +59,15 @@ export type EventMeView = {
   openId: string | null;
   rewardId: string | null;
 };
+
+export function hashGiftCounterPin(pin: string): string {
+  if (!/^\d{6}$/.test(pin)) throw new ConflictException('INVALID_VOUCHER_CODE');
+  const secret = process.env['GIFT_COUNTER_PIN_SECRET'];
+  if (!secret || secret.length < 32) throw new ConflictException('VOUCHER_CODE_NOT_CONFIGURED');
+  return createHmac('sha256', secret)
+    .update('mocmaria-voucher-v1:' + pin)
+    .digest('hex');
+}
 
 @Injectable()
 export class GiftWalletService {
@@ -259,5 +268,53 @@ export class GiftWalletService {
       );
     });
     return { token: raw, expiresAt: expiry.toISOString(), rewardId };
+  }
+
+  /** Six-digit code must be requested at the counter and expires after five minutes. */
+  async issuePin(
+    actor: AuthUserContext,
+    rewardId: string,
+  ): Promise<{ code: string; expiresAt: string; rewardId: string }> {
+    this.requireCustomer(actor);
+    this.events.requireEnabled();
+    // Fail closed before touching the database if the pepper was not provisioned.
+    hashGiftCounterPin('000000');
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const code = String(randomInt(1_000_000)).padStart(6, '0');
+      const hashed = hashGiftCounterPin(code);
+      try {
+        const expiresAt = await this.db.transaction(async (m) => {
+          const [row] = await m.query<Array<{ status: string; expires_at: Date }>>(
+            `SELECT status,expires_at FROM gift_event_rewards
+             WHERE id=$1::uuid AND customer_user_id=$2::uuid FOR UPDATE`,
+            [rewardId, actor.id],
+          );
+          if (!row) throw new NotFoundException('REWARD_NOT_FOUND');
+          if (row.status !== 'ISSUED' || new Date(row.expires_at) <= new Date())
+            throw new ConflictException('REWARD_NOT_REDEEMABLE');
+          const expiry = new Date(
+            Math.min(Date.now() + 300000, new Date(row.expires_at).getTime()),
+          );
+          // Release expired codes to avoid exhausting the six-digit namespace.
+          await m.query(
+            'DELETE FROM gift_event_counter_pins WHERE expires_at <= clock_timestamp()',
+          );
+          await m.query(
+            `INSERT INTO gift_event_counter_pins(reward_id,pin_hash,expires_at)
+             VALUES($1::uuid,$2,$3::timestamptz)
+             ON CONFLICT(reward_id) DO UPDATE
+               SET pin_hash=EXCLUDED.pin_hash,expires_at=EXCLUDED.expires_at,created_at=clock_timestamp()`,
+            [rewardId, hashed, expiry.toISOString()],
+          );
+          return expiry;
+        });
+        return { code, rewardId, expiresAt: expiresAt.toISOString() };
+      } catch (error) {
+        // Another active code matched; generate another rather than disclose or reuse it.
+        if ((error as { code?: string }).code === '23505') continue;
+        throw error;
+      }
+    }
+    throw new ConflictException('VOUCHER_CODE_BUSY');
   }
 }

@@ -45,4 +45,13 @@ export class GiftWalletController {
     await this.abuse.consume(actor, 'ISSUE_QR', id);
     return this.service.issueQr(actor, id);
   }
+  @Post('me/rewards/:id/code')
+  @Header('Cache-Control', 'private, no-store')
+  async code(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+  ): ReturnType<GiftWalletService['issuePin']> {
+    await this.abuse.consume(actor, 'ISSUE_QR', id);
+    return this.service.issuePin(actor, id);
+  }
 }

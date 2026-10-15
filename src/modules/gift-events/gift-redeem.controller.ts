@@ -4,7 +4,14 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { GiftRedeemService } from './gift-redeem.service';
-import { GiftCounterGrantDto, RedeemGiftDto, VerifyGiftDto } from './gift-redeem.dto';
+import {
+  GiftCounterGrantDto,
+  RedeemGiftDto,
+  VerifyGiftDto,
+  RedeemGiftCodeDto,
+  VerifyGiftCodeDto,
+  GiftVoucherQuoteDto,
+} from './gift-redeem.dto';
 import { GiftAbuseService, GIFT_ALL_BRANCHES_SCOPE } from './gift-abuse.service';
 
 @ApiBearerAuth()
@@ -33,6 +40,28 @@ export class GiftRedeemController {
     await this.abuse.consume(actor, 'VERIFY', dto.branchId);
     return this.service.verify(actor, dto);
   }
+  @Post('verify-code')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async verifyCode(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: VerifyGiftCodeDto,
+  ): ReturnType<GiftRedeemService['verifyCode']> {
+    await this.abuse.consume(actor, 'VERIFY', GIFT_ALL_BRANCHES_SCOPE);
+    await this.abuse.consume(actor, 'VERIFY', dto.branchId);
+    return this.service.verifyCode(actor, dto);
+  }
+  @Post('quote-code')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async quoteCode(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: GiftVoucherQuoteDto,
+  ): ReturnType<GiftRedeemService['quoteCode']> {
+    await this.abuse.consume(actor, 'VERIFY', GIFT_ALL_BRANCHES_SCOPE);
+    await this.abuse.consume(actor, 'VERIFY', dto.branchId);
+    return this.service.quoteCode(actor, dto);
+  }
   @Post('redeem')
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
@@ -43,6 +72,17 @@ export class GiftRedeemController {
     await this.abuse.consume(actor, 'REDEEM', GIFT_ALL_BRANCHES_SCOPE);
     await this.abuse.consume(actor, 'REDEEM', dto.branchId);
     return this.service.redeem(actor, dto);
+  }
+  @Post('redeem-code')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async redeemCode(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: RedeemGiftCodeDto,
+  ): ReturnType<GiftRedeemService['redeemCode']> {
+    await this.abuse.consume(actor, 'REDEEM', GIFT_ALL_BRANCHES_SCOPE);
+    await this.abuse.consume(actor, 'REDEEM', dto.branchId);
+    return this.service.redeemCode(actor, dto);
   }
 }
 
