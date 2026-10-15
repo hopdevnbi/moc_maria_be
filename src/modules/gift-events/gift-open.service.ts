@@ -44,6 +44,7 @@ type Entry = {
 type Reward = {
   id: string;
   prize_id: string;
+  status: 'ISSUED' | 'REDEEMED' | 'EXPIRED' | 'VOIDED';
   reward_snapshot: {
     name: string;
     description: string;
@@ -104,10 +105,6 @@ export class GiftOpenService {
         if (!event) throw new NotFoundException('EVENT_NOT_FOUND');
         const now = new Date();
         const status = effectiveGiftStatus(event.status, event.start_at, event.end_at, now);
-        if (status === 'SCHEDULED') throw new ConflictException('EVENT_NOT_STARTED');
-        if (status === 'PAUSED') throw new ConflictException('EVENT_PAUSED');
-        if (status === 'ENDED' || status === 'ARCHIVED' || status === 'DRAFT')
-          throw new ConflictException('EVENT_ENDED');
 
         const [user] = await m.query<
           Array<{ is_active: boolean; must_change_password: boolean; is_customer: boolean }>
@@ -138,6 +135,12 @@ export class GiftOpenService {
             );
           return this.resultFromEntry(m, existing, eventId);
         }
+        // A replay of a previously committed draw must still work after
+        // the campaign was paused or ended. New draws remain state-gated.
+        if (status === 'SCHEDULED') throw new ConflictException('EVENT_NOT_STARTED');
+        if (status === 'PAUSED') throw new ConflictException('EVENT_PAUSED');
+        if (status === 'ENDED' || status === 'ARCHIVED' || status === 'DRAFT')
+          throw new ConflictException('EVENT_ENDED');
         if (Number(event.terms_version) !== dto.termsVersion || dto.termsAccepted !== true)
           throw new BadRequestException('TERMS_VERSION_CHANGED');
         const [vipRow] = await m.query<Array<{ value: GiftVipRecord }>>(
@@ -252,7 +255,7 @@ export class GiftOpenService {
     eventId: string,
   ): Promise<GiftOpenResult> {
     const [reward] = await m.query<Reward[]>(
-      `SELECT id,prize_id,reward_snapshot,expires_at FROM gift_event_rewards
+      `SELECT id,prize_id,status,reward_snapshot,expires_at FROM gift_event_rewards
       WHERE entry_id=$1::uuid`,
       [entry.id],
     );
@@ -272,7 +275,10 @@ export class GiftOpenService {
         kind: snapshot.kind,
         config: snapshot.config,
         expiresAt: new Date(reward.expires_at).toISOString(),
-        status: 'ISSUED',
+        status:
+          reward.status === 'ISSUED' && new Date(reward.expires_at) <= new Date()
+            ? 'EXPIRED'
+            : reward.status,
       },
     };
   }

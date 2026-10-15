@@ -21,8 +21,17 @@ const dto: OpenGiftDto = {
   termsVersion: 1,
 };
 const now = new Date();
+type DrawState = {
+  eventStatus: 'LIVE' | 'PAUSED' | 'ENDED';
+  rewardStatus: 'ISSUED' | 'REDEEMED';
+};
 
-function fixture({ noPrizes = false, allowed = true, budgetRemaining = 500000 } = {}): {
+function fixture({
+  noPrizes = false,
+  allowed = true,
+  budgetRemaining = 500000,
+  state = { eventStatus: 'LIVE', rewardStatus: 'ISSUED' } as DrawState,
+} = {}): {
   service: GiftOpenService;
   statements: Array<{ sql: string; params: unknown[] }>;
   calls: { stock: number; budget: number; rewards: number };
@@ -36,7 +45,7 @@ function fixture({ noPrizes = false, allowed = true, budgetRemaining = 500000 } 
       return Promise.resolve([
         {
           id: eventId,
-          status: 'LIVE',
+          status: state.eventStatus,
           start_at: new Date(now.getTime() - 3600000),
           end_at: new Date(now.getTime() + 3600000),
           terms_version: 1,
@@ -53,6 +62,7 @@ function fixture({ noPrizes = false, allowed = true, budgetRemaining = 500000 } 
         {
           id: '44444444-4444-4444-8444-444444444444',
           prize_id: '33333333-3333-4333-8333-333333333333',
+          status: state.rewardStatus,
           reward_snapshot: {
             name: 'Voucher chăm sóc',
             description: 'Tri ân',
@@ -171,6 +181,24 @@ describe('P07 secure box opening', () => {
     expect(second.openId).toBe(first.openId);
     expect(second.reward.id).toBe(first.reward.id);
     expect(calls).toEqual({ stock: 1, budget: 1, rewards: 1 });
+  });
+  it('retries a committed draw after event ends, retaining redeemed status without another award', async () => {
+    const state: DrawState = { eventStatus: 'LIVE', rewardStatus: 'ISSUED' };
+    const { service, calls } = fixture({ state });
+    const first = await service.open(user, eventId, dto);
+    state.eventStatus = 'ENDED';
+    state.rewardStatus = 'REDEEMED';
+    const recovered = await service.open(user, eventId, dto);
+    expect(recovered.openId).toBe(first.openId);
+    expect(recovered.reward).toMatchObject({ id: first.reward.id, status: 'REDEEMED' });
+    expect(calls).toEqual({ stock: 1, budget: 1, rewards: 1 });
+  });
+  it('blocks a new open on a paused event without consuming stock', async () => {
+    const { service, calls } = fixture({
+      state: { eventStatus: 'PAUSED', rewardStatus: 'ISSUED' },
+    });
+    await expect(service.open(user, eventId, dto)).rejects.toThrow('EVENT_PAUSED');
+    expect(calls).toEqual({ stock: 0, budget: 0, rewards: 0 });
   });
   it('same account with changed key or payload cannot open twice', async () => {
     const { service, calls } = fixture();
