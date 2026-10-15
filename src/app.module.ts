@@ -23,6 +23,7 @@ import { AdminAccessModule } from './modules/admin-access/admin-access.module';
 import { ProviderDisplayModule } from './modules/provider-display/provider-display.module';
 import { AdminIntakeModule } from './modules/admin-intake/admin-intake.module';
 import { InquiryFulfillmentModule } from './modules/inquiry-fulfillment/inquiry-fulfillment.module';
+import { GiftEventsModule } from './modules/gift-events/gift-events.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { InquiryFulfillmentModule } from './modules/inquiry-fulfillment/inquiry-
     ProviderDisplayModule,
     AdminIntakeModule,
     InquiryFulfillmentModule,
+    GiftEventsModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],
