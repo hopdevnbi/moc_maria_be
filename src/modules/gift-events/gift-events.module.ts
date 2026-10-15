@@ -11,6 +11,8 @@ import { GiftWalletController } from './gift-wallet.controller';
 import { GiftWalletService } from './gift-wallet.service';
 import { GiftRedeemController, GiftCounterAccessController } from './gift-redeem.controller';
 import { GiftRedeemService } from './gift-redeem.service';
+import { GiftReportController } from './gift-report.controller';
+import { GiftReportService } from './gift-report.service';
 
 @Module({
   imports: [AuthModule],
@@ -23,6 +25,7 @@ import { GiftRedeemService } from './gift-redeem.service';
     GiftWalletController,
     GiftRedeemController,
     GiftCounterAccessController,
+    GiftReportController,
   ],
   providers: [
     GiftEventsService,
@@ -31,6 +34,7 @@ import { GiftRedeemService } from './gift-redeem.service';
     GiftOpenService,
     GiftWalletService,
     GiftRedeemService,
+    GiftReportService,
   ],
   exports: [GiftEventsService],
 })
