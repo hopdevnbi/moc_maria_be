@@ -12,6 +12,7 @@ import type { AuthUserContext } from '../identity/identity.types';
 import { effectiveGiftStatus, type GiftEventStatus } from './gift-events.dto';
 import { GiftEventsService } from './gift-events.service';
 import { type OpenGiftDto, type GiftOpenResult } from './gift-open.dto';
+import { GiftNotificationsService } from './gift-notifications.service';
 
 type Campaign = {
   id: string;
@@ -86,6 +87,7 @@ export class GiftOpenService {
   constructor(
     private readonly db: DataSource,
     private readonly events: GiftEventsService,
+    private readonly notifications: GiftNotificationsService,
   ) {}
 
   async open(actor: AuthUserContext, eventId: string, dto: OpenGiftDto): Promise<GiftOpenResult> {
@@ -226,6 +228,15 @@ export class GiftOpenService {
         RETURNING id,prize_id,reward_snapshot,expires_at`,
           [entry.id, eventId, winner.id, actor.id, JSON.stringify(snapshot), expiry.toISOString()],
         );
+        await this.notifications.enqueue(m, {
+          rewardId: reward.id,
+          eventId,
+          eventTitle: eventId,
+          customerName: actor.displayName || 'Khách hàng',
+          prizeName: winner.name,
+          issuedAt: now.toISOString(),
+          expiresAt: expiry.toISOString(),
+        });
         return {
           openId: entry.id,
           eventId,

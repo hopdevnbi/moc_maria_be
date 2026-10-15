@@ -6,6 +6,7 @@ import type { AuthUserContext } from '../identity/identity.types';
 import { GiftEventsService } from './gift-events.service';
 import { GiftOpenService, giftCustomerTier, pickGiftWeighted } from './gift-open.service';
 import { OpenGiftDto } from './gift-open.dto';
+import { GiftNotificationsService } from './gift-notifications.service';
 
 const user = {
   id: '11111111-1111-4111-8111-111111111111',
@@ -130,7 +131,18 @@ function fixture({
     transaction: (run: (m: EntityManager) => unknown) => run({ query } as unknown as EntityManager),
   } as unknown as DataSource;
   process.env['GIFT_EVENTS_ENABLED'] = 'true';
-  return { service: new GiftOpenService(db, new GiftEventsService(db)), statements, calls };
+  return {
+    service: new GiftOpenService(db, new GiftEventsService(db), {
+      enqueue: async (m: EntityManager, notice: { rewardId: string }) => {
+        await m.query(
+          'INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb) ON CONFLICT(key) DO NOTHING',
+          ['mocmaria.gift.notify.email.' + notice.rewardId, JSON.stringify(notice)],
+        );
+      },
+    } as unknown as GiftNotificationsService),
+    statements,
+    calls,
+  };
 }
 afterEach(() => delete process.env['GIFT_EVENTS_ENABLED']);
 
