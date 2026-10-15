@@ -4,6 +4,8 @@ import { GiftEventsService } from './gift-events.service';
 import type { AuthUserContext } from '../identity/identity.types';
 
 export type GiftEventAction = 'OPEN' | 'ISSUE_QR' | 'VERIFY' | 'REDEEM';
+export const GIFT_ALL_BRANCHES_SCOPE = 'all-branches';
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const limits: Record<GiftEventAction, { limit: number; windowMs: number }> = {
   OPEN: { limit: 12, windowMs: 600_000 },
   ISSUE_QR: { limit: 8, windowMs: 300_000 },
@@ -20,7 +22,12 @@ export class GiftAbuseService {
   ) {}
   async consume(actor: AuthUserContext, action: GiftEventAction, scope: string): Promise<void> {
     this.events.requireEnabled();
-    if (!actor.id || scope.length > 100 || !scope || !limits[action])
+    // Never let arbitrary caller-supplied strings create unbounded DB limiter
+    // buckets. All event, reward and branch IDs are UUID v4 in this service.
+    const validScope =
+      UUID_V4.test(scope) ||
+      ((action === 'VERIFY' || action === 'REDEEM') && scope === GIFT_ALL_BRANCHES_SCOPE);
+    if (!UUID_V4.test(actor.id) || !limits[action] || !validScope)
       throw new BadRequestException('INVALID_EVENT_REQUEST');
     const { limit, windowMs } = limits[action];
     const windowStart = Math.floor(Date.now() / windowMs) * windowMs;

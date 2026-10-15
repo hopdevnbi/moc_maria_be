@@ -1,7 +1,7 @@
 import { BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import type { DataSource } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
-import { GiftAbuseService } from './gift-abuse.service';
+import { GiftAbuseService, GIFT_ALL_BRANCHES_SCOPE } from './gift-abuse.service';
 import { GiftEventsService } from './gift-events.service';
 
 const user = { id: '11111111-1111-4111-8111-111111111111' } as AuthUserContext;
@@ -50,7 +50,29 @@ describe('P14 database-backed event abuse prevention', () => {
     await expect(service.consume(user, 'OPEN', 'x'.repeat(101))).rejects.toBeInstanceOf(
       BadRequestException,
     );
+    await expect(service.consume(user, 'OPEN', 'malicious-arbitrary-scope')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.consume(user, 'ISSUE_QR', GIFT_ALL_BRANCHES_SCOPE)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(service.consume(user, 'VERIFY', 'another-branch')).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    await expect(
+      service.consume({ ...user, id: 'bad-user-id' }, 'OPEN', scope),
+    ).rejects.toBeInstanceOf(BadRequestException);
     expect(calls).toHaveLength(0);
+  });
+  it('accepts the reserved global counter scope exclusively for staff actions', async () => {
+    const { service, calls } = fixture();
+    await service.consume(user, 'VERIFY', GIFT_ALL_BRANCHES_SCOPE);
+    await service.consume(user, 'REDEEM', GIFT_ALL_BRANCHES_SCOPE);
+    expect(calls).toHaveLength(2);
+    expect(calls.map((call) => call.params[2])).toEqual([
+      GIFT_ALL_BRANCHES_SCOPE,
+      GIFT_ALL_BRANCHES_SCOPE,
+    ]);
   });
   it('stays off when event feature is disabled', async () => {
     process.env['GIFT_EVENTS_ENABLED'] = 'false';

@@ -5,7 +5,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { GiftRedeemService } from './gift-redeem.service';
 import { GiftCounterGrantDto, RedeemGiftDto, VerifyGiftDto } from './gift-redeem.dto';
-import { GiftAbuseService } from './gift-abuse.service';
+import { GiftAbuseService, GIFT_ALL_BRANCHES_SCOPE } from './gift-abuse.service';
 
 @ApiBearerAuth()
 @ApiTags('Event - Quầy xác minh nhận quà')
@@ -28,6 +28,8 @@ export class GiftRedeemController {
     @CurrentUser() actor: AuthUserContext,
     @Body() dto: VerifyGiftDto,
   ): ReturnType<GiftRedeemService['verify']> {
+    // Per-actor global ceiling prevents bypass by rotating among branches.
+    await this.abuse.consume(actor, 'VERIFY', GIFT_ALL_BRANCHES_SCOPE);
     await this.abuse.consume(actor, 'VERIFY', dto.branchId);
     return this.service.verify(actor, dto);
   }
@@ -38,6 +40,7 @@ export class GiftRedeemController {
     @CurrentUser() actor: AuthUserContext,
     @Body() dto: RedeemGiftDto,
   ): ReturnType<GiftRedeemService['redeem']> {
+    await this.abuse.consume(actor, 'REDEEM', GIFT_ALL_BRANCHES_SCOPE);
     await this.abuse.consume(actor, 'REDEEM', dto.branchId);
     return this.service.redeem(actor, dto);
   }

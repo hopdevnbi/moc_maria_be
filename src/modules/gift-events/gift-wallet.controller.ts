@@ -1,4 +1,4 @@
-import { Controller, Get, Header, Param, Post, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, Param, ParseUUIDPipe, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
@@ -40,7 +40,7 @@ export class GiftWalletController {
   @Header('Cache-Control', 'private, no-store')
   async qr(
     @CurrentUser() actor: AuthUserContext,
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
   ): ReturnType<GiftWalletService['issueQr']> {
     await this.abuse.consume(actor, 'ISSUE_QR', id);
     return this.service.issueQr(actor, id);
