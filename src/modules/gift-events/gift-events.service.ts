@@ -326,7 +326,10 @@ export class GiftEventsService {
         if (!tiers.length) throw new BadRequestException('Cần ít nhất một hạng.');
         const [count] = await m.query<Array<{ n: number }>>(
           `SELECT COUNT(*)::int n FROM gift_event_prizes
-          WHERE event_id=$1::uuid AND enabled AND kind<>'CASH_COUNTER' AND stock_total>stock_issued AND liability_vnd>=0`,
+          WHERE event_id=$1::uuid AND enabled AND kind<>'CASH_COUNTER'
+            AND stock_total>stock_issued AND liability_vnd>=0
+            AND liability_vnd <= (SELECT budget_cap_vnd-budget_reserved_vnd
+              FROM gift_event_campaigns WHERE id=$1::uuid)`,
           [id],
         );
         if (!count?.n) throw new BadRequestException('Cần quà hợp lệ còn tồn trước khi công bố.');
@@ -345,6 +348,21 @@ export class GiftEventsService {
       } else if (action === 'RESUME') {
         if (row.status !== 'PAUSED' || !row.end_at || new Date(row.end_at) <= now)
           throw new ConflictException('Sự kiện hết hạn/không tạm dừng; không thể tiếp tục.');
+        const [available] = await m.query<Array<{ n: number }>>(
+          `SELECT COUNT(*)::int n FROM gift_event_prizes p WHERE p.event_id=$1::uuid
+            AND p.enabled AND p.kind<>'CASH_COUNTER' AND p.stock_total>p.stock_issued
+            AND p.liability_vnd <= (SELECT budget_cap_vnd-budget_reserved_vnd
+              FROM gift_event_campaigns WHERE id=$1::uuid)`,
+          [id],
+        );
+        if (!available?.n) throw new ConflictException('Không còn quà trong quỹ/tồn để tiếp tục.');
+        const [other] = await m.query<Array<{ id: string }>>(
+          `SELECT id FROM gift_event_campaigns WHERE id<>$1::uuid
+           AND status IN ('SCHEDULED','LIVE')
+           AND start_at<$3::timestamptz AND end_at>$2::timestamptz LIMIT 1`,
+          [id, row.start_at, row.end_at],
+        );
+        if (other) throw new ConflictException('Có chiến dịch khác đang diễn ra trùng thời gian.');
         next = row.start_at && new Date(row.start_at) > now ? 'SCHEDULED' : 'LIVE';
       } else if (action === 'END') {
         if (!['LIVE', 'PAUSED', 'SCHEDULED'].includes(row.status))
