@@ -16,6 +16,7 @@ import { GiftNotificationsService } from './gift-notifications.service';
 
 type Campaign = {
   id: string;
+  title: string;
   status: GiftEventStatus;
   start_at: Date;
   end_at: Date;
@@ -101,7 +102,7 @@ export class GiftOpenService {
           'gift.event.open.' + eventId,
         ]);
         const [event] = await m.query<Campaign[]>(
-          'SELECT id,status,start_at,end_at,terms_version,budget_cap_vnd,budget_reserved_vnd FROM gift_event_campaigns WHERE id=$1::uuid FOR UPDATE',
+          'SELECT id,title,status,start_at,end_at,terms_version,budget_cap_vnd,budget_reserved_vnd FROM gift_event_campaigns WHERE id=$1::uuid FOR UPDATE',
           [eventId],
         );
         if (!event) throw new NotFoundException('EVENT_NOT_FOUND');
@@ -231,7 +232,7 @@ export class GiftOpenService {
         await this.notifications.enqueue(m, {
           rewardId: reward.id,
           eventId,
-          eventTitle: eventId,
+          eventTitle: event.title || eventId,
           customerName: actor.displayName || 'Khách hàng',
           prizeName: winner.name,
           issuedAt: now.toISOString(),
