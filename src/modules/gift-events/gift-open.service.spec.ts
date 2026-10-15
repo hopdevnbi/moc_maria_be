@@ -30,7 +30,7 @@ function fixture({
   noPrizes = false,
   allowed = true,
   budgetRemaining = 500000,
-  state = { eventStatus: 'LIVE', rewardStatus: 'ISSUED' } as DrawState,
+  state = { eventStatus: 'LIVE', rewardStatus: 'ISSUED' },
 } = {}): {
   service: GiftOpenService;
   statements: Array<{ sql: string; params: unknown[] }>;
