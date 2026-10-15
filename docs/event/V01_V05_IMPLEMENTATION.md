@@ -30,3 +30,11 @@
 ## Known boundaries
 
 No local PostgreSQL server was available on `127.0.0.1:5432` at the time of implementation. The Kubernetes context on the workstation currently points to an **unrelated AWS EKS cluster**; never use it to apply Mộc Maria manifests. Mộc Maria is manually deployed to its separate VPS/K8s cluster; only an authorized release operator with the correct kubeconfig may apply migrations/images. Existing API/CORS failure must be re-probed after an actual deployment, not inferred from a successful build.
+
+## Read-only verification and controlled V01 config release — 15 October 2026
+
+- Backend Quality and Publish Backend Container GitHub workflows for commit `01fc8a3` completed successfully. Built immutable image digest `sha256:1b98d1732fd2bc1f78e8748398849924fc9273d11df5b30bd4d71d5be470d52c`, **not deployed** as part of V01–V05.
+- The *currently deployed* backend digest remained `sha256:d40612ac81ed12c324a3f089c7537b4492d95a0d6f396bf190ba5e6736f92c69` at the time of the check; this is deliberately preserved to avoid unrelated booking release risk.
+- Using the dedicated Mộc Maria VPS kubeconfig, the release updated **only** `CORS_ORIGINS` to add `https://event.mocmaria.com` while preserving apex/www, and explicitly set `GIFT_EVENTS_ENABLED=false`. Rollout completed successfully.
+- Subsequent frontend read-only release smoke: event root, event path, release endpoint, main homepage, public API and credentialed CORS preflight **all PASS**. Public `GET /api/v1/gift-events/current` returned `200 {"campaign":null,"status":"DISABLED"}`.
+- The new V02–V05 migrations, PIN HMAC secret, issued-voucher QA and code redemption UI are **not activated** on production. They require a separate isolated DB QA exercise and a later supervised backend image upgrade. No real voucher was issued, redeemed, voided or seeded in production.
