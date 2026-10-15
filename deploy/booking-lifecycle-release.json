@@ -1,0 +1,7 @@
+{
+  "source": "644c34baf88a05abce39382f422883341c326297",
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:d40612ac81ed12c324a3f089c7537b4492d95a0d6f396bf190ba5e6736f92c69",
+  "previousImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:b14fb54b93b11cc1ab87913633bde017bd39cbedc3b6a10d96bcfa1ea4d4d8fa",
+  "namespace": "moc-maria",
+  "migrations": false, "qualityCI": 38707317691, "imageCI": 38707317635, "tests": "162 backend unit tests and 17 scoped PostgreSQL integration tests PASS"
+}
