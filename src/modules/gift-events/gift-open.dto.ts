@@ -22,6 +22,6 @@ export type GiftOpenResult = {
     kind: string;
     config: Record<string, unknown>;
     expiresAt: string;
-    status: 'ISSUED';
+    status: 'ISSUED' | 'REDEEMED' | 'EXPIRED' | 'VOIDED';
   };
 };

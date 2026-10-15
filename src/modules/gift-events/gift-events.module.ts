@@ -7,6 +7,8 @@ import { AdminGiftPrizesController, AdminGiftMediaController } from './gift-priz
 import { GiftEventMediaStorage } from './gift-event-media.storage';
 import { GiftOpenController } from './gift-open.controller';
 import { GiftOpenService } from './gift-open.service';
+import { GiftWalletController } from './gift-wallet.controller';
+import { GiftWalletService } from './gift-wallet.service';
 
 @Module({
   imports: [AuthModule],
@@ -16,8 +18,15 @@ import { GiftOpenService } from './gift-open.service';
     AdminGiftPrizesController,
     AdminGiftMediaController,
     GiftOpenController,
+    GiftWalletController,
   ],
-  providers: [GiftEventsService, GiftPrizesService, GiftEventMediaStorage, GiftOpenService],
+  providers: [
+    GiftEventsService,
+    GiftPrizesService,
+    GiftEventMediaStorage,
+    GiftOpenService,
+    GiftWalletService,
+  ],
   exports: [GiftEventsService],
 })
 export class GiftEventsModule {}
