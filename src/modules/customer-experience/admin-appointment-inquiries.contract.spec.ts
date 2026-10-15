@@ -68,7 +68,14 @@ describe('Admin appointment inquiries contract', () => {
       items: [
         {
           customerEmail: 'example@example.com',
-          allowedActions: ['CONTACTED', 'DECLINED', 'CANCELLED'],
+          allowedActions: [
+            'CONTACTED',
+            'CONFIRMED',
+            'IN_SERVICE',
+            'COMPLETED',
+            'DECLINED',
+            'CANCELLED',
+          ],
         },
       ],
     });
@@ -150,6 +157,8 @@ describe('Super Admin inquiry intake controls', () => {
     const service = new AdminAppointmentInquiriesService(db, chat);
     jest.spyOn(service, 'detail').mockResolvedValue({
       ...inquiry,
+      appointmentVersion: null,
+      canManageStatus: true,
       customerEmail: null,
       customerPhone: null,
       updatedAt: inquiry.createdAt,
@@ -191,6 +200,8 @@ describe('Super Admin inquiry intake controls', () => {
     const service = new AdminAppointmentInquiriesService(db);
     jest.spyOn(service, 'detail').mockResolvedValue({
       ...inquiry,
+      appointmentVersion: null,
+      canManageStatus: true,
       customerEmail: null,
       customerPhone: null,
       updatedAt: inquiry.createdAt,

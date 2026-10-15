@@ -47,13 +47,16 @@ export interface Inquiry {
   requestedAt: string;
   notes: string;
   createdAt: string;
-  status: 'PENDING' | 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+  status:
+    'PENDING' | 'CONTACTED' | 'CONFIRMED' | 'IN_SERVICE' | 'DECLINED' | 'CANCELLED' | 'COMPLETED';
   signature: string;
   archivedAt?: string;
   createdByAdmin?: boolean;
   appointmentId?: string;
   providerCompletedAt?: string;
-  fulfillmentStatus?: 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'CANCELLED';
+  fulfillmentStatus?:
+    'PENDING' | 'CONTACTED' | 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'CANCELLED' | 'DECLINED';
+  adminCompletedAt?: string;
 }
 const presentationKey = (id: string): string => 'mocmaria.presentation.' + id;
 const inquiryKey = (id: string): string => 'mocmaria.inquiry.' + id;

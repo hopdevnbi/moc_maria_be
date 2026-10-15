@@ -11,14 +11,15 @@ import { AuditLog } from '../identity/entities/audit-log.entity';
 import { PERMISSIONS } from '../identity/identity.constants';
 import type { AuthUserContext } from '../identity/identity.types';
 import type { Inquiry } from '../customer-experience/experience.service';
+import { appointmentInquiryState, type InquiryState } from '../customer-experience/inquiry-state';
 import { ConfirmInquiryDto, ChangeFulfillmentDto } from './inquiry-fulfillment.dto';
 
-type Stage = 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'CANCELLED';
+type Stage = InquiryState;
 type Audience = 'ADMIN' | 'PROVIDER';
 type InquiryWithFulfillment = Inquiry & { appointmentId?: string; fulfillmentStatus?: Stage };
 type AppointmentRow = {
   id: string;
-  status: Stage;
+  status: string;
   version: number;
   starts_at: Date;
   ends_at: Date;
@@ -46,7 +47,7 @@ export type FulfillmentView = {
 
 const validInquiryId = /^[0-9a-f]{64}$/;
 const metadataKey = (id: string): string => `mocmaria.inquiry.${id}`;
-const allowed: Record<Stage, Stage[]> = {
+const allowed: Record<string, Stage[]> = {
   CONFIRMED: ['IN_SERVICE', 'CANCELLED', 'COMPLETED'],
   IN_SERVICE: ['COMPLETED', 'CANCELLED'],
   COMPLETED: [],
@@ -139,7 +140,7 @@ export class InquiryFulfillmentService {
       customerName: value.customerName,
       serviceName: value.serviceName,
       appointmentId: appt?.id ?? null,
-      status: appt?.status ?? null,
+      status: appt ? appointmentInquiryState(appt.status) : null,
       version: appt?.version ?? null,
       startsAt: appt?.starts_at ? new Date(appt.starts_at).toISOString() : null,
       endsAt: appt?.ends_at ? new Date(appt.ends_at).toISOString() : null,
@@ -304,8 +305,8 @@ export class InquiryFulfillmentService {
   private async history(
     manager: EntityManager,
     appointmentId: string,
-    previous: Stage | null,
-    next: Stage,
+    previous: string | null,
+    next: string,
     actorId: string,
     reason: string,
     metadata: Record<string, unknown>,

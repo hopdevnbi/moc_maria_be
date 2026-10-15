@@ -1,4 +1,4 @@
-﻿import type { MigrationInterface, QueryRunner } from 'typeorm';
+import type { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class ProviderReviewModerationDefault1791760000000 implements MigrationInterface {
   name = 'ProviderReviewModerationDefault1791760000000';

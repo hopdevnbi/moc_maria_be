@@ -85,12 +85,17 @@ export class AdminInquiryQueryDto {
 }
 
 export class AdminReplyInquiryDto {
-  @IsIn(['PENDING', 'CONTACTED', 'DECLINED', 'CANCELLED'])
-  status!: 'PENDING' | 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+  @IsIn(['PENDING', 'CONTACTED', 'CONFIRMED', 'IN_SERVICE', 'COMPLETED', 'DECLINED', 'CANCELLED'])
+  status!:
+    'PENDING' | 'CONTACTED' | 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'DECLINED' | 'CANCELLED';
   @IsString() @Length(10, 500) reason!: string;
   @IsOptional()
-  @IsIn(['PENDING', 'CONTACTED', 'DECLINED', 'CANCELLED'])
-  expectedStatus?: 'PENDING' | 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+  @IsIn(['PENDING', 'CONTACTED', 'CONFIRMED', 'IN_SERVICE', 'COMPLETED', 'DECLINED', 'CANCELLED'])
+  expectedStatus?:
+    'PENDING' | 'CONTACTED' | 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'DECLINED' | 'CANCELLED';
+  @IsOptional() @IsISO8601({ strict: true }) expectedUpdatedAt?: string;
+  @IsOptional() @IsInt() @Min(1) expectedAppointmentVersion?: number;
+  @IsOptional() @IsBoolean() servicePerformedConfirmed?: boolean;
 }
 
 export class AdminCreateInquiryDto {
