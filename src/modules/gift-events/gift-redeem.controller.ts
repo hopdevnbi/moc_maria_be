@@ -11,6 +11,7 @@ import {
   RedeemGiftCodeDto,
   VerifyGiftCodeDto,
   GiftVoucherQuoteDto,
+  GiftVoucherQrQuoteDto,
 } from './gift-redeem.dto';
 import { GiftAbuseService, GIFT_ALL_BRANCHES_SCOPE } from './gift-abuse.service';
 
@@ -61,6 +62,17 @@ export class GiftRedeemController {
     await this.abuse.consume(actor, 'VERIFY', GIFT_ALL_BRANCHES_SCOPE);
     await this.abuse.consume(actor, 'VERIFY', dto.branchId);
     return this.service.quoteCode(actor, dto);
+  }
+  @Post('quote-qr')
+  @HttpCode(200)
+  @Header('Cache-Control', 'private, no-store')
+  async quoteQr(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: GiftVoucherQrQuoteDto,
+  ): ReturnType<GiftRedeemService['quoteQr']> {
+    await this.abuse.consume(actor, 'VERIFY', GIFT_ALL_BRANCHES_SCOPE);
+    await this.abuse.consume(actor, 'VERIFY', dto.branchId);
+    return this.service.quoteQr(actor, dto);
   }
   @Post('redeem')
   @HttpCode(200)
