@@ -13,6 +13,7 @@ import { effectiveGiftStatus, type GiftEventStatus } from './gift-events.dto';
 import { GiftEventsService } from './gift-events.service';
 import { type OpenGiftDto, type GiftOpenResult } from './gift-open.dto';
 import { GiftNotificationsService } from './gift-notifications.service';
+import { hasCompletedGiftService } from './gift-service-eligibility';
 
 type Campaign = {
   id: string;
@@ -23,6 +24,7 @@ type Campaign = {
   terms_version: number;
   budget_cap_vnd: string;
   budget_reserved_vnd: string;
+  requires_completed_service: boolean;
 };
 type Prize = {
   id: string;
@@ -102,7 +104,7 @@ export class GiftOpenService {
           'gift.event.open.' + eventId,
         ]);
         const [event] = await m.query<Campaign[]>(
-          'SELECT id,title,status,start_at,end_at,terms_version,budget_cap_vnd,budget_reserved_vnd FROM gift_event_campaigns WHERE id=$1::uuid FOR UPDATE',
+          'SELECT id,title,status,start_at,end_at,terms_version,budget_cap_vnd,budget_reserved_vnd,requires_completed_service FROM gift_event_campaigns WHERE id=$1::uuid FOR UPDATE',
           [eventId],
         );
         if (!event) throw new NotFoundException('EVENT_NOT_FOUND');
@@ -156,6 +158,8 @@ export class GiftOpenService {
           [eventId, tier],
         );
         if (!eligible) throw new ForbiddenException('INELIGIBLE_TIER');
+        if (event.requires_completed_service === true && !(await hasCompletedGiftService(m, actor.id)))
+          throw new ForbiddenException('SERVICE_NOT_COMPLETED');
 
         const availableBudget = Number(event.budget_cap_vnd) - Number(event.budget_reserved_vnd);
         const prizes = await m.query<Prize[]>(
