@@ -3,6 +3,7 @@ import {
   ArrayMaxSize,
   ArrayMinSize,
   IsArray,
+  IsBoolean,
   IsInt,
   IsISO8601,
   IsOptional,
@@ -34,6 +35,7 @@ export class CreateGiftEventDto {
   @ArrayMaxSize(100)
   @IsString({ each: true })
   eligibleTiers?: string[];
+  @IsOptional() @IsBoolean() requiresCompletedService?: boolean;
 }
 
 export class UpdateGiftEventDto {
@@ -52,6 +54,12 @@ export class UpdateGiftEventDto {
   @ArrayMaxSize(100)
   @IsString({ each: true })
   eligibleTiers?: string[];
+}
+
+export class UpdateGiftServiceRequirementDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsString() @Length(10, 500) reason!: string;
+  @IsBoolean() required!: boolean;
 }
 
 export class EventActionDto {
