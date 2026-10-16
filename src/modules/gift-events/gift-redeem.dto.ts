@@ -20,6 +20,14 @@ export class VerifyGiftDto {
 }
 export class RedeemGiftDto extends VerifyGiftDto {
   @IsString() @Length(12, 90) idempotencyKey!: string;
+  @IsOptional() @IsString() @Length(5, 100) saleReference?: string;
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => GiftVoucherLineDto)
+  items?: GiftVoucherLineDto[];
 }
 export class VerifyGiftCodeDto {
   @IsString() @Matches(/^\d{6}$/) code!: string;
@@ -30,6 +38,14 @@ export class GiftVoucherLineDto {
   @Type(() => Number) @IsInt() @Min(1) @Max(10) quantity!: number;
 }
 export class GiftVoucherQuoteDto extends VerifyGiftCodeDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => GiftVoucherLineDto)
+  items!: GiftVoucherLineDto[];
+}
+export class GiftVoucherQrQuoteDto extends VerifyGiftDto {
   @IsArray()
   @ArrayMinSize(1)
   @ArrayMaxSize(20)
@@ -60,6 +76,8 @@ export type VerifyGiftResult = {
   eventId: string;
   name: string;
   kind: string;
+  allowedServiceIds: string[];
+  discountPercent: number | null;
   expiresAt: string;
   status: 'ISSUED';
   branchId: string;
