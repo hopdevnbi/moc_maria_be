@@ -54,6 +54,7 @@ export class UpdateGiftEventDto {
   @ArrayMaxSize(100)
   @IsString({ each: true })
   eligibleTiers?: string[];
+  @IsOptional() @IsBoolean() requiresCompletedService?: boolean;
 }
 
 export class UpdateGiftServiceRequirementDto {
