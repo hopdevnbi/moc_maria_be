@@ -297,8 +297,12 @@ export class GiftEventsService {
         'UPDATED',
         dto.reason,
         { version: row.version },
-        { version: row.version + 1, eligibleTiers: tiers,
-          requiresCompletedService: dto.requiresCompletedService ?? row.requires_completed_service ?? false },
+        {
+          version: row.version + 1,
+          eligibleTiers: tiers,
+          requiresCompletedService:
+            dto.requiresCompletedService ?? row.requires_completed_service ?? false,
+        },
       );
     });
     return this.detail(actor, id);
@@ -326,9 +330,15 @@ export class GiftEventsService {
          WHERE id=$1::uuid`,
         [id, dto.required, actor.id],
       );
-      await this.audit(manager, actor, id, 'SERVICE_REQUIREMENT_CHANGED', dto.reason,
+      await this.audit(
+        manager,
+        actor,
+        id,
+        'SERVICE_REQUIREMENT_CHANGED',
+        dto.reason,
         { requiresCompletedService: oldValue },
-        { requiresCompletedService: dto.required });
+        { requiresCompletedService: dto.required },
+      );
     });
     return this.detail(actor, id);
   }

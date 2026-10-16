@@ -240,7 +240,10 @@ describe('P07 secure box opening', () => {
     expect(statements.some((s) => s.sql.includes('AS completed'))).toBe(true);
   });
   it('permits verified prior customers when requirement is enabled', async () => {
-    const { service, calls } = fixture({ requiresCompletedService: true, hasCompletedService: true });
+    const { service, calls } = fixture({
+      requiresCompletedService: true,
+      hasCompletedService: true,
+    });
     await service.open(user, eventId, dto);
     expect(calls.rewards).toBe(1);
   });

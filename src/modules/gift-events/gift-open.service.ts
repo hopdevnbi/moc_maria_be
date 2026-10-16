@@ -158,7 +158,10 @@ export class GiftOpenService {
           [eventId, tier],
         );
         if (!eligible) throw new ForbiddenException('INELIGIBLE_TIER');
-        if (event.requires_completed_service === true && !(await hasCompletedGiftService(m, actor.id)))
+        if (
+          event.requires_completed_service === true &&
+          !(await hasCompletedGiftService(m, actor.id))
+        )
           throw new ForbiddenException('SERVICE_NOT_COMPLETED');
 
         const availableBudget = Number(event.budget_cap_vnd) - Number(event.budget_reserved_vnd);

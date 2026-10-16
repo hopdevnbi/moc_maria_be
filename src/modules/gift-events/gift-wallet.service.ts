@@ -162,15 +162,15 @@ export class GiftWalletService {
         ? 'INELIGIBLE_TIER'
         : !completedServiceAllowed
           ? 'SERVICE_NOT_COMPLETED'
-        : !active
-          ? event.effectiveStatus === 'SCHEDULED'
-            ? 'EVENT_NOT_STARTED'
-            : event.effectiveStatus === 'PAUSED'
-              ? 'EVENT_PAUSED'
-              : 'EVENT_ENDED'
-          : !availability
-            ? 'EVENT_OUT_OF_STOCK'
-            : 'ELIGIBLE';
+          : !active
+            ? event.effectiveStatus === 'SCHEDULED'
+              ? 'EVENT_NOT_STARTED'
+              : event.effectiveStatus === 'PAUSED'
+                ? 'EVENT_PAUSED'
+                : 'EVENT_ENDED'
+            : !availability
+              ? 'EVENT_OUT_OF_STOCK'
+              : 'ELIGIBLE';
     return {
       eventId: event.id,
       status: event.effectiveStatus,
