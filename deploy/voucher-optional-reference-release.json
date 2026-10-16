@@ -1,0 +1,23 @@
+{
+  "date": "2026-10-16",
+  "feature": "Optional internal voucher reference and atomic redemption result recovery",
+  "sourceCommit": "4bcbea11135ffa8a2975976a519f4e0ec21b584b",
+  "qualityRun": 38876072202,
+  "imageRun": 38876072176,
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:fda130c82842a5b1aaebab82ad8a730bdb416fc58a488b98535ee948f8bc044c",
+  "previousImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:2d157217b7b7a7081badc5c6e9e4e8c84b06eaca10557c65065a18c29e0a2fa6",
+  "namespace": "moc-maria",
+  "deployment": "moc-maria-api",
+  "migration": false,
+  "businessDataWrites": false,
+  "configurationPreserved": true,
+  "checks": [
+    "Backend formatting, lint, TypeScript, 184 unit tests in 41 files and build PASS",
+    "Seven actual isolated PostgreSQL counter regressions PASS: CODE/QR pricing and redemption with no reference, blank references, supplied-reference uniqueness/rollback, catalog items required, expiry and idempotency",
+    "Raw UPDATE RETURNING tuple failure reproduced in actual PostgreSQL and repaired using atomic CTE SELECT; no changes to status locks or credential checks",
+    "QA pod, Secret and own SSH forwarding cleaned",
+    "Frontend efba202:206 tests/53 files plus quality/build PASS locally; production frontend deployment evidence recorded separately in project tracker",
+    "Actual production 20-percent Kiện Tỳ Trà pricing checked read-only:69000 subtotal,13800 discount,55200 payable; no real redemption"
+  ],
+  "rollback": "Restore previousImage to api container only; preserve environment and Secret references. No schema rollback required. Coordinate frontend rollback because old backend requires a reference."
+}
