@@ -268,9 +268,7 @@ export class GiftRedeemService {
       dto.branchId,
       dto.idempotencyKey,
       false,
-      dto.saleReference && dto.items
-        ? { saleReference: dto.saleReference, items: dto.items }
-        : undefined,
+      dto.items ? { saleReference: dto.saleReference, items: dto.items } : undefined,
     );
   }
   async redeemCode(actor: AuthUserContext, dto: RedeemGiftCodeDto): Promise<RedeemGiftResult> {
@@ -280,9 +278,7 @@ export class GiftRedeemService {
       dto.branchId,
       dto.idempotencyKey,
       true,
-      dto.saleReference && dto.items
-        ? { saleReference: dto.saleReference, items: dto.items }
-        : undefined,
+      dto.items ? { saleReference: dto.saleReference, items: dto.items } : undefined,
     );
   }
   private async redeemCredential(
@@ -291,7 +287,7 @@ export class GiftRedeemService {
     branchId: string,
     idempotencyKey: string,
     isPin: boolean,
-    purchase?: { saleReference: string; items: GiftVoucherLineDto[] },
+    purchase?: { saleReference?: string; items: GiftVoucherLineDto[] },
   ): Promise<RedeemGiftResult> {
     this.events.requireEnabled();
     const credential = this.credential(value, isPin);
@@ -340,13 +336,14 @@ export class GiftRedeemService {
       this.verifyReward(reward, branchId, token, now);
       let purchaseRecord: Record<string, unknown> = {};
       if (reward.reward_snapshot.kind === 'VOUCHER_PERCENT') {
-        if (!purchase || !/^[\w/-]{5,100}$/.test(purchase.saleReference))
-          throw new ConflictException('VOUCHER_PURCHASE_PROOF_REQUIRED');
+        if (!purchase?.items.length) throw new ConflictException('VOUCHER_ITEMS_REQUIRED');
         const values = await this.priceVoucher(m, reward, branchId, purchase.items);
         if (values.discountVnd === 0) throw new ConflictException('VOUCHER_MIN_SPEND_NOT_MET');
         purchaseRecord = {
           ...values,
-          saleReference: purchase.saleReference,
+          ...(purchase.saleReference?.trim()
+            ? { saleReference: purchase.saleReference.trim() }
+            : {}),
           items: purchase.items.map((item) => ({
             variantId: item.variantId,
             quantity: item.quantity,
@@ -354,11 +351,11 @@ export class GiftRedeemService {
         };
       }
       const [updated] = await m.query<Array<{ redeemed_at: Date }>>(
-        `UPDATE gift_event_rewards
+        `WITH redeemed AS (UPDATE gift_event_rewards
         SET status='REDEEMED',redeemed_at=clock_timestamp(),redeemed_by=$2::uuid,
           redeemed_branch_id=$3::uuid,version=version+1
         WHERE id=$1::uuid AND status='ISSUED' AND expires_at>clock_timestamp()
-        RETURNING redeemed_at`,
+        RETURNING redeemed_at) SELECT redeemed_at FROM redeemed`,
         [reward.id, actor.id, branchId],
       );
       if (!updated) throw new ConflictException('REWARD_EXPIRED_OR_CHANGED');

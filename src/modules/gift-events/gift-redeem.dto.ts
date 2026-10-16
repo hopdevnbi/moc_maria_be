@@ -9,6 +9,7 @@ import {
   Length,
   Matches,
   Max,
+  MaxLength,
   Min,
   ValidateNested,
 } from 'class-validator';
@@ -20,7 +21,7 @@ export class VerifyGiftDto {
 }
 export class RedeemGiftDto extends VerifyGiftDto {
   @IsString() @Length(12, 90) idempotencyKey!: string;
-  @IsOptional() @IsString() @Length(5, 100) saleReference?: string;
+  @IsOptional() @IsString() @MaxLength(100) saleReference?: string;
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
@@ -55,7 +56,7 @@ export class GiftVoucherQrQuoteDto extends VerifyGiftDto {
 }
 export class RedeemGiftCodeDto extends VerifyGiftCodeDto {
   @IsString() @Length(12, 90) idempotencyKey!: string;
-  @IsOptional() @IsString() @Length(5, 100) saleReference?: string;
+  @IsOptional() @IsString() @MaxLength(100) saleReference?: string;
   @IsOptional()
   @IsArray()
   @ArrayMinSize(1)
