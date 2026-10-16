@@ -1,0 +1,25 @@
+{
+  "date": "2026-10-16",
+  "feature": "Event reconciliation and operations SQL recovery",
+  "sourceCommit": "2cb6a598e0f82d318cc651e755bfd74984e43855",
+  "qualityRun": 38865372413,
+  "imageRun": 38865372455,
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:2d157217b7b7a7081badc5c6e9e4e8c84b06eaca10557c65065a18c29e0a2fa6",
+  "previousImage": "ghcr.io/hopdevnbi/moc_maria_be:sha-a4bf9e6fa7e9e6a4f7f4ba6efdc2ce1e8606bd98",
+  "namespace": "moc-maria",
+  "deployment": "moc-maria-api",
+  "readyReplicas": 1,
+  "configurationPreserved": true,
+  "migration": false,
+  "businessDataWrites": false,
+  "checks": [
+    "Local format, lint, TypeScript, 178 unit tests and build PASS",
+    "Five real PostgreSQL regression tests PASS in disposable database; QA pod and secret removed",
+    "Actual read-only production report and operations services both return successfully",
+    "Production live and ready health endpoints HTTP 200",
+    "Authenticated owner browser: all five panels load; reconciliation matches one entry and one issued voucher, operations displays one issued voucher; CSV controls enabled",
+    "Counter code/QR modes and camera button visible; no camera permission, redemption, revocation or campaign-setting writes performed",
+    "Frontend route recovery d96cef8; documentation main4382c1b; CI38865401693 and Vercel7113167403 success, exact live SHA verified"
+  ],
+  "rollback": "Restore previousImage to container api only, preserve environment and Secret references; no schema rollback required"
+}
