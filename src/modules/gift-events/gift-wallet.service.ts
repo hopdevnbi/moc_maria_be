@@ -9,6 +9,7 @@ import { DataSource } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
 import { GiftEventsService } from './gift-events.service';
 import { giftCustomerTier } from './gift-open.service';
+import { hasCompletedGiftService } from './gift-service-eligibility';
 import { type GiftOpenResult } from './gift-open.dto';
 
 type RewardRow = {
@@ -140,6 +141,8 @@ export class GiftWalletService {
       WHERE e.event_id=$1::uuid AND e.customer_user_id=$2::uuid`,
       [event.id, actor.id],
     );
+    const completedServiceAllowed =
+      !event.requiresCompletedService || (await hasCompletedGiftService(this.db.manager, actor.id));
     const active = event.effectiveStatus === 'LIVE';
     let availability = false;
     if (active && allowed && !existing) {
@@ -157,6 +160,8 @@ export class GiftWalletService {
       ? 'ALREADY_PLAYED'
       : !allowed
         ? 'INELIGIBLE_TIER'
+        : !completedServiceAllowed
+          ? 'SERVICE_NOT_COMPLETED'
         : !active
           ? event.effectiveStatus === 'SCHEDULED'
             ? 'EVENT_NOT_STARTED'
