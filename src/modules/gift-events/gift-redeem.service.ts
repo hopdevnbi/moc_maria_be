@@ -19,6 +19,7 @@ import type {
   RedeemGiftCodeDto,
   GiftVoucherLineDto,
   GiftVoucherQuoteDto,
+  GiftVoucherQrQuoteDto,
 } from './gift-redeem.dto';
 import { hashGiftCounterPin } from './gift-wallet.service';
 import { calculateVoucherDiscount } from './gift-voucher-pricing';
@@ -199,6 +200,20 @@ export class GiftRedeemService {
     const prices = await this.priceVoucher(this.db, reward, dto.branchId, dto.items);
     return { rewardId: info.rewardId, ...prices };
   }
+  async quoteQr(
+    actor: AuthUserContext,
+    dto: GiftVoucherQrQuoteDto,
+  ): Promise<{ rewardId: string; subtotalVnd: number; discountVnd: number; payableVnd: number }> {
+    const info = await this.verify(actor, dto);
+    const [reward] = await this.db.query<Reward[]>(
+      `SELECT id,event_id,reward_snapshot,status,expires_at,redeemed_at,redeemed_by,redeemed_branch_id
+       FROM gift_event_rewards WHERE id=$1::uuid`,
+      [info.rewardId],
+    );
+    if (!reward) throw new NotFoundException('REWARD_NOT_FOUND');
+    const prices = await this.priceVoucher(this.db, reward, dto.branchId, dto.items);
+    return { rewardId: info.rewardId, ...prices };
+  }
   async verify(actor: AuthUserContext, dto: VerifyGiftDto): Promise<VerifyGiftResult> {
     return this.verifyCredential(actor, dto.token, dto.branchId, false);
   }
@@ -234,13 +249,29 @@ export class GiftRedeemService {
       eventId: info.event_id,
       name: info.reward_snapshot.name,
       kind: info.reward_snapshot.kind,
+      allowedServiceIds: Array.isArray(info.reward_snapshot.config?.['allowedServiceIds'])
+        ? (info.reward_snapshot.config['allowedServiceIds'] as string[])
+        : [],
+      discountPercent:
+        info.reward_snapshot.kind === 'VOUCHER_PERCENT'
+          ? Number(info.reward_snapshot.config?.['percent'] ?? 0)
+          : null,
       expiresAt: new Date(info.expires_at).toISOString(),
       branchId,
       status: 'ISSUED',
     };
   }
   async redeem(actor: AuthUserContext, dto: RedeemGiftDto): Promise<RedeemGiftResult> {
-    return this.redeemCredential(actor, dto.token, dto.branchId, dto.idempotencyKey, false);
+    return this.redeemCredential(
+      actor,
+      dto.token,
+      dto.branchId,
+      dto.idempotencyKey,
+      false,
+      dto.saleReference && dto.items
+        ? { saleReference: dto.saleReference, items: dto.items }
+        : undefined,
+    );
   }
   async redeemCode(actor: AuthUserContext, dto: RedeemGiftCodeDto): Promise<RedeemGiftResult> {
     return this.redeemCredential(
