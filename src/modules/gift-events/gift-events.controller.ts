@@ -16,6 +16,7 @@ import type { AuthUserContext } from '../identity/identity.types';
 import {
   CreateGiftEventDto,
   UpdateGiftEventDto,
+  UpdateGiftServiceRequirementDto,
   EventActionDto,
   EVENT_ACTIONS,
   type EventAction,
@@ -78,6 +79,17 @@ export class AdminGiftEventsController {
   ): ReturnType<GiftEventsService['update']> {
     return this.service.update(actor, id, body);
   }
+  @Patch(':id/service-requirement')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({ summary: 'Bật/tắt điều kiện khách đã hoàn tất dịch vụ; mặc định tắt' })
+  updateServiceRequirement(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id') id: string,
+    @Body() body: UpdateGiftServiceRequirementDto,
+  ): ReturnType<GiftEventsService['updateServiceRequirement']> {
+    return this.service.updateServiceRequirement(actor, id, body);
+  }
+
   @Post(':id/actions/:action')
   @Header('Cache-Control', 'private, no-store')
   action(
