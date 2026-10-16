@@ -31,6 +31,8 @@ function fixture({
   noPrizes = false,
   allowed = true,
   budgetRemaining = 500000,
+  requiresCompletedService = false,
+  hasCompletedService = false,
   state = { eventStatus: 'LIVE', rewardStatus: 'ISSUED' },
 } = {}): {
   service: GiftOpenService;
@@ -52,6 +54,7 @@ function fixture({
           terms_version: 1,
           budget_cap_vnd: String(budgetRemaining),
           budget_reserved_vnd: '0',
+          requires_completed_service: requiresCompletedService,
         },
       ]);
     if (sql.includes('FROM users u WHERE u.id='))
@@ -73,6 +76,7 @@ function fixture({
           expires_at: new Date(now.getTime() + 30 * 86400000),
         },
       ]);
+    if (sql.includes('AS completed')) return Promise.resolve([{ completed: hasCompletedService }]);
     if (sql.includes('FROM app_metadata')) return Promise.resolve([]);
     if (sql.includes('FROM gift_event_tiers'))
       return Promise.resolve(allowed ? [{ tier_code: 'STANDARD' }] : []);
@@ -221,6 +225,23 @@ describe('P07 secure box opening', () => {
     await expect(service.open(user, eventId, { ...dto, boxId: 6 })).rejects.toBeInstanceOf(
       ConflictException,
     );
+    expect(calls.rewards).toBe(1);
+  });
+  it('allows new customers without previous services when optional condition is disabled', async () => {
+    const { service, calls, statements } = fixture({ requiresCompletedService: false });
+    await service.open(user, eventId, dto);
+    expect(calls.rewards).toBe(1);
+    expect(statements.some((s) => s.sql.includes('AS completed'))).toBe(false);
+  });
+  it('blocks customers with no completed service when requirement is enabled', async () => {
+    const { service, calls, statements } = fixture({ requiresCompletedService: true });
+    await expect(service.open(user, eventId, dto)).rejects.toThrow('SERVICE_NOT_COMPLETED');
+    expect(calls.rewards).toBe(0);
+    expect(statements.some((s) => s.sql.includes('AS completed'))).toBe(true);
+  });
+  it('permits verified prior customers when requirement is enabled', async () => {
+    const { service, calls } = fixture({ requiresCompletedService: true, hasCompletedService: true });
+    await service.open(user, eventId, dto);
     expect(calls.rewards).toBe(1);
   });
   it('does not award a gift when account is not allowed to participate', async () => {
