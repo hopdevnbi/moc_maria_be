@@ -173,9 +173,9 @@ export class GiftReportService {
       );
       const dailyRows = await m.query<Array<{ day: string; n: string }>>(
         `SELECT
-        TO_CHAR(issued_at AT TIME ZONE 'Asia/Ho_Chi_Minh','YYYY-MM-DD') day,
+        TO_CHAR(issued_at AT TIME ZONE 'Asia/Ho_Chi_Minh','YYYY-MM-DD') AS "day",
         COUNT(*)::text n FROM gift_event_rewards WHERE event_id=$1::uuid
-        GROUP BY day ORDER BY day`,
+        GROUP BY "day" ORDER BY "day"`,
         [eventId],
       );
       const entries = Number(totals.entries),

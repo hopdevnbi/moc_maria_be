@@ -91,11 +91,11 @@ export class GiftOperationsService {
         args,
       );
       const daily = await m.query<DayRow[]>(
-        `SELECT TO_CHAR(r.issued_at AT TIME ZONE 'Asia/Ho_Chi_Minh','YYYY-MM-DD') day,
+        `SELECT TO_CHAR(r.issued_at AT TIME ZONE 'Asia/Ho_Chi_Minh','YYYY-MM-DD') AS "day",
           COUNT(*)::text issued,COUNT(*) FILTER(WHERE r.status='REDEEMED')::text redeemed
          FROM gift_event_rewards r WHERE ($1::uuid IS NULL OR r.event_id=$1)
            AND r.issued_at >= $2::timestamptz AND r.issued_at <= $3::timestamptz
-         GROUP BY day ORDER BY day`,
+         GROUP BY "day" ORDER BY "day"`,
         args,
       );
       const deliveries = await m.query<NoticeRow[]>(
