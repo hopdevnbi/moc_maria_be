@@ -13,6 +13,7 @@ import {
   type GiftEventStatus,
   type CreateGiftEventDto,
   type UpdateGiftEventDto,
+  type UpdateGiftServiceRequirementDto,
   normalizeGiftTiers,
   assertGiftTimeWindow,
   effectiveGiftStatus,
@@ -37,6 +38,7 @@ export type GiftEventView = {
   budgetReservedVnd: number;
   guaranteePrize: true;
   maxOpensPerUser: 1;
+  requiresCompletedService: boolean;
   version: number;
 };
 
@@ -54,6 +56,7 @@ type DbCampaign = {
   end_at: Date | null;
   budget_cap_vnd: string;
   budget_reserved_vnd: string;
+  requires_completed_service: boolean;
   version: number;
 };
 
@@ -77,6 +80,7 @@ function publicProjection(row: DbCampaign, tiers: string[], now = new Date()): G
     budgetReservedVnd: Number(row.budget_reserved_vnd),
     guaranteePrize: true,
     maxOpensPerUser: 1,
+    requiresCompletedService: row.requires_completed_service === true,
     version: Number(row.version),
   };
 }
@@ -188,8 +192,8 @@ export class GiftEventsService {
       id = await this.db.transaction(async (m) => {
         const [row] = await m.query<Array<{ id: string }>>(
           `INSERT INTO gift_event_campaigns
-        (code,slug,title,description,terms_text,hero_url,start_at,end_at,budget_cap_vnd,created_by)
-        VALUES($1,$2,$3,$4,$5,$6,$7::timestamptz,$8::timestamptz,$9,$10::uuid) RETURNING id`,
+        (code,slug,title,description,terms_text,hero_url,start_at,end_at,budget_cap_vnd,created_by,requires_completed_service)
+        VALUES($1,$2,$3,$4,$5,$6,$7::timestamptz,$8::timestamptz,$9,$10::uuid,$11) RETURNING id`,
           [
             dto.code,
             dto.slug,
@@ -201,6 +205,7 @@ export class GiftEventsService {
             dto.endAt || null,
             dto.budgetCapVnd || 0,
             actor.id,
+            dto.requiresCompletedService === true,
           ],
         );
         for (const tier of tiers)
@@ -262,6 +267,7 @@ export class GiftEventsService {
         `UPDATE gift_event_campaigns SET title=$2,description=$3,terms_text=$4,hero_url=$5,
         start_at=$6::timestamptz,end_at=$7::timestamptz,budget_cap_vnd=$8,version=version+1,
         terms_version=terms_version+CASE WHEN terms_text<>$4 THEN 1 ELSE 0 END,
+        requires_completed_service=$10,
         updated_at=clock_timestamp(),updated_by=$9::uuid WHERE id=$1::uuid`,
         [
           id,
@@ -273,6 +279,7 @@ export class GiftEventsService {
           endsAt,
           nextBudget,
           actor.id,
+          dto.requiresCompletedService ?? row.requires_completed_service ?? false,
         ],
       );
       if (dto.eligibleTiers !== undefined) {
@@ -290,11 +297,42 @@ export class GiftEventsService {
         'UPDATED',
         dto.reason,
         { version: row.version },
-        { version: row.version + 1, eligibleTiers: tiers },
+        { version: row.version + 1, eligibleTiers: tiers,
+          requiresCompletedService: dto.requiresCompletedService ?? row.requires_completed_service ?? false },
       );
     });
     return this.detail(actor, id);
   }
+  async updateServiceRequirement(
+    actor: AuthUserContext,
+    id: string,
+    dto: UpdateGiftServiceRequirementDto,
+  ): Promise<GiftEventView> {
+    this.requireAdmin(actor);
+    this.requireEnabled();
+    await this.db.transaction(async (manager) => {
+      const row = await this.campaign(manager, id, true);
+      if (Number(row.version) !== dto.expectedVersion) {
+        throw new ConflictException('Cấu hình đã thay đổi; hãy tải lại.');
+      }
+      if (['ENDED', 'ARCHIVED'].includes(row.status))
+        throw new ConflictException('Không thay đổi điều kiện ở sự kiện đã kết thúc.');
+      const oldValue = row.requires_completed_service === true;
+      if (oldValue === dto.required) return;
+      await manager.query(
+        `UPDATE gift_event_campaigns
+         SET requires_completed_service=$2,version=version+1,updated_by=$3::uuid,
+             updated_at=clock_timestamp()
+         WHERE id=$1::uuid`,
+        [id, dto.required, actor.id],
+      );
+      await this.audit(manager, actor, id, 'SERVICE_REQUIREMENT_CHANGED', dto.reason,
+        { requiresCompletedService: oldValue },
+        { requiresCompletedService: dto.required });
+    });
+    return this.detail(actor, id);
+  }
+
   async action(
     actor: AuthUserContext,
     id: string,
