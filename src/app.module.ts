@@ -24,6 +24,7 @@ import { ProviderDisplayModule } from './modules/provider-display/provider-displ
 import { AdminIntakeModule } from './modules/admin-intake/admin-intake.module';
 import { InquiryFulfillmentModule } from './modules/inquiry-fulfillment/inquiry-fulfillment.module';
 import { GiftEventsModule } from './modules/gift-events/gift-events.module';
+import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 
 @Module({
   imports: [
@@ -50,6 +51,7 @@ import { GiftEventsModule } from './modules/gift-events/gift-events.module';
     AdminIntakeModule,
     InquiryFulfillmentModule,
     GiftEventsModule,
+    AdminDashboardModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],
