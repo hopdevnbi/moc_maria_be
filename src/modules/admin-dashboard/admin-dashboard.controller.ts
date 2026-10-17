@@ -22,7 +22,7 @@ export class AdminDashboardController {
     @CurrentUser() actor: AuthUserContext,
     @Query('period') period?: string,
     @Query('date') date?: string,
-  ) {
+  ): ReturnType<AdminDashboardService['overview']> {
     return this.service.overview(actor, period ?? 'month', date);
   }
 
@@ -33,7 +33,7 @@ export class AdminDashboardController {
     @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
     @Query('period') period?: string,
     @Query('date') date?: string,
-  ) {
+  ): ReturnType<AdminDashboardService['providerDetail']> {
     return this.service.providerDetail(actor, id, period ?? 'month', date);
   }
 }
