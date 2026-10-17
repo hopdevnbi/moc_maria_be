@@ -1,0 +1,32 @@
+name: One-time dashboard format and verify
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/dashboard-verify-once.yml"
+permissions:
+  contents: write
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm ci
+      - name: Format dashboard files
+        run: npx prettier --write src/modules/admin-dashboard/admin-dashboard.service.ts src/modules/admin-dashboard/admin-dashboard.module.ts src/modules/admin-dashboard/admin-dashboard.controller.ts src/app.module.ts
+      - name: Verify quality
+        run: npm run quality
+      - name: Commit formatted code and clean temporary workflow
+        run: |
+          git rm .github/workflows/dashboard-verify-once.yml
+          git add src/modules/admin-dashboard/admin-dashboard.service.ts src/modules/admin-dashboard/admin-dashboard.module.ts src/modules/admin-dashboard/admin-dashboard.controller.ts src/app.module.ts
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "style(admin): verify analytics dashboard and clean formatter"
+          git push origin HEAD:main
