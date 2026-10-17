@@ -19,13 +19,13 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Format test
-        run: npx prettier --write src/modules/admin-dashboard/admin-dashboard.service.spec.ts
+        run: npx prettier --write src/modules/admin-dashboard/admin-dashboard.service.ts src/modules/admin-dashboard/admin-dashboard.service.spec.ts
       - name: Run full quality
         run: npm run quality
       - name: Commit test formatting and remove temporary workflow
         run: |
           git rm .github/workflows/dashboard-tests-once.yml
-          git add src/modules/admin-dashboard/admin-dashboard.service.spec.ts
+          git add src/modules/admin-dashboard/admin-dashboard.service.ts src/modules/admin-dashboard/admin-dashboard.service.spec.ts
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git commit -m "test(admin): verify dashboard report regression suite"
