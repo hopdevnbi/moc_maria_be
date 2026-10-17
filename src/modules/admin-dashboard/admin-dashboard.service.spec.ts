@@ -36,18 +36,26 @@ describe('Operational dashboard', () => {
   it('requires both customer and staff management before any report query', async () => {
     const query = jest.fn();
     const service = new AdminDashboardService({ query } as unknown as DataSource);
-    await expect(service.overview({ ...actor, permissions: ['staff.manage'] }))
-      .rejects.toBeInstanceOf(ForbiddenException);
+    await expect(
+      service.overview({ ...actor, permissions: ['staff.manage'] }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
     expect(query).not.toHaveBeenCalled();
   });
 
   it('coalesces concurrent requests and caches the five bounded aggregate queries', async () => {
     const query = jest.fn((sql: string) => {
       if (sql.includes('COUNT(*)::int requests')) {
-        return Promise.resolve([{
-          requests: 2, pending: 1, contacted: 0, confirmed: 0,
-          inService: 0, completed: 1, cancelled: 0,
-        }]);
+        return Promise.resolve([
+          {
+            requests: 2,
+            pending: 1,
+            contacted: 0,
+            confirmed: 0,
+            inService: 0,
+            completed: 1,
+            cancelled: 0,
+          },
+        ]);
       }
       if (sql.includes('FROM services WHERE is_published')) return Promise.resolve([{ total: 8 }]);
       return Promise.resolve([]);

@@ -66,9 +66,11 @@ export function dashboardRange(period: string, date?: string, now = new Date()):
     period === 'year' ? [year, 1, 1] : period === 'month' ? [year, month, 1] : [year, month, day];
   const start = new Date(Date.UTC(dateStart[0], dateStart[1] - 1, dateStart[2], -7));
   const end = new Date(
-    period === 'day' ? Date.UTC(year, month - 1, day + 1, -7) :
-    period === 'month' ? Date.UTC(year, month, 1, -7) :
-    Date.UTC(year + 1, 0, 1, -7),
+    period === 'day'
+      ? Date.UTC(year, month - 1, day + 1, -7)
+      : period === 'month'
+        ? Date.UTC(year, month, 1, -7)
+        : Date.UTC(year + 1, 0, 1, -7),
   );
   return {
     period: period as DashboardPeriod,
