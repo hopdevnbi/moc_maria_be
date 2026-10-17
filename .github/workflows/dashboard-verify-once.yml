@@ -1,4 +1,5 @@
 name: One-time dashboard format and verify
+# Rerun after explicit NestJS return type fixes
 on:
   push:
     branches: [main]
