@@ -148,7 +148,7 @@ export class AdminDashboardService {
     };
   }
 
-  async providerDetail(actor: AuthUserContext, id: string, period = 'month', date?: string) {
+  async providerDetail(actor: AuthUserContext, id: string, period = 'month', date?: string): Promise<{provider: DashboardProvider; feedback: Array<{ id: string; stars: number; comment: string; createdAt: string }>; range: DashboardRange}> {
     this.authorize(actor);
     if (!/^[\da-f]{8}-[\da-f]{4}-4[\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i.test(id))
       throw new BadRequestException('INVALID_PROVIDER_ID');
