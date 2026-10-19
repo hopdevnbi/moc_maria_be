@@ -6,7 +6,10 @@ import { AuthModule } from '../auth/auth.module';
 import { AccessControlModule } from '../access-control/access-control.module';
 import { ZaloBotService } from './zalo-bot.service';
 import { ZaloWebhookController, ZaloBotAdminController } from './zalo-bot.controller';
-import { CommunityGiftZaloController } from './community-gift-zalo.controller';
+import {
+  CommunityGiftZaloAuthGuard,
+  CommunityGiftZaloController,
+} from './community-gift-zalo.controller';
 
 @Global()
 @Module({
@@ -17,7 +20,7 @@ import { CommunityGiftZaloController } from './community-gift-zalo.controller';
     ZaloBotAdminController,
     CommunityGiftZaloController,
   ],
-  providers: [ZaloAlertsService, ChatDigestService, ZaloBotService],
+  providers: [ZaloAlertsService, ChatDigestService, ZaloBotService, CommunityGiftZaloAuthGuard],
   exports: [ZaloAlertsService, ChatDigestService],
 })
 export class ZaloAlertsModule {}

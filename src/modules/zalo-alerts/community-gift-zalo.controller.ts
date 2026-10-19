@@ -1,12 +1,15 @@
 import {
   Body,
+  CanActivate,
   Controller,
+  ExecutionContext,
   Header,
-  Headers,
   HttpCode,
+  Injectable,
   Post,
   ServiceUnavailableException,
   UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -50,21 +53,23 @@ const safeLine = (value: string): string =>
   value.replaceAll('\r', ' ').replaceAll('\n', ' ').slice(0, 160);
 const digest = (value: string): Buffer => createHash('sha256').update(value).digest();
 
-@Controller('zalo')
-export class CommunityGiftZaloController {
+@Injectable()
+export class CommunityGiftZaloAuthGuard implements CanActivate {
   constructor(
     private readonly config: ConfigService,
-    private readonly alerts: ZaloAlertsService,
     private readonly db: DataSource,
   ) {}
 
-  @Post('community-gift')
-  @Header('Cache-Control', 'no-store')
-  @HttpCode(200)
-  async receive(
-    @Headers('x-community-gift-secret') incoming: string | undefined,
-    @Body() dto: CommunityGiftNotificationDto,
-  ): Promise<{ accepted: true }> {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest<{
+      headers: Record<string, string | string[] | undefined>;
+    }>();
+    const incoming = request.headers['x-community-gift-secret'];
+    // Guards execute before DTO validation, so anonymous empty POSTs return 401.
+    // Reject missing/malformed credentials before touching the database.
+    if (typeof incoming !== 'string' || incoming.length < 32 || incoming.length > 256) {
+      throw new UnauthorizedException('INVALID_EVENT_WEBHOOK');
+    }
     let secret = this.config.get<string>('COMMUNITY_GIFT_ZALO_WEBHOOK_SECRET')?.trim() ?? '';
     if (secret.length < 32) {
       const [stored] = await this.db.query<{ secret: string }[]>(
@@ -73,14 +78,25 @@ export class CommunityGiftZaloController {
       );
       secret = stored?.secret ?? '';
     }
-    if (
-      secret.length < 32 ||
-      !incoming ||
-      incoming.length > 256 ||
-      !timingSafeEqual(digest(secret), digest(incoming))
-    ) {
+    if (secret.length < 32 || !timingSafeEqual(digest(secret), digest(incoming))) {
       throw new UnauthorizedException('INVALID_EVENT_WEBHOOK');
     }
+    return true;
+  }
+}
+
+@Controller('zalo')
+export class CommunityGiftZaloController {
+  constructor(
+    private readonly alerts: ZaloAlertsService,
+    private readonly db: DataSource,
+  ) {}
+
+  @Post('community-gift')
+  @UseGuards(CommunityGiftZaloAuthGuard)
+  @Header('Cache-Control', 'no-store')
+  @HttpCode(200)
+  async receive(@Body() dto: CommunityGiftNotificationDto): Promise<{ accepted: true }> {
     // Do not acknowledge until at least one administrator can actually receive.
     if ((await this.alerts.configuredRecipients()).length < 1) {
       throw new ServiceUnavailableException('ZALO_ADMIN_NOT_CONFIGURED');
