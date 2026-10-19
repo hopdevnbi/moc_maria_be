@@ -9,7 +9,9 @@ export class CommunityGiftWebhookAuth1792400000000 implements MigrationInterface
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query('CREATE SCHEMA IF NOT EXISTS private_integrations');
-    await queryRunner.query('REVOKE ALL ON SCHEMA private_integrations FROM PUBLIC, anon, authenticated');
+    await queryRunner.query(
+      'REVOKE ALL ON SCHEMA private_integrations FROM PUBLIC, anon, authenticated',
+    );
     await queryRunner.query(
       'CREATE TABLE IF NOT EXISTS private_integrations.webhook_secrets (' +
         'key text PRIMARY KEY, secret text NOT NULL CHECK (length(secret) >= 32))',
