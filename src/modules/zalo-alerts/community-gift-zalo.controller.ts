@@ -65,7 +65,14 @@ export class CommunityGiftZaloController {
     @Headers('x-community-gift-secret') incoming: string | undefined,
     @Body() dto: CommunityGiftNotificationDto,
   ): Promise<{ accepted: true }> {
-    const secret = this.config.get<string>('COMMUNITY_GIFT_ZALO_WEBHOOK_SECRET')?.trim() ?? '';
+    let secret = this.config.get<string>('COMMUNITY_GIFT_ZALO_WEBHOOK_SECRET')?.trim() ?? '';
+    if (secret.length < 32) {
+      const [stored] = await this.db.query<{ secret: string }[]>(
+        'SELECT secret FROM private_integrations.webhook_secrets WHERE key=$1',
+        ['community-gift'],
+      );
+      secret = stored?.secret ?? '';
+    }
     if (
       secret.length < 32 ||
       !incoming ||
