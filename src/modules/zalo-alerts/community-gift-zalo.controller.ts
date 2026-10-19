@@ -46,7 +46,8 @@ class CommunityGiftNotificationDto {
   openedAt!: string;
 }
 
-const safeLine = (value: string): string => value.replace(/[\r\n\u0000-\u001f]/g, ' ').slice(0, 160);
+const safeLine = (value: string): string =>
+  value.replace(/[\r\n\u0000-\u001f]/g, ' ').slice(0, 160);
 const digest = (value: string): Buffer => createHash('sha256').update(value).digest();
 
 @Controller('zalo')
