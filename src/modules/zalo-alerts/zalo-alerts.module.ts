@@ -11,7 +11,12 @@ import { CommunityGiftZaloController } from './community-gift-zalo.controller';
 @Global()
 @Module({
   imports: [AuthModule, AccessControlModule],
-  controllers: [ChatDigestController, ZaloWebhookController, ZaloBotAdminController, CommunityGiftZaloController],
+  controllers: [
+    ChatDigestController,
+    ZaloWebhookController,
+    ZaloBotAdminController,
+    CommunityGiftZaloController,
+  ],
   providers: [ZaloAlertsService, ChatDigestService, ZaloBotService],
   exports: [ZaloAlertsService, ChatDigestService],
 })
