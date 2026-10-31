@@ -1,6 +1,7 @@
-import { Global, Module } from '@nestjs/common';
+﻿import { Global, Module } from '@nestjs/common';
 import { ZaloAlertsService } from './zalo-alerts.service';
 import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
+import { ZaloLinhDanWebhookController } from './zalo-linh-dan-webhook.controller';
 import { ChatDigestService } from './chat-digest.service';
 import { ChatDigestController } from './chat-digest.controller';
 import { AuthModule } from '../auth/auth.module';
@@ -18,6 +19,7 @@ import {
   controllers: [
     ChatDigestController,
     ZaloWebhookController,
+    ZaloLinhDanWebhookController,
     ZaloBotAdminController,
     CommunityGiftZaloController,
   ],

@@ -10,7 +10,8 @@
               { "name": "ZALO_ADMIN_CHAT_IDS", "valueFrom": { "secretKeyRef": { "name": "moc-maria-zalo-admin", "key": "chat-ids" } } },
               { "name": "ZALO_WEBHOOK_SECRET", "valueFrom": { "secretKeyRef": { "name": "moc-maria-zalo-admin", "key": "webhook-secret" } } },
               { "name": "ZALO_LINH_DAN_BOT_TOKEN", "valueFrom": { "secretKeyRef": { "name": "moc-maria-zalo-linh-dan", "key": "token" } } },
-              { "name": "ZALO_LINH_DAN_CHAT_IDS", "valueFrom": { "secretKeyRef": { "name": "moc-maria-zalo-linh-dan", "key": "chat-ids" } } }
+              { "name": "ZALO_LINH_DAN_CHAT_IDS", "valueFrom": { "secretKeyRef": { "name": "moc-maria-zalo-linh-dan", "key": "chat-ids" } } },
+              { "name": "ZALO_LINH_DAN_WEBHOOK_SECRET", "valueFrom": { "secretKeyRef": { "name": "moc-maria-zalo-linh-dan", "key": "webhook-secret" } } }
             ]
           }
         ]

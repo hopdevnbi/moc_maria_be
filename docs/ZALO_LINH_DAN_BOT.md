@@ -57,3 +57,4 @@ affecting the original. Do not enable it without confirmed recipient IDs.
 6. Check that the original bot remains configured, healthy and able to send.
 
 Never commit actual credentials, chat IDs or production message contents.
+The secondary webhook /api/v1/zalo/linh-dan/webhook uses ZALO_LINH_DAN_WEBHOOK_SECRET. The connection phrase creates a pending candidate, not an approved notification recipient. Never reuse the original webhook secret.
