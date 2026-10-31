@@ -19,6 +19,8 @@ import { GiftVouchersAdminService } from './gift-vouchers-admin.service';
 import { GiftNotificationsService } from './gift-notifications.service';
 import { GiftOperationsController } from './gift-operations.controller';
 import { GiftOperationsService } from './gift-operations.service';
+import { GiftPlayAdminController } from './gift-play-admin.controller';
+import { GiftPlayAdminService } from './gift-play-admin.service';
 
 @Module({
   imports: [AuthModule],
@@ -34,6 +36,7 @@ import { GiftOperationsService } from './gift-operations.service';
     GiftReportController,
     GiftVouchersAdminController,
     GiftOperationsController,
+    GiftPlayAdminController,
   ],
   providers: [
     GiftEventsService,
@@ -47,6 +50,7 @@ import { GiftOperationsService } from './gift-operations.service';
     GiftVouchersAdminService,
     GiftNotificationsService,
     GiftOperationsService,
+    GiftPlayAdminService,
   ],
   exports: [GiftEventsService],
 })

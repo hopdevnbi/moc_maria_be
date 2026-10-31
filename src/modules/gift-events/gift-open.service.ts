@@ -125,7 +125,7 @@ export class GiftOpenService {
 
         const fp = fingerprint(actor.id, eventId, dto);
         const [existing] = await m.query<Entry[]>(
-          'SELECT * FROM gift_event_entries WHERE event_id=$1::uuid AND customer_user_id=$2::uuid',
+          'SELECT * FROM gift_event_entries WHERE event_id=$1::uuid AND customer_user_id=$2::uuid AND reset_at IS NULL',
           [eventId, actor.id],
         );
         if (existing) {

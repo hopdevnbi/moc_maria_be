@@ -138,7 +138,7 @@ export class GiftWalletService {
     const [existing] = await this.db.query<Array<{ id: string; reward_id: string }>>(
       `SELECT e.id,r.id AS reward_id FROM gift_event_entries e
       LEFT JOIN gift_event_rewards r ON r.entry_id=e.id
-      WHERE e.event_id=$1::uuid AND e.customer_user_id=$2::uuid`,
+      WHERE e.event_id=$1::uuid AND e.customer_user_id=$2::uuid AND e.reset_at IS NULL`,
       [event.id, actor.id],
     );
     const completedServiceAllowed =
