@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
+import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
 
 export interface ZaloAlert {
   kind: 'chat' | 'inquiry';
@@ -45,6 +46,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly db: DataSource,
     private readonly config: ConfigService,
+    @Optional() private readonly linhDan?: ZaloLinhDanAlertsService,
   ) {}
 
   private settings(): { token: string; recipients: string[] } {
@@ -75,9 +77,9 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
   // Called with the message/inquiry transaction: external HTTP never runs in the request path.
   async enqueue(manager: EntityManager, alert: ZaloAlert): Promise<void> {
     const { token } = this.settings();
-    if (!token) return;
     const text = alertText(alert);
-    await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text);
+    if (token) await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text);
+    if (alert.kind === 'inquiry') await this.linhDan?.enqueue(manager, alert.eventId, text);
   }
 
   async configuredRecipients(manager: Pick<EntityManager, 'query'> = this.db): Promise<string[]> {

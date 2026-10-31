@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 import { ZaloAlertsService } from './zalo-alerts.service';
+import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
 import { ChatDigestService } from './chat-digest.service';
 import { ChatDigestController } from './chat-digest.controller';
 import { AuthModule } from '../auth/auth.module';
@@ -20,7 +21,13 @@ import {
     ZaloBotAdminController,
     CommunityGiftZaloController,
   ],
-  providers: [ZaloAlertsService, ChatDigestService, ZaloBotService, CommunityGiftZaloAuthGuard],
+  providers: [
+    ZaloLinhDanAlertsService,
+    ZaloAlertsService,
+    ChatDigestService,
+    ZaloBotService,
+    CommunityGiftZaloAuthGuard,
+  ],
   exports: [ZaloAlertsService, ChatDigestService],
 })
 export class ZaloAlertsModule {}
