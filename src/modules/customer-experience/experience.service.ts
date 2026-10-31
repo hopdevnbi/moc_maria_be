@@ -257,8 +257,15 @@ export class CustomerExperienceService {
     const service = provider?.services.find((s) => s.id === dto.serviceId);
     if (!provider || !service)
       throw new BadRequestException('KTV hoặc dịch vụ không còn nhận yêu cầu tư vấn.');
-    const [receiver] = await this.db.query<{ user_id: string }[]>(
-      'SELECT user_id FROM provider_applications WHERE id=$1',
+    const [receiver] = await this.db.query<
+      {
+        user_id: string;
+        providerEmail: string | null;
+        providerPhone: string | null;
+      }[]
+    >(
+      `SELECT p.user_id, u.email AS "providerEmail", u.phone AS "providerPhone"
+       FROM provider_applications p JOIN users u ON u.id=p.user_id WHERE p.id=$1`,
       [provider.id],
     );
     if (!receiver) throw new NotFoundException('Không tìm thấy KTV.');
@@ -334,7 +341,11 @@ export class CustomerExperienceService {
         kind: 'inquiry',
         eventId: id,
         customerName: value.customerName,
+        customerPhone: actor.phone,
+        customerEmail: actor.email,
         providerName: value.providerName,
+        providerPhone: receiver.providerPhone,
+        providerEmail: receiver.providerEmail,
         serviceName: value.serviceName,
       });
       await m.save(AuditLog, {

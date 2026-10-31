@@ -39,6 +39,45 @@ describe('Zalo durable notifications', () => {
       'KTV: KTV Fake: alert',
     );
   });
+  it('includes customer and KTV contact data for booking inquiries', () => {
+    const text = alertText({
+      ...event,
+      kind: 'inquiry',
+      customerPhone: '0912345678',
+      customerEmail: 'customer@example.com',
+      providerPhone: '0987654321',
+      providerEmail: 'provider@example.com',
+    });
+    expect(text).toContain('SĐT khách: 0912345678');
+    expect(text).toContain('Email khách: customer@example.com');
+    expect(text).toContain('SĐT KTV: 0987654321');
+    expect(text).toContain('Email KTV: provider@example.com');
+  });
+  it('omits missing details and does not change chat notifications', () => {
+    const inquiry: ZaloAlert = {
+      ...event,
+      kind: 'inquiry',
+      customerPhone: null,
+      customerEmail: ' ',
+      providerPhone: undefined,
+      providerEmail: '',
+    };
+    for (const label of ['SĐT khách:', 'Email khách:', 'SĐT KTV:', 'Email KTV:']) {
+      expect(alertText(inquiry)).not.toContain(label);
+    }
+    expect(alertText({ ...inquiry, kind: 'chat', customerPhone: '0912345678' })).not.toContain(
+      '0912345678',
+    );
+  });
+  it('prevents newline injection through contact details', () => {
+    const text = alertText({
+      ...event,
+      kind: 'inquiry',
+      providerEmail: 'provider@example.com\nFake: test',
+    });
+    expect(text).toContain('Email KTV: provider@example.com Fake: test');
+    expect(text).not.toContain('\nFake:');
+  });
   it('disabled configuration does not contact database or external service', async () => {
     const { service, query, manager } = setup(false);
     global.fetch = jest.fn();

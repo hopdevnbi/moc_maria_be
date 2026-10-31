@@ -9,7 +9,11 @@ export interface ZaloAlert {
   kind: 'chat' | 'inquiry';
   eventId: string;
   customerName: string;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
   providerName: string;
+  providerPhone?: string | null;
+  providerEmail?: string | null;
   serviceName?: string;
 }
 interface Delivery {
@@ -26,12 +30,20 @@ export const zaloRecipientPrefix = 'mocmaria.zalo.recipient.';
 const prefix = 'mocmaria.zalo.outbox.';
 // eslint-disable-next-line no-control-regex -- Strip untrusted name controls from notification lines.
 const line = (value: string): string => value.replace(/[\r\n\u0000-\u001f]/g, ' ').slice(0, 120);
+const optionalContact = (label: string, value?: string | null): string[] => {
+  const cleaned = line(value ?? '').trim();
+  return cleaned ? [`${label}: ${cleaned}`] : [];
+};
 
 export function alertText(alert: ZaloAlert): string {
   return [
     alert.kind === 'chat' ? 'Mộc Maria · Khách nhắn KTV' : 'Mộc Maria · Yêu cầu đặt lịch mới',
     `Khách: ${line(alert.customerName)}`,
+    ...(alert.kind === 'inquiry' ? optionalContact('SĐT khách', alert.customerPhone) : []),
+    ...(alert.kind === 'inquiry' ? optionalContact('Email khách', alert.customerEmail) : []),
     `KTV: ${line(alert.providerName)}`,
+    ...(alert.kind === 'inquiry' ? optionalContact('SĐT KTV', alert.providerPhone) : []),
+    ...(alert.kind === 'inquiry' ? optionalContact('Email KTV', alert.providerEmail) : []),
     ...(alert.serviceName ? [`Dịch vụ: ${line(alert.serviceName)}`] : []),
     `Mã ${alert.kind === 'chat' ? 'tin' : 'yêu cầu'}: ${line(alert.eventId)}`,
     'Vui lòng liên hệ KTV để hỗ trợ khách.',
