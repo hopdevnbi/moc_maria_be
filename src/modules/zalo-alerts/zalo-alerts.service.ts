@@ -3,6 +3,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@ne
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
 import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
+import { ZaloHoanAlertsService } from './zalo-hoan-alerts.service';
 
 export interface ZaloAlert {
   kind: 'chat' | 'inquiry';
@@ -47,6 +48,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     private readonly db: DataSource,
     private readonly config: ConfigService,
     @Optional() private readonly linhDan?: ZaloLinhDanAlertsService,
+    @Optional() private readonly hoan?: ZaloHoanAlertsService,
   ) {}
 
   private settings(): { token: string; recipients: string[] } {
@@ -80,6 +82,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     const text = alertText(alert);
     if (token) await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text);
     if (alert.kind === 'inquiry') await this.linhDan?.enqueue(manager, alert.eventId, text);
+    if (alert.kind === 'inquiry') await this.hoan?.enqueue(manager, alert.eventId, text);
   }
 
   async configuredRecipients(manager: Pick<EntityManager, 'query'> = this.db): Promise<string[]> {

@@ -1,7 +1,9 @@
-﻿import { Global, Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ZaloAlertsService } from './zalo-alerts.service';
 import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
 import { ZaloLinhDanWebhookController } from './zalo-linh-dan-webhook.controller';
+import { ZaloHoanAlertsService } from './zalo-hoan-alerts.service';
+import { ZaloHoanWebhookController } from './zalo-hoan-webhook.controller';
 import { ChatDigestService } from './chat-digest.service';
 import { ChatDigestController } from './chat-digest.controller';
 import { AuthModule } from '../auth/auth.module';
@@ -20,11 +22,13 @@ import {
     ChatDigestController,
     ZaloWebhookController,
     ZaloLinhDanWebhookController,
+    ZaloHoanWebhookController,
     ZaloBotAdminController,
     CommunityGiftZaloController,
   ],
   providers: [
     ZaloLinhDanAlertsService,
+    ZaloHoanAlertsService,
     ZaloAlertsService,
     ChatDigestService,
     ZaloBotService,
