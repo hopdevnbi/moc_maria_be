@@ -12,6 +12,7 @@ import type { AuthUserContext } from '../identity/identity.types';
 import type { BlockKtvChatDto, SendKtvMessageDto } from './ktv-chat.dto';
 import { KtvChatPrivacyService, privacyKey } from './ktv-chat-privacy.service';
 import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
+import { chatImageUploadKey, chatMessageImageKey, imageIdFromUrl } from './ktv-chat-image.keys';
 
 export interface KtvThread {
   id: string;
@@ -36,6 +37,7 @@ export interface KtvMessage {
   thread_id: string;
   sender_user_id: string;
   body: string;
+  image_url?: string | null;
   created_at: string;
 }
 export interface ChatProvider {
@@ -220,6 +222,22 @@ export class KtvChatService {
     if (!thread) throw new NotFoundException('Không tìm thấy hội thoại.');
     return thread;
   }
+  async assertImageUploadPermission(
+    actor: AuthUserContext,
+    threadId: string,
+    token?: string,
+  ): Promise<void> {
+    await this.db.transaction(async (manager) => {
+      const thread = await this.member(manager, actor.id, threadId, true);
+      await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
+      const [blocked] = await manager.query<{ thread_id: string }[]>(
+        `SELECT thread_id FROM ktv_chat_blocks WHERE thread_id=$1 AND revoked_at IS NULL
+         AND (expires_at IS NULL OR expires_at>clock_timestamp()) LIMIT 1`,
+        [threadId],
+      );
+      if (blocked) throw new ForbiddenException('Hội thoại đang bị chặn.');
+    });
+  }
 
   async messages(
     actor: AuthUserContext,
@@ -238,10 +256,12 @@ export class KtvChatService {
         if (!cursor) throw new BadRequestException('Mốc tin nhắn không hợp lệ.');
       }
       const rows = await manager.query<KtvMessage[]>(
-        `SELECT id,thread_id,sender_user_id,body,created_at
-      FROM ktv_chat_messages WHERE thread_id=$1
+        `SELECT m.id,m.thread_id,m.sender_user_id,m.body,m.created_at,attachment.value->>'url' AS image_url
+      FROM ktv_chat_messages m
+      LEFT JOIN app_metadata attachment ON attachment.key='mocmaria.chat.image.'||m.id::text
+      WHERE m.thread_id=$1
       AND ($2::uuid IS NULL OR seq<(SELECT seq FROM ktv_chat_messages WHERE id=$2 AND thread_id=$1))
-      ORDER BY seq DESC LIMIT 50`,
+      ORDER BY m.seq DESC LIMIT 50`,
         [threadId, before ?? null],
       );
       return rows.reverse();
@@ -254,9 +274,12 @@ export class KtvChatService {
     dto: SendKtvMessageDto,
     token?: string,
   ): Promise<KtvMessage> {
-    const body = dto.body.trim();
-    if (!body || body.length > 2000)
-      throw new BadRequestException('Tin nhắn cần từ 1 đến 2000 ký tự.');
+    const body = (dto.body || '').trim();
+    if ((!body && !dto.imageUrl) || body.length > 2000)
+      throw new BadRequestException('Tin nhắn cần nội dung hoặc ảnh.');
+    const attachmentId = dto.imageUrl ? imageIdFromUrl(dto.imageUrl) : null;
+    if (dto.imageUrl && !attachmentId) throw new BadRequestException('Ảnh chat không hợp lệ.');
+    const storedBody = body || '📷 Ảnh';
     const saved = await this.db.transaction(async (manager) => {
       const thread = await this.member(manager, actor.id, threadId, true);
       await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
@@ -267,7 +290,15 @@ export class KtvChatService {
         [threadId, actor.id, clientId],
       );
       if (existing) {
-        if (existing.body !== body) throw new BadRequestException('Mã tin nhắn đã được sử dụng.');
+        if (existing.body !== storedBody)
+          throw new BadRequestException('Mã tin nhắn đã được sử dụng.');
+        const [image] = await manager.query<{ url: string }[]>(
+          `SELECT value->>'url' AS url FROM app_metadata WHERE key=$1`,
+          [chatMessageImageKey(existing.id)],
+        );
+        if ((image?.url || null) !== (dto.imageUrl || null))
+          throw new BadRequestException('Mã tin nhắn đã được dùng cho ảnh khác.');
+        existing.image_url = image?.url || null;
         return existing;
       }
       const [blocked] = await manager.query<{ thread_id: string }[]>(
@@ -295,11 +326,46 @@ export class KtvChatService {
       );
       if (rate.count >= 30)
         throw new HttpException('Bạn gửi tin nhắn quá nhanh. Vui lòng chờ một chút.', 429);
+      if (attachmentId) {
+        const [upload] = await manager.query<
+          {
+            value: {
+              threadId: string;
+              userId: string;
+              url: string;
+              used: boolean;
+              createdAt: number;
+            };
+          }[]
+        >(`SELECT value FROM app_metadata WHERE key=$1 FOR UPDATE`, [
+          chatImageUploadKey(attachmentId),
+        ]);
+        if (
+          !upload ||
+          upload.value.threadId !== threadId ||
+          upload.value.userId !== actor.id ||
+          upload.value.url !== dto.imageUrl ||
+          upload.value.used ||
+          Date.now() - upload.value.createdAt > 24 * 60 * 60 * 1000
+        )
+          throw new BadRequestException('Ảnh đã hết hạn hoặc không thuộc hội thoại này.');
+        await manager.query(
+          `UPDATE app_metadata SET value=jsonb_set(value,'{used}','true'::jsonb),updated_at=clock_timestamp() WHERE key=$1`,
+          [chatImageUploadKey(attachmentId)],
+        );
+      }
       const [message] = await manager.query<KtvMessage[]>(
         `INSERT INTO ktv_chat_messages(thread_id,sender_user_id,client_message_id,body)
         VALUES($1,$2,$3,$4) RETURNING id,thread_id,sender_user_id,body,created_at`,
-        [threadId, actor.id, clientId, body],
+        [threadId, actor.id, clientId, storedBody],
       );
+      if (dto.imageUrl) {
+        await manager.query(`INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb)`, [
+          chatMessageImageKey(message.id),
+          JSON.stringify({ url: dto.imageUrl }),
+        ]);
+        message.image_url = dto.imageUrl;
+      }
       await manager.query(`UPDATE ktv_chat_threads SET updated_at=clock_timestamp() WHERE id=$1`, [
         threadId,
       ]);
@@ -365,10 +431,12 @@ export class KtvChatService {
             if (!cursor) throw new BadRequestException('Mốc tin nhắn không hợp lệ.');
           }
           return manager.query<KtvMessage[]>(
-            `SELECT id,thread_id,sender_user_id,body,created_at
-            FROM ktv_chat_messages WHERE thread_id=$1
+            `SELECT m.id,m.thread_id,m.sender_user_id,m.body,m.created_at,attachment.value->>'url' AS image_url
+            FROM ktv_chat_messages m
+            LEFT JOIN app_metadata attachment ON attachment.key='mocmaria.chat.image.'||m.id::text
+            WHERE m.thread_id=$1
             AND ($2::uuid IS NULL OR seq>(SELECT seq FROM ktv_chat_messages WHERE id=$2 AND thread_id=$1))
-            ORDER BY seq ASC LIMIT 50`,
+            ORDER BY m.seq ASC LIMIT 50`,
             [threadId, after ?? null],
           );
         });

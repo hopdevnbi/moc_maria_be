@@ -30,10 +30,15 @@ export class SetKtvChatPasswordDto {
   currentPassword?: string;
 }
 export class SendKtvMessageDto {
+  @IsOptional()
   @IsString()
   @Transform(({ value }: { value: unknown }) => (typeof value === 'string' ? value.trim() : value))
-  @Length(1, 2000)
-  body!: string;
+  @Length(0, 2000)
+  body?: string;
+  @IsOptional()
+  @IsString()
+  @Length(1, 512)
+  imageUrl?: string;
   @IsOptional()
   @IsUUID()
   clientMessageId?: string;

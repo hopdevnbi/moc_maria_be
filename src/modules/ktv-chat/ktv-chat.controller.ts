@@ -5,6 +5,8 @@ import {
   Header,
   Headers,
   HttpCode,
+  UploadedFile,
+  UseInterceptors,
   Param,
   ParseUUIDPipe,
   Post,
@@ -14,10 +16,12 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { KtvChatService } from './ktv-chat.service';
+import { KtvChatImageService } from './ktv-chat-image.service';
 import { ProviderDisplayService } from '../provider-display/provider-display.service';
 import {
   BlockKtvChatDto,
@@ -49,7 +53,10 @@ export class KtvChatDirectoryController {
 @Controller('ktv-chat/threads')
 @UseGuards(AccessTokenGuard)
 export class KtvChatController {
-  constructor(private readonly chat: KtvChatService) {}
+  constructor(
+    private readonly chat: KtvChatService,
+    private readonly images: KtvChatImageService,
+  ) {}
   @Get()
   @Header('Cache-Control', 'private, no-store')
   list(@CurrentUser() actor: AuthUserContext): ReturnType<KtvChatService['list']> {
@@ -126,6 +133,17 @@ export class KtvChatController {
     @Headers('x-chat-unlock') token?: string,
   ): ReturnType<KtvChatService['send']> {
     return this.chat.send(actor, id, dto, token);
+  }
+  @Post(':id/images')
+  @Header('Cache-Control', 'private, no-store')
+  @UseInterceptors(FileInterceptor('file', { limits: { files: 1, fileSize: 5 * 1024 * 1024 } }))
+  uploadImage(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @UploadedFile() file: { buffer: Buffer; mimetype: string; size: number } | undefined,
+    @Headers('x-chat-unlock') token?: string,
+  ): Promise<{ url: string }> {
+    return this.images.upload(actor, id, file, token);
   }
   @Get(':id/updates')
   @Header('Cache-Control', 'private, no-store')

@@ -50,6 +50,7 @@ describe('KTV chat notifications', () => {
         if (sql.includes('SELECT count(*)::int AS count')) return [{ count: 0 }];
         if (sql.includes('INSERT INTO ktv_chat_messages'))
           return [{ id, body: 'Secret', thread_id: thread }];
+        if (sql.includes("SELECT value->>'url' AS url FROM app_metadata")) return [];
         if (sql.includes('FROM app_metadata') && sql.includes('passwordHash'))
           return protectedThread ? [{ isProtected: true }] : [];
         if (sql.includes('SELECT customer.display_name AS'))
