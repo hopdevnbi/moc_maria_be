@@ -51,14 +51,19 @@ export class ZaloHoanAlertsService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
-  // Only user-created booking inquiries enter this independent channel.
-  async enqueue(manager: EntityManager, eventId: string, text: string): Promise<void> {
+  // Independent, idempotent delivery for inquiries and individual chat messages.
+  async enqueue(
+    manager: EntityManager,
+    eventId: string,
+    text: string,
+    kind: 'inquiry' | 'chat' = 'inquiry',
+  ): Promise<void> {
     const { token, recipients } = this.settings();
     if (!token || !recipients.length) return;
     for (const recipient of recipients) {
       const key =
         hoanOutboxPrefix +
-        createHash('sha256').update(`inquiry:${eventId}:${recipient}`).digest('hex');
+        createHash('sha256').update(`${kind}:${eventId}:${recipient}`).digest('hex');
       await manager.query(
         `INSERT INTO app_metadata(key,value)
          VALUES($1,$2::jsonb||jsonb_build_object('nextAt',clock_timestamp()))

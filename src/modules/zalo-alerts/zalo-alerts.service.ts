@@ -9,6 +9,7 @@ export interface ZaloAlert {
   kind: 'chat' | 'inquiry';
   eventId: string;
   customerName: string;
+  senderRole?: 'customer' | 'provider';
   customerPhone?: string | null;
   customerEmail?: string | null;
   providerName: string;
@@ -37,11 +38,18 @@ const optionalContact = (label: string, value?: string | null): string[] => {
 
 export function alertText(alert: ZaloAlert): string {
   return [
-    alert.kind === 'chat' ? 'Mộc Maria · Khách nhắn KTV' : 'Mộc Maria · Yêu cầu đặt lịch mới',
+    alert.kind === 'inquiry'
+      ? 'Mộc Maria · Yêu cầu đặt lịch mới'
+      : alert.senderRole === 'provider'
+        ? 'Mộc Maria · KTV nhắn khách'
+        : 'Mộc Maria · Khách nhắn KTV',
     `Khách: ${line(alert.customerName)}`,
     ...(alert.kind === 'inquiry' ? optionalContact('SĐT khách', alert.customerPhone) : []),
     ...(alert.kind === 'inquiry' ? optionalContact('Email khách', alert.customerEmail) : []),
     `KTV: ${line(alert.providerName)}`,
+    ...(alert.kind === 'chat'
+      ? [`Người gửi: ${alert.senderRole === 'provider' ? 'KTV' : 'Khách'}`]
+      : []),
     ...(alert.kind === 'inquiry' ? optionalContact('SĐT KTV', alert.providerPhone) : []),
     ...(alert.kind === 'inquiry' ? optionalContact('Email KTV', alert.providerEmail) : []),
     ...(alert.serviceName ? [`Dịch vụ: ${line(alert.serviceName)}`] : []),
@@ -93,8 +101,8 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     const { token } = this.settings();
     const text = alertText(alert);
     if (token) await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text);
-    if (alert.kind === 'inquiry') await this.linhDan?.enqueue(manager, alert.eventId, text);
-    if (alert.kind === 'inquiry') await this.hoan?.enqueue(manager, alert.eventId, text);
+    await this.linhDan?.enqueue(manager, alert.eventId, text, alert.kind);
+    await this.hoan?.enqueue(manager, alert.eventId, text, alert.kind);
   }
 
   async configuredRecipients(manager: Pick<EntityManager, 'query'> = this.db): Promise<string[]> {

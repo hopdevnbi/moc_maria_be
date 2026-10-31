@@ -50,14 +50,14 @@ describe('Second Zalo bot for booking requests', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('queues only booking inquiries with independent, deterministic keys', async () => {
+  it('queues chat and inquiries with independent, deterministic keys', async () => {
     const { primary, query, manager } = setup();
     await primary.enqueue(manager, { ...inquiry, kind: 'chat' });
-    expect(query).not.toHaveBeenCalled();
     await primary.enqueue(manager, inquiry);
     await primary.enqueue(manager, inquiry);
-    expect(query).toHaveBeenCalledTimes(2);
-    expect(query.mock.calls[0][1][0]).toBe(query.mock.calls[1][1][0]);
+    expect(query).toHaveBeenCalledTimes(3);
+    expect(query.mock.calls[0][1][0]).not.toBe(query.mock.calls[1][1][0]);
+    expect(query.mock.calls[1][1][0]).toBe(query.mock.calls[2][1][0]);
     expect(query.mock.calls[0][1][0]).toContain(linhDanOutboxPrefix);
     expect(query.mock.calls[0][0]).toContain('ON CONFLICT(key) DO NOTHING');
     expect(JSON.parse(query.mock.calls[0][1][1])).toMatchObject({

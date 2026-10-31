@@ -69,6 +69,27 @@ describe('Zalo durable notifications', () => {
       '0912345678',
     );
   });
+  it('identifies the chat sender without exposing conversation text or contact fields', () => {
+    const base: ZaloAlert = {
+      kind: 'chat',
+      eventId: 'message-id-1',
+      customerName: 'Người khách',
+      providerName: 'KTV Mai Anh',
+      customerPhone: '0912345678',
+      providerEmail: 'ktv@example.com',
+    };
+    const customerAlert = alertText({ ...base, senderRole: 'customer' });
+    const providerAlert = alertText({ ...base, senderRole: 'provider' });
+    expect(customerAlert).toContain('Mộc Maria · Khách nhắn KTV');
+    expect(customerAlert).toContain('Người gửi: Khách');
+    expect(providerAlert).toContain('Mộc Maria · KTV nhắn khách');
+    expect(providerAlert).toContain('Người gửi: KTV');
+    for (const text of [customerAlert, providerAlert]) {
+      expect(text).toContain('Mã tin: message-id-1');
+      expect(text).not.toContain('0912345678');
+      expect(text).not.toContain('ktv@example.com');
+    }
+  });
   it('prevents newline injection through contact details', () => {
     const text = alertText({
       ...event,

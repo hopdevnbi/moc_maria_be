@@ -11,6 +11,7 @@ import { ProvidersService } from '../providers/providers.service';
 import type { AuthUserContext } from '../identity/identity.types';
 import type { BlockKtvChatDto, SendKtvMessageDto } from './ktv-chat.dto';
 import { KtvChatPrivacyService } from './ktv-chat-privacy.service';
+import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 
 export interface KtvThread {
   id: string;
@@ -67,6 +68,7 @@ export class KtvChatService {
     private readonly db: DataSource,
     private readonly providers: ProvidersService,
     private readonly privacy: KtvChatPrivacyService,
+    private readonly zaloAlerts: ZaloAlertsService,
   ) {}
 
   private seededProviders(manager: EntityManager = this.db.manager): Promise<SeedChatProvider[]> {
@@ -301,6 +303,23 @@ export class KtvChatService {
       await manager.query(`UPDATE ktv_chat_threads SET updated_at=clock_timestamp() WHERE id=$1`, [
         threadId,
       ]);
+      // Do not forward private message bodies to an external platform.
+      // The outbox is persisted with the new message, and duplicates exit before this branch.
+      const [contact] = await manager.query<{ customerName: string; providerName: string }[]>(
+        `SELECT customer.display_name AS "customerName", provider.public_name AS "providerName"
+         FROM users customer JOIN provider_applications provider ON provider.id=$2
+         WHERE customer.id=$1`,
+        [thread.customer_user_id, thread.provider_application_id],
+      );
+      if (contact) {
+        await this.zaloAlerts.enqueue(manager, {
+          kind: 'chat',
+          eventId: message.id,
+          customerName: contact.customerName,
+          providerName: contact.providerName,
+          senderRole: thread.customer_user_id === actor.id ? 'customer' : 'provider',
+        });
+      }
       return message;
     });
     this.changed(threadId);

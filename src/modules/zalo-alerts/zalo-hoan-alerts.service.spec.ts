@@ -51,14 +51,14 @@ describe('Third Zalo bot for booking requests', () => {
     expect(fetch).not.toHaveBeenCalled();
   });
 
-  it('queues only booking inquiries with independent, deterministic keys', async () => {
+  it('queues chat and inquiries with independent, deterministic keys', async () => {
     const { primary, query, manager } = setup();
     await primary.enqueue(manager, { ...inquiry, kind: 'chat' });
-    expect(query).not.toHaveBeenCalled();
     await primary.enqueue(manager, inquiry);
     await primary.enqueue(manager, inquiry);
-    expect(query).toHaveBeenCalledTimes(2);
-    expect(query.mock.calls[0][1][0]).toBe(query.mock.calls[1][1][0]);
+    expect(query).toHaveBeenCalledTimes(3);
+    expect(query.mock.calls[0][1][0]).not.toBe(query.mock.calls[1][1][0]);
+    expect(query.mock.calls[1][1][0]).toBe(query.mock.calls[2][1][0]);
     expect(query.mock.calls[0][1][0]).toContain(hoanOutboxPrefix);
     expect(query.mock.calls[0][0]).toContain('ON CONFLICT(key) DO NOTHING');
     expect(JSON.parse(query.mock.calls[0][1][1])).toMatchObject({
@@ -126,6 +126,48 @@ describe('Third Zalo bot for booking requests', () => {
       return payload.recipient;
     });
     expect(recipients).toEqual(['original-1', 'linh-dan-1', 'hoan-1']);
+  });
+  it('fans out a chat event to three bots with distinct idempotent outbox keys', async () => {
+    const query = jest.fn<Promise<unknown[]>, [string, string[]]>().mockResolvedValue([]);
+    const values = new Map([
+      ['ZALO_BOT_TOKEN', 'original-token'],
+      ['ZALO_LINH_DAN_BOT_TOKEN', 'linh-dan-token'],
+      ['ZALO_LINH_DAN_CHAT_IDS', 'linh-dan-1'],
+      ['ZALO_HOAN_BOT_TOKEN', 'hoan-token'],
+      ['ZALO_HOAN_CHAT_IDS', 'hoan-1'],
+    ]);
+    const config = { get: (key: string): string | undefined => values.get(key) } as ConfigService;
+    const db = { query } as unknown as DataSource;
+    const primary = new ZaloAlertsService(
+      db,
+      config,
+      new ZaloLinhDanAlertsService(db, config),
+      new ZaloHoanAlertsService(db, config),
+    );
+    jest.spyOn(primary, 'configuredRecipients').mockResolvedValue(['original-1']);
+    const manager = { query } as unknown as EntityManager;
+    const chat = {
+      ...inquiry,
+      eventId: 'message-abc',
+      kind: 'chat' as const,
+      senderRole: 'provider' as const,
+    };
+    await primary.enqueue(manager, chat);
+    await primary.enqueue(manager, chat);
+    expect(query).toHaveBeenCalledTimes(6);
+    const first = query.mock.calls.slice(0, 3);
+    const second = query.mock.calls.slice(3, 6);
+    const keys = first.map((call) => call[1][0]);
+    expect(new Set(keys).size).toBe(3);
+    expect(keys[0]).toContain('mocmaria.zalo.outbox.');
+    expect(keys[1]).toContain(linhDanOutboxPrefix);
+    expect(keys[2]).toContain(hoanOutboxPrefix);
+    expect(second.map((call) => call[1][0])).toEqual(keys);
+    for (const [, args] of first) {
+      const delivery = JSON.parse(args[1]) as { text: string };
+      expect(delivery.text).toContain('Người gửi: KTV');
+      expect(delivery.text).not.toContain('Booking request body');
+    }
   });
 
   it('does not affect the old bot and delivers only from the isolated outbox', async () => {
