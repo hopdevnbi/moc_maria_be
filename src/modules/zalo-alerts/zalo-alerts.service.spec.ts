@@ -90,6 +90,25 @@ describe('Zalo durable notifications', () => {
       expect(text).not.toContain('ktv@example.com');
     }
   });
+  it('includes multiline chat content from customers and KTVs', () => {
+    for (const senderRole of ['customer', 'provider'] as const) {
+      const text = alertText({
+        ...event,
+        senderRole,
+        messageBody: 'Xin chào\nTôi muốn hỏi về lịch hẹn',
+      });
+      expect(text).toContain('Nội dung tin nhắn:\n  Xin chào\n  Tôi muốn hỏi về lịch hẹn');
+    }
+    expect(alertText({ ...event, messageBody: 'A'.repeat(2100) })).not.toContain('A'.repeat(2001));
+  });
+  it('never exposes protected chat contents', () => {
+    const secret = alertText({ ...event, messageBody: 'TOP-SECRET', chatPrivacyProtected: true });
+    expect(secret).toContain('Hội thoại được bảo vệ');
+    expect(secret).not.toContain('TOP-SECRET');
+    expect(alertText({ ...event, kind: 'inquiry', messageBody: 'TOP-SECRET' })).not.toContain(
+      'TOP-SECRET',
+    );
+  });
   it('prevents newline injection through contact details', () => {
     const text = alertText({
       ...event,

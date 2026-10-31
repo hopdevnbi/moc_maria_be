@@ -10,6 +10,8 @@ export interface ZaloAlert {
   eventId: string;
   customerName: string;
   senderRole?: 'customer' | 'provider';
+  messageBody?: string;
+  chatPrivacyProtected?: boolean;
   customerPhone?: string | null;
   customerEmail?: string | null;
   providerName: string;
@@ -35,6 +37,16 @@ const optionalContact = (label: string, value?: string | null): string[] => {
   const cleaned = line(value ?? '').trim();
   return cleaned ? [`${label}: ${cleaned}`] : [];
 };
+// Preserve readable line breaks while stripping other control characters.
+const chatContent = (value: string): string =>
+  value
+    .replace(/\r\n?/g, '\n')
+    // eslint-disable-next-line no-control-regex -- Explicitly strip untrusted control characters.
+    .replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g, ' ')
+    .slice(0, 2000)
+    .split('\n')
+    .map((part) => `  ${part}`)
+    .join('\n');
 
 export function alertText(alert: ZaloAlert): string {
   return [
@@ -50,6 +62,11 @@ export function alertText(alert: ZaloAlert): string {
     ...(alert.kind === 'chat'
       ? [`Người gửi: ${alert.senderRole === 'provider' ? 'KTV' : 'Khách'}`]
       : []),
+    ...(alert.kind === 'chat' && alert.chatPrivacyProtected
+      ? ['Nội dung: [Hội thoại được bảo vệ bằng mật khẩu]']
+      : alert.kind === 'chat' && alert.messageBody
+        ? [`Nội dung tin nhắn:\n${chatContent(alert.messageBody)}`]
+        : []),
     ...(alert.kind === 'inquiry' ? optionalContact('SĐT KTV', alert.providerPhone) : []),
     ...(alert.kind === 'inquiry' ? optionalContact('Email KTV', alert.providerEmail) : []),
     ...(alert.serviceName ? [`Dịch vụ: ${line(alert.serviceName)}`] : []),

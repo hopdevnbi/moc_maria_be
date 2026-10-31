@@ -22,7 +22,10 @@ describe('KTV chat notifications', () => {
     roles: [],
     permissions: [],
   });
-  function setup(duplicate = false): {
+  function setup(
+    duplicate = false,
+    protectedThread = false,
+  ): {
     service: KtvChatService;
     notify: jest.Mock<Promise<void>, [unknown, unknown]>;
     query: jest.Mock<Promise<unknown[]>, [string]>;
@@ -47,6 +50,8 @@ describe('KTV chat notifications', () => {
         if (sql.includes('SELECT count(*)::int AS count')) return [{ count: 0 }];
         if (sql.includes('INSERT INTO ktv_chat_messages'))
           return [{ id, body: 'Secret', thread_id: thread }];
+        if (sql.includes('FROM app_metadata') && sql.includes('passwordHash'))
+          return protectedThread ? [{ isProtected: true }] : [];
         if (sql.includes('SELECT customer.display_name AS'))
           return [{ customerName: 'Khách', providerName: 'KTV' }];
         if (sql.includes('UPDATE ktv_chat_threads')) return [];
@@ -76,6 +81,15 @@ describe('KTV chat notifications', () => {
       providerName: 'KTV',
       senderRole,
     });
+    expect(notify.mock.calls[0][1]).toMatchObject({
+      messageBody: 'Secret',
+      chatPrivacyProtected: false,
+    });
+  });
+  it('does not forward content of password-protected conversations', async () => {
+    const { service, notify } = setup(false, true);
+    await service.send(actor(customer), thread, { body: 'Secret', clientMessageId: id });
+    expect(notify.mock.calls[0][1]).toMatchObject({ chatPrivacyProtected: true });
     expect(JSON.stringify(notify.mock.calls[0][1])).not.toContain('Secret');
   });
   it('does not queue Zalo on duplicate client message', async () => {

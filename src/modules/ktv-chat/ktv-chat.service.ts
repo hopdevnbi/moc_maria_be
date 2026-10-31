@@ -10,7 +10,7 @@ import { DataSource, type EntityManager } from 'typeorm';
 import { ProvidersService } from '../providers/providers.service';
 import type { AuthUserContext } from '../identity/identity.types';
 import type { BlockKtvChatDto, SendKtvMessageDto } from './ktv-chat.dto';
-import { KtvChatPrivacyService } from './ktv-chat-privacy.service';
+import { KtvChatPrivacyService, privacyKey } from './ktv-chat-privacy.service';
 import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 
 export interface KtvThread {
@@ -303,8 +303,13 @@ export class KtvChatService {
       await manager.query(`UPDATE ktv_chat_threads SET updated_at=clock_timestamp() WHERE id=$1`, [
         threadId,
       ]);
-      // Do not forward private message bodies to an external platform.
-      // The outbox is persisted with the new message, and duplicates exit before this branch.
+      // Do not forward bodies of password-protected threads to external bots.
+      // Notification outboxes share the message transaction and skip duplicate retries.
+      const [privacy] = await manager.query<{ isProtected: boolean }[]>(
+        `SELECT COALESCE(value ? 'passwordHash',false) AS "isProtected"
+         FROM app_metadata WHERE key=$1`,
+        [privacyKey(threadId)],
+      );
       const [contact] = await manager.query<{ customerName: string; providerName: string }[]>(
         `SELECT customer.display_name AS "customerName", provider.public_name AS "providerName"
          FROM users customer JOIN provider_applications provider ON provider.id=$2
@@ -318,6 +323,8 @@ export class KtvChatService {
           customerName: contact.customerName,
           providerName: contact.providerName,
           senderRole: thread.customer_user_id === actor.id ? 'customer' : 'provider',
+          messageBody: privacy?.isProtected ? undefined : message.body,
+          chatPrivacyProtected: privacy?.isProtected ?? false,
         });
       }
       return message;
