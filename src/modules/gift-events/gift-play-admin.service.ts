@@ -254,8 +254,15 @@ export class GiftPlayAdminService {
         );
       await m.query('DELETE FROM gift_event_qr_tokens WHERE reward_id=$1::uuid', [reward.id]);
       await m.query('DELETE FROM gift_event_counter_pins WHERE reward_id=$1::uuid', [reward.id]);
-      const [updated] = await m.query<Array<{ reset_at: Date }>>(
+      // TypeORM/Postgres returns UPDATE ... RETURNING as [rows, rowCount].
+      // Read the timestamp within the same transaction instead of parsing
+      // the nested result as a row.
+      await m.query(
         'UPDATE gift_event_entries SET reset_at=clock_timestamp() WHERE id=$1::uuid RETURNING reset_at',
+        [entry.id],
+      );
+      const [updated] = await m.query<Array<{ reset_at: Date }>>(
+        'SELECT reset_at FROM gift_event_entries WHERE id=$1::uuid',
         [entry.id],
       );
       const after = {

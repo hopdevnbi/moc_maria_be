@@ -33,6 +33,8 @@ function fixture(
     if (sql.startsWith('SELECT id,prize_id,status FROM gift_event_rewards'))
       return Promise.resolve([{ id: 'reward-id', prize_id: 'prize-id', status }]);
     if (sql.startsWith('UPDATE gift_event_entries'))
+      return Promise.resolve([[{ reset_at: new Date() }], 1]);
+    if (sql.startsWith('SELECT reset_at FROM gift_event_entries'))
       return Promise.resolve([{ reset_at: new Date() }]);
     if (sql.startsWith('INSERT INTO gift_event_play_resets'))
       return Promise.resolve([{ id: 'reset-id', created_at: new Date() }]);
@@ -66,6 +68,7 @@ describe('gift Super Admin reset', () => {
     expect(result.after['rewardStatus']).toBe('VOIDED');
     expect(sqls).toContainEqual(expect.stringContaining("SET status='VOIDED'"));
     expect(sqls).toContainEqual(expect.stringContaining('SET reset_at=clock_timestamp()'));
+    expect(sqls).toContainEqual(expect.stringContaining('SELECT reset_at FROM gift_event_entries'));
     expect(sqls).toContainEqual(expect.stringContaining('INSERT INTO gift_event_play_resets'));
     expect(sqls).toContainEqual(expect.stringContaining('INSERT INTO gift_event_admin_audit'));
     expect(
