@@ -118,7 +118,11 @@ export class KtvChatService {
         title: 'Kỹ thuật viên Mộc Maria',
         serviceArea: p.service_area,
         avatarUrl:
-          p.avatar_url && /^\/media\/ktv\/[a-zA-Z0-9._-]+\.webp$/.test(p.avatar_url)
+          p.avatar_url &&
+          (/^\/media\/ktv\/[a-zA-Z0-9._-]+\.webp$/.test(p.avatar_url) ||
+            /^https:\/\/giangxa-media-cdn\.b-cdn\.net\/moc-maria\/ktv\/[a-zA-Z0-9/_-]+\.(?:webp|jpg)$/.test(
+              p.avatar_url,
+            ))
             ? p.avatar_url
             : null,
         publicAlias: p.public_alias,
