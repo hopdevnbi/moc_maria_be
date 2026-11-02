@@ -17,6 +17,7 @@ import {
   CreateGiftEventDto,
   UpdateGiftEventDto,
   UpdateGiftServiceRequirementDto,
+  Christmas2026TermsDto,
   EventActionDto,
   EVENT_ACTIONS,
   type EventAction,
@@ -79,6 +80,19 @@ export class AdminGiftEventsController {
   ): ReturnType<GiftEventsService['update']> {
     return this.service.update(actor, id, body);
   }
+  @Post(':id/christmas-2026-terms')
+  @Header('Cache-Control', 'private, no-store')
+  @ApiOperation({
+    summary: 'Điều chỉnh chiến dịch đang LIVE sang kỳ Noel 01/11–25/12/2026, có nhật ký',
+  })
+  updateChristmas2026Terms(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id') id: string,
+    @Body() body: Christmas2026TermsDto,
+  ): ReturnType<GiftEventsService['updateChristmas2026Terms']> {
+    return this.service.updateChristmas2026Terms(actor, id, body);
+  }
+
   @Patch(':id/service-requirement')
   @Header('Cache-Control', 'private, no-store')
   @ApiOperation({ summary: 'Bật/tắt điều kiện khách đã hoàn tất dịch vụ; mặc định tắt' })

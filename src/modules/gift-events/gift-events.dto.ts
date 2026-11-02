@@ -57,6 +57,12 @@ export class UpdateGiftEventDto {
   @IsOptional() @IsBoolean() requiresCompletedService?: boolean;
 }
 
+/** Narrow, audited change to the already-live 2026 Christmas promotion. */
+export class Christmas2026TermsDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsString() @Length(10, 500) reason!: string;
+}
+
 export class UpdateGiftServiceRequirementDto {
   @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
   @IsString() @Length(10, 500) reason!: string;

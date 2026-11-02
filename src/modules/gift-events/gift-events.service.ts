@@ -13,6 +13,7 @@ import {
   type GiftEventStatus,
   type CreateGiftEventDto,
   type UpdateGiftEventDto,
+  type Christmas2026TermsDto,
   type UpdateGiftServiceRequirementDto,
   normalizeGiftTiers,
   assertGiftTimeWindow,
@@ -302,6 +303,114 @@ export class GiftEventsService {
           eligibleTiers: tiers,
           requiresCompletedService:
             dto.requiresCompletedService ?? row.requires_completed_service ?? false,
+        },
+      );
+    });
+    return this.detail(actor, id);
+  }
+  /**
+   * Audit-safe edit of the live November campaign into its Christmas promotion.
+   * Keeps the event ID, voucher inventory, awarded rewards, and finance unchanged.
+   * No unrestricted LIVE campaign mutation is exposed.
+   */
+  async updateChristmas2026Terms(
+    actor: AuthUserContext,
+    id: string,
+    dto: Christmas2026TermsDto,
+  ): Promise<GiftEventView> {
+    this.requireAdmin(actor);
+    this.requireEnabled();
+    const startAt = '2026-10-31T17:00:00.000Z'; // 01/11 00:00 in Vietnam
+    const endAt = '2026-12-25T16:59:59.999Z'; // 25/12 23:59:59.999 in Vietnam
+    const title = 'Mộc Maria - Giáng Sinh An Lành - Mở Quà Yêu Thương';
+    const description =
+      'Giáng Sinh An Lành - Mở Quà Yêu Thương cùng Mộc Maria. ' +
+      'Mở hộp nhận voucher ưu đãi từ 10% đến 50% cho dịch vụ và đồ uống đủ điều kiện.';
+    const termsText = [
+      'CHƯƠNG TRÌNH GIÁNG SINH AN LÀNH - MỞ QUÀ YÊU THƯƠNG CÙNG MỘC MARIA.',
+      'Thời gian áp dụng: từ 00:00 ngày 01/11/2026 đến hết 23:59 ngày 25/12/2026 (giờ Việt Nam).',
+      'Mỗi tài khoản khách hàng hợp lệ được mở hộp quà 01 lần trong chương trình. ' +
+        'Mỗi lượt mở hợp lệ nhận 01 voucher ngẫu nhiên nếu quỹ quà vẫn còn.',
+      'Tổng quỹ giới hạn 100 voucher, gồm các mức giảm 10%, 15%, 20%, 25%, 30% và 50%. ' +
+        'Voucher 50% chỉ có tối đa 02 suất. Mỗi voucher được giảm tối đa 150.000đ; ' +
+        'kết quả phụ thuộc vào quỹ quà và điều kiện áp dụng tại thời điểm mở.',
+      'Voucher có hiệu lực 30 ngày kể từ khi cấp, áp dụng cho các gói massage trị liệu, ' +
+        'trà thảo mộc, nước ép và detox đủ điều kiện, niêm yết tại Mộc Maria.',
+      'Khách có thể đặt lịch qua mocmaria.com; khi sử dụng voucher, ' +
+        'vui lòng xuất trình QR hoặc mã 6 số mới cấp để nhân viên đối chiếu hóa đơn ' +
+        'và dịch vụ đủ điều kiện.',
+      'Voucher không quy đổi thành tiền mặt, không cộng dồn ưu đãi. ' +
+        'Tài khoản gian lận hoặc trùng lượt không đủ điều kiện tham gia.',
+      'Các lượt mở từ giai đoạn mở sớm trước ngày 01/11/2026 được giữ nguyên lịch sử; ' +
+        'voucher đã cấp trước khi điều chỉnh không bị thu hồi hoặc thay đổi giá trị, ' +
+        'hạn sử dụng và điều kiện đã ghi nhận khi cấp.',
+      'Lượt mở quà chỉ được tính khi khách chủ động nhấn Mở hộp và đồng ý điều lệ. ' +
+        'Giải thưởng tiền mặt (nếu có) được tổ chức theo thể lệ riêng, ' +
+        'không nằm trong quỹ 100 voucher.',
+    ].join(' ');
+    await this.db.transaction(async (manager) => {
+      const row = await this.campaign(manager, id, true);
+      if (row.code !== 'moc-maria-tri-an-thang-11-2026')
+        throw new BadRequestException(
+          'Chỉ có thể điều chỉnh kỳ Noel của chiến dịch tháng 11/2026.',
+        );
+      if (Number(row.version) !== dto.expectedVersion)
+        throw new ConflictException('Sự kiện vừa được cập nhật; hãy tải lại trước khi xác nhận.');
+      if (!['LIVE', 'PAUSED'].includes(row.status))
+        throw new ConflictException('Chiến dịch không còn đang diễn ra hoặc tạm dừng.');
+      if (new Date(endAt).getTime() <= Date.now())
+        throw new ConflictException('Kỳ Noel 2026 đã kết thúc.');
+      assertGiftTimeWindow(startAt, endAt);
+      const [fifty] = await manager.query<Array<{ n: number }>>(
+        'SELECT COUNT(*)::int n FROM gift_event_prizes WHERE event_id=$1::uuid ' +
+          "AND enabled AND kind='VOUCHER_PERCENT' AND config->>'percent'='50' AND stock_total>=2",
+        [id],
+      );
+      if (!fifty?.n)
+        throw new ConflictException('Cần cấu hình voucher 50% trước khi công bố điều lệ 50%.');
+      const [overlap] = await manager.query<Array<{ id: string }>>(
+        'SELECT id FROM gift_event_campaigns WHERE id<>$1::uuid ' +
+          "AND status IN ('SCHEDULED','LIVE','PAUSED') AND start_at<$3::timestamptz " +
+          'AND end_at>$2::timestamptz LIMIT 1',
+        [id, startAt, endAt],
+      );
+      if (overlap) throw new ConflictException('Có chiến dịch khác trùng thời gian Noel.');
+      if (
+        new Date(row.start_at ?? 0).toISOString() === startAt &&
+        new Date(row.end_at ?? 0).toISOString() === endAt &&
+        row.title === title &&
+        row.terms_text === termsText
+      )
+        return;
+      await manager.query(
+        'UPDATE gift_event_campaigns SET title=$2,description=$3,terms_text=$4,' +
+          'start_at=$5::timestamptz,end_at=$6::timestamptz,version=version+1,' +
+          'terms_version=terms_version+1,updated_at=clock_timestamp(),updated_by=$7::uuid ' +
+          'WHERE id=$1::uuid',
+        [id, title, description, termsText, startAt, endAt, actor.id],
+      );
+      await this.audit(
+        manager,
+        actor,
+        id,
+        'CHRISTMAS_2026_TERMS_AND_PERIOD',
+        dto.reason.trim(),
+        {
+          title: row.title,
+          description: row.description,
+          termsText: row.terms_text,
+          startAt: row.start_at,
+          endAt: row.end_at,
+          termsVersion: row.terms_version,
+        },
+        {
+          title,
+          description,
+          termsText,
+          startAt,
+          endAt,
+          termsVersion: Number(row.terms_version) + 1,
+          existingVouchersPreserved: true,
         },
       );
     });

@@ -95,6 +95,92 @@ describe('P05 Gift event tiers and lifecycle', () => {
       queries.find((q) => q.sql.startsWith('INSERT INTO gift_event_campaigns'))?.params,
     ).toContain(0);
   });
+  it('amends the live 2026 Noel dates and public terms, audits history, and leaves rewards unchanged', async () => {
+    const live = {
+      ...draft,
+      code: 'moc-maria-tri-an-thang-11-2026',
+      status: 'LIVE',
+      version: 6,
+      terms_version: 2,
+      start_at: new Date('2026-10-16T00:20:20.607Z'),
+      end_at: new Date('2026-11-30T16:59:00.000Z'),
+    };
+    const queries: Array<{ sql: string; params: unknown[] }> = [];
+    const query = jest.fn((sql: string, params: unknown[] = []) => {
+      queries.push({ sql, params });
+      if (sql.startsWith('SELECT * FROM gift_event_campaigns')) return Promise.resolve([live]);
+      if (sql.startsWith('SELECT COUNT(*)::int n FROM gift_event_prizes'))
+        return Promise.resolve([{ n: 1 }]);
+      return Promise.resolve([]);
+    });
+    const db = {
+      query,
+      transaction: (fn: (m: EntityManager) => unknown) => fn({ query } as unknown as EntityManager),
+    } as unknown as DataSource;
+    const service = new GiftEventsService(db);
+    jest
+      .spyOn(service, 'detail')
+      .mockResolvedValue({} as Awaited<ReturnType<GiftEventsService['detail']>>);
+    await service.updateChristmas2026Terms(superAdmin, draft.id, {
+      expectedVersion: 6,
+      reason: 'Gia hạn chiến dịch Giáng Sinh đến hết 25 tháng 12',
+    });
+    const update = queries.find((q) => q.sql.startsWith('UPDATE gift_event_campaigns SET title='));
+    expect(update).toBeDefined();
+    expect(update?.params[4]).toBe('2026-10-31T17:00:00.000Z');
+    expect(update?.params[5]).toBe('2026-12-25T16:59:59.999Z');
+    expect(update?.params[1]).toContain('Giáng Sinh');
+    expect(update?.params[3]).toContain('01/11/2026');
+    expect(update?.params[3]).toContain('25/12/2026');
+    expect(update?.params[3]).toContain('voucher đã cấp trước khi điều chỉnh');
+    const audit = queries.find((q) => q.sql.includes('INSERT INTO gift_event_admin_audit'));
+    expect(audit?.params[2]).toBe('CHRISTMAS_2026_TERMS_AND_PERIOD');
+    expect(
+      queries.some((q) => /UPDATE gift_event_rewards|DELETE FROM gift_event/.test(q.sql)),
+    ).toBe(false);
+  });
+  it('refuses live Christmas period changes for another campaign before updating', async () => {
+    const query = jest.fn((sql: string) =>
+      Promise.resolve(
+        sql.startsWith('SELECT * FROM gift_event_campaigns')
+          ? [{ ...draft, status: 'LIVE', version: 6, code: 'different-campaign' }]
+          : [],
+      ),
+    );
+    const db = {
+      query,
+      transaction: (fn: (m: EntityManager) => unknown) => fn({ query } as unknown as EntityManager),
+    } as unknown as DataSource;
+    const service = new GiftEventsService(db);
+    await expect(
+      service.updateChristmas2026Terms(superAdmin, draft.id, {
+        expectedVersion: 6,
+        reason: 'Điều chỉnh sự kiện Giáng Sinh',
+      }),
+    ).rejects.toThrow('Chỉ có thể điều chỉnh');
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+  it('rejects a stale version of the live Christmas campaign', async () => {
+    const query = jest.fn((sql: string) =>
+      Promise.resolve(
+        sql.startsWith('SELECT * FROM gift_event_campaigns')
+          ? [{ ...draft, code: 'moc-maria-tri-an-thang-11-2026', status: 'LIVE', version: 7 }]
+          : [],
+      ),
+    );
+    const db = {
+      query,
+      transaction: (fn: (m: EntityManager) => unknown) => fn({ query } as unknown as EntityManager),
+    } as unknown as DataSource;
+    const service = new GiftEventsService(db);
+    await expect(
+      service.updateChristmas2026Terms(superAdmin, draft.id, {
+        expectedVersion: 6,
+        reason: 'Điều chỉnh điều lệ Giáng Sinh',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(query).toHaveBeenCalledTimes(1);
+  });
   it('rejects edit when version is stale or campaign has become LIVE', async () => {
     const query = jest.fn((sql: string) =>
       Promise.resolve(sql.startsWith('SELECT * FROM gift_event_campaigns') ? [draft] : []),
