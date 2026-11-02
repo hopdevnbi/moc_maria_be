@@ -72,6 +72,113 @@ describe('P06 validated prize catalog and cap/stock control', () => {
       ),
     ).toThrow();
   });
+  it('adds exactly two 50% rewards without increasing the 100-slot pool or rewriting issued rewards', async () => {
+    process.env['GIFT_EVENTS_ENABLED'] = 'true';
+    try {
+      const prizes = [10, 15, 20, 25, 30].map((percent, i) => ({
+        id: '11111111-1111-4111-8111-' + String(i + 1).padStart(12, '0'),
+        event_id: '22222222-2222-4222-8222-222222222222',
+        kind: 'VOUCHER_PERCENT',
+        name: 'Voucher giảm ' + percent + '%',
+        config: {
+          percent,
+          maxDiscountVnd: 150000,
+          validityDays: 30,
+          minSpendVnd: 0,
+          allowedServiceIds: ['11111111-1111-4111-8111-111111111111'],
+        },
+        enabled: true,
+        stock_total: 20,
+        stock_issued: [1, 1, 2, 0, 0][i],
+        liability_vnd: '150000',
+        weight: 20,
+        version: 1,
+      }));
+      const query = jest.fn((sql: string) => {
+        if (sql.startsWith('SELECT code,status,version'))
+          return [
+            {
+              code: 'moc-maria-tri-an-thang-11-2026',
+              status: 'LIVE',
+              version: 5,
+              terms_text: 'Giảm 10%-30%, tối đa 150.000đ, 100 suất.',
+              description: 'Ưu đãi 10%-30%',
+            },
+          ];
+        if (sql.startsWith('SELECT * FROM gift_event_prizes')) return prizes;
+        if (sql.startsWith('SELECT pb.branch_id'))
+          return [{ branch_id: '33333333-3333-4333-8333-333333333333' }];
+        if (sql.startsWith('INSERT INTO gift_event_prizes'))
+          return [{ id: '44444444-4444-4444-8444-444444444444' }];
+        return [];
+      });
+      const db = {
+        transaction: async (fn: (manager: unknown) => Promise<unknown>) => fn({ query }),
+      } as unknown as DataSource;
+      const service = new GiftPrizesService(db, new GiftEventsService(db));
+      const result = await service.addRareFifty(actor, '22222222-2222-4222-8222-222222222222', {
+        expectedVersion: 5,
+        reason: 'Bổ sung voucher hiếm theo poster chiến dịch',
+      });
+      expect(result).toEqual({ configured: true, stockTotal: 100, fiftyPercentSlots: 2 });
+      const calls = query.mock.calls as Array<[string, ...unknown[]]>;
+      const insert = calls.find(([sql]) => sql.startsWith('INSERT INTO gift_event_prizes'));
+      expect(insert).toBeDefined();
+      const insertParams = (insert as unknown as [string, unknown[]])[1];
+      const newPrize = JSON.parse(String(insertParams[3])) as {
+        percent: number;
+        maxDiscountVnd: number;
+      };
+      expect(newPrize).toMatchObject({ percent: 50, maxDiscountVnd: 150000 });
+      expect(insertParams[4]).toBe(150000);
+      const stockChanges = calls.filter(([sql]) => sql.startsWith('UPDATE gift_event_prizes'));
+      expect(stockChanges).toHaveLength(1);
+      expect(stockChanges[0][0]).toContain('stock_total=stock_total-2');
+      expect(calls.some(([sql]) => sql.includes('terms_version=terms_version+1'))).toBe(true);
+      expect(calls.some(([sql]) => sql.includes('RARE_50_VOUCHER_ADDED'))).toBe(true);
+      expect(calls.some(([sql]) => sql.includes('UPDATE gift_event_rewards'))).toBe(false);
+    } finally {
+      delete process.env['GIFT_EVENTS_ENABLED'];
+    }
+  });
+  it('refuses a duplicate 50% voucher before any write', async () => {
+    process.env['GIFT_EVENTS_ENABLED'] = 'true';
+    try {
+      const query = jest.fn((sql: string) => {
+        if (sql.startsWith('SELECT code,status,version'))
+          return [
+            {
+              code: 'moc-maria-tri-an-thang-11-2026',
+              status: 'LIVE',
+              version: 6,
+              terms_text: 'Giảm 10%-50%',
+              description: 'Giảm 10%-50%',
+            },
+          ];
+        if (sql.startsWith('SELECT * FROM gift_event_prizes'))
+          return [
+            {
+              kind: 'VOUCHER_PERCENT',
+              config: { percent: 50 },
+            },
+          ];
+        return [];
+      });
+      const db = {
+        transaction: async (fn: (manager: unknown) => Promise<unknown>) => fn({ query }),
+      } as unknown as DataSource;
+      const service = new GiftPrizesService(db, new GiftEventsService(db));
+      await expect(
+        service.addRareFifty(actor, '22222222-2222-4222-8222-222222222222', {
+          expectedVersion: 6,
+          reason: 'Không tạo trùng voucher đặc biệt',
+        }),
+      ).rejects.toThrow('không tạo trùng');
+      expect(query).toHaveBeenCalledTimes(2);
+    } finally {
+      delete process.env['GIFT_EVENTS_ENABLED'];
+    }
+  });
   it('does not allow standard Admin to write stock or prizes', async () => {
     const query = jest.fn(),
       db = { query } as unknown as DataSource;

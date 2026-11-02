@@ -48,6 +48,12 @@ export class UpdateGiftPrizeDto {
   @IsOptional() @IsArray() @IsUUID('4', { each: true }) branchIds?: string[];
 }
 
+/** Controlled one-time November 2026 amendment. */
+export class AddRareFiftyVoucherDto {
+  @Type(() => Number) @IsInt() @Min(1) expectedVersion!: number;
+  @IsString() @Length(10, 500) reason!: string;
+}
+
 export interface ValidPrize {
   config: PrizeConfig;
   liabilityVnd: number;

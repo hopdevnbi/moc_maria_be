@@ -8,6 +8,7 @@ import { DataSource, type EntityManager } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
 import { GiftEventsService } from './gift-events.service';
 import {
+  type AddRareFiftyVoucherDto,
   type CreateGiftPrizeDto,
   type UpdateGiftPrizeDto,
   validateGiftPrize,
@@ -51,6 +52,118 @@ export class GiftPrizesService {
     private readonly db: DataSource,
     private readonly events: GiftEventsService,
   ) {}
+  /**
+   * Atomic, audited amendment for the live November 2026 campaign:
+   * reallocate two unissued 30% slots to rare 50% vouchers, keeping 100 total.
+   * Existing reward snapshots and redeemed/voided histories are untouched.
+   */
+  async addRareFifty(
+    actor: AuthUserContext,
+    eventId: string,
+    dto: AddRareFiftyVoucherDto,
+  ): Promise<{ configured: true; stockTotal: number; fiftyPercentSlots: number }> {
+    this.events.requireAdmin(actor);
+    this.events.requireEnabled();
+    return this.db.transaction(async (m) => {
+      const [campaign] = await m.query<
+        Array<{
+          code: string;
+          status: string;
+          version: number;
+          terms_text: string;
+          description: string;
+        }>
+      >(
+        'SELECT code,status,version,terms_text,description FROM gift_event_campaigns WHERE id=$1::uuid FOR UPDATE',
+        [eventId],
+      );
+      if (!campaign) throw new NotFoundException('Không tìm thấy sự kiện.');
+      if (campaign.code !== 'moc-maria-tri-an-thang-11-2026')
+        throw new BadRequestException('Tác vụ chỉ dành cho sự kiện tháng 11/2026.');
+      if (!['LIVE', 'PAUSED'].includes(campaign.status))
+        throw new ConflictException('Sự kiện không ở trạng thái có thể bổ sung quà.');
+      if (Number(campaign.version) !== dto.expectedVersion)
+        throw new ConflictException('Sự kiện đã thay đổi; hãy tải lại.');
+      const prizes = await m.query<PrizeRow[]>(
+        'SELECT * FROM gift_event_prizes WHERE event_id=$1::uuid ORDER BY id FOR UPDATE',
+        [eventId],
+      );
+      if (prizes.some((p) => p.kind === 'VOUCHER_PERCENT' && p.config['percent'] === 50))
+        throw new ConflictException('Voucher 50% đã được cấu hình, không tạo trùng.');
+      const active = prizes.filter((p) => p.enabled && p.kind === 'VOUCHER_PERCENT');
+      if (active.length !== 5 || active.reduce((sum, p) => sum + Number(p.stock_total), 0) !== 100)
+        throw new ConflictException('Quỹ không còn đúng cấu hình 100 suất ban đầu.');
+      const source = active.find((p) => p.config['percent'] === 30);
+      if (
+        !source ||
+        Number(source.stock_total) < 2 ||
+        Number(source.stock_total) - Number(source.stock_issued) < 2
+      )
+        throw new ConflictException('Không đủ suất voucher 30% chưa cấp để chuyển.');
+      if (active.some((p) => Number(p.liability_vnd) !== 150000))
+        throw new ConflictException('Mức giảm tối đa trong quỹ đã thay đổi.');
+      if (!campaign.terms_text.includes('10%-30%') || !campaign.description.includes('10%-30%'))
+        throw new ConflictException('Thể lệ hiện tại khác dự kiến; không tự động chỉnh.');
+      const config = { ...source.config, percent: 50 };
+      const validated = validateGiftPrize('VOUCHER_PERCENT', config, true);
+      const branches = await m.query<Array<{ branch_id: string }>>(
+        'SELECT pb.branch_id FROM gift_event_prize_branches pb ' +
+          'JOIN branches b ON b.id=pb.branch_id AND b.is_active WHERE pb.prize_id=$1::uuid',
+        [source.id],
+      );
+      if (!branches.length) throw new ConflictException('Không còn cơ sở nhận quà hợp lệ.');
+      await m.query(
+        'UPDATE gift_event_prizes SET stock_total=stock_total-2,version=version+1,' +
+          'updated_at=clock_timestamp() WHERE id=$1::uuid',
+        [source.id],
+      );
+      const [created] = await m.query<Array<{ id: string }>>(
+        'INSERT INTO gift_event_prizes ' +
+          '(event_id,name,description,kind,config,weight,stock_total,liability_vnd,enabled,created_by) ' +
+          "VALUES ($1::uuid,$2,$3,'VOUCHER_PERCENT',$4::jsonb,1,2,$5,TRUE,$6::uuid) RETURNING id",
+        [
+          eventId,
+          'Voucher giảm 50% - Mộc Maria',
+          'Voucher hiếm giảm 50% cho dịch vụ, đồ uống đủ điều kiện, tối đa 150.000đ.',
+          JSON.stringify(validated.config),
+          validated.liabilityVnd,
+          actor.id,
+        ],
+      );
+      for (const branch of branches)
+        await m.query(
+          'INSERT INTO gift_event_prize_branches(prize_id,branch_id) VALUES ($1::uuid,$2::uuid)',
+          [created.id, branch.branch_id],
+        );
+      await m.query(
+        'UPDATE gift_event_campaigns SET ' +
+          "terms_text=replace(terms_text,'10%-30%','10%-50%'), " +
+          "description=replace(description,'10%-30%','10%-50%'), " +
+          'terms_version=terms_version+1,version=version+1,' +
+          'updated_at=clock_timestamp(),updated_by=$2::uuid WHERE id=$1::uuid',
+        [eventId, actor.id],
+      );
+      await m.query(
+        'INSERT INTO gift_event_admin_audit ' +
+          '(event_id,actor_user_id,action,reason,before_snapshot,after_snapshot) ' +
+          "VALUES ($1::uuid,$2::uuid,'RARE_50_VOUCHER_ADDED',$3,$4::jsonb,$5::jsonb)",
+        [
+          eventId,
+          actor.id,
+          dto.reason.trim(),
+          JSON.stringify({ fromPercent: 30, fromStock: source.stock_total, voucherCount: 100 }),
+          JSON.stringify({
+            toPercent: 50,
+            fiftyPercentSlots: 2,
+            fromStock: Number(source.stock_total) - 2,
+            voucherCount: 100,
+            maxDiscountVnd: validated.liabilityVnd,
+          }),
+        ],
+      );
+      return { configured: true as const, stockTotal: 100, fiftyPercentSlots: 2 };
+    });
+  }
   private async prize(
     m: EntityManager,
     eventId: string,

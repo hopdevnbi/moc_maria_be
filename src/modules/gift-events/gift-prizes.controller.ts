@@ -17,7 +17,7 @@ import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { GiftEventsService } from './gift-events.service';
-import { CreateGiftPrizeDto, UpdateGiftPrizeDto } from './gift-prizes.dto';
+import { AddRareFiftyVoucherDto, CreateGiftPrizeDto, UpdateGiftPrizeDto } from './gift-prizes.dto';
 import { GiftPrizesService } from './gift-prizes.service';
 import { GiftEventMediaStorage, type GiftMediaFile } from './gift-event-media.storage';
 
@@ -44,6 +44,16 @@ export class AdminGiftPrizesController {
   ): ReturnType<GiftPrizesService['create']> {
     return this.service.create(actor, eventId, body);
   }
+  @Post('rare-50')
+  @Header('Cache-Control', 'private, no-store')
+  addRareFifty(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('eventId') eventId: string,
+    @Body() body: AddRareFiftyVoucherDto,
+  ): ReturnType<GiftPrizesService['addRareFifty']> {
+    return this.service.addRareFifty(actor, eventId, body);
+  }
+
   @Get(':id')
   @Header('Cache-Control', 'private, no-store')
   detail(
