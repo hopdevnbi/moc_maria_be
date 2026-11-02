@@ -112,9 +112,15 @@ export class GiftOpenService {
         const status = effectiveGiftStatus(event.status, event.start_at, event.end_at, now);
 
         const [user] = await m.query<
-          Array<{ is_active: boolean; must_change_password: boolean; is_customer: boolean }>
+          Array<{
+            is_active: boolean;
+            must_change_password: boolean;
+            is_customer: boolean;
+            email: string | null;
+            phone: string | null;
+          }>
         >(
-          `SELECT u.is_active,u.must_change_password,
+          `SELECT u.is_active,u.must_change_password,u.email,u.phone,
            EXISTS(SELECT 1 FROM customers c WHERE c.user_id=u.id) AS is_customer
            FROM users u WHERE u.id=$1::uuid FOR SHARE`,
           [actor.id],
@@ -241,6 +247,8 @@ export class GiftOpenService {
           eventId,
           eventTitle: event.title || eventId,
           customerName: actor.displayName || 'Khách hàng',
+          customerEmail: user.email,
+          customerPhone: user.phone,
           prizeName: winner.name,
           issuedAt: now.toISOString(),
           expiresAt: expiry.toISOString(),

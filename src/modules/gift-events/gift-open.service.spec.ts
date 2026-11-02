@@ -58,7 +58,15 @@ function fixture({
         },
       ]);
     if (sql.includes('FROM users u WHERE u.id='))
-      return Promise.resolve([{ is_active: true, must_change_password: false, is_customer: true }]);
+      return Promise.resolve([
+        {
+          is_active: true,
+          must_change_password: false,
+          is_customer: true,
+          email: 'test@example.com',
+          phone: '0912345678',
+        },
+      ]);
     if (sql.startsWith('SELECT * FROM gift_event_entries'))
       return Promise.resolve(entry ? [entry] : []);
     if (sql.includes('FROM gift_event_rewards') && sql.includes('WHERE entry_id'))
@@ -189,6 +197,20 @@ describe('P07 secure box opening', () => {
     expect(statements.some((s) => s.sql.includes('budget_reserved_vnd+$2<=budget_cap_vnd'))).toBe(
       true,
     );
+  });
+  it('captures account email and phone in the transactional gift notification', async () => {
+    const { service, statements } = fixture();
+    await service.open(user, eventId, dto);
+    const queued = statements.find(
+      (statement) =>
+        statement.sql.includes('INSERT INTO app_metadata(key,value)') &&
+        String(statement.params[0]).startsWith('mocmaria.gift.notify.'),
+    );
+    expect(queued).toBeDefined();
+    expect(JSON.parse(String(queued?.params[1]))).toMatchObject({
+      customerEmail: 'test@example.com',
+      customerPhone: '0912345678',
+    });
   });
   it('retry same idempotency key returns exactly same gift without taking more stock', async () => {
     const { service, calls } = fixture();

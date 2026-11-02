@@ -22,6 +22,25 @@ describe('V06 durable gift notification', () => {
     expect(msg).not.toContain('\r');
     expect(msg).not.toContain('123456');
   });
+  it('adds both contact details when available and sanitizes control characters', () => {
+    const msg = giftNoticeText({
+      ...notice,
+      customerPhone: ' 0912345678 ',
+      customerEmail: 'test@example.com\r\nFake: header',
+    });
+    expect(msg).toContain('Số điện thoại: 0912345678');
+    expect(msg).toMatch(/Email: test@example.com\s+Fake: header/);
+    expect(msg).not.toContain('\r');
+    expect(msg).toContain('Quà: Voucher giảm 20%');
+  });
+  it('omits absent email and phone without placeholder text', () => {
+    const noContact = giftNoticeText({ ...notice, customerPhone: ' ', customerEmail: null });
+    expect(noContact).not.toContain('Số điện thoại:');
+    expect(noContact).not.toContain('Email:');
+    const phoneOnly = giftNoticeText({ ...notice, customerPhone: '0909998888' });
+    expect(phoneOnly).toContain('Số điện thoại: 0909998888');
+    expect(phoneOnly).not.toContain('Email:');
+  });
   it('writes both channel notifications in the caller transaction with stable reward keys', async () => {
     const captured: Array<[string, unknown[]]> = [];
     const query = jest.fn((sql: string, params: unknown[]) => {

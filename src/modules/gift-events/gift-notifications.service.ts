@@ -11,6 +11,8 @@ export type GiftNotice = {
   eventId: string;
   eventTitle: string;
   customerName: string;
+  customerEmail?: string | null;
+  customerPhone?: string | null;
   prizeName: string;
   issuedAt: string;
   expiresAt: string;
@@ -29,6 +31,8 @@ export function giftNoticeText(v: GiftNotice): string {
     'Mộc Maria · Khách đã mở hộp nhận voucher',
     `Sự kiện: ${clean(v.eventTitle)}`,
     `Khách: ${clean(v.customerName)}`,
+    ...(v.customerPhone?.trim() ? [`Số điện thoại: ${clean(v.customerPhone.trim())}`] : []),
+    ...(v.customerEmail?.trim() ? [`Email: ${clean(v.customerEmail.trim())}`] : []),
     `Quà: ${clean(v.prizeName)}`,
     `Thời điểm: ${new Date(v.issuedAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`,
     `Hạn dùng: ${new Date(v.expiresAt).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}`,
