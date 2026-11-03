@@ -1,0 +1,27 @@
+{
+  "date": "2026-11-03",
+  "feature": "KTV refusal API recovery",
+  "source": "c7addc82c3830d66d505c1fa6f043cec42e4af06",
+  "previousImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:898fb0506a3fc8d1bd50571a734a7f942c1c45d0b58227e16331df74e8889d0d",
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:e348f77252d687ebbd68e9eaf92a4faa7f6729c5c1d7ec2724cff52b3327313f",
+  "readyReplicas": 1,
+  "configurationPreserved": true,
+  "migration": false,
+  "imageCI": 41575322553,
+  "sourceQualityCI": 41575322544,
+  "sourceQuality": "npm run quality PASS; inherited dependency audit failure (4 high,4 moderate)",
+  "isolatedTests": {
+    "suites": 4,
+    "tests": 21,
+    "result": "PASS"
+  },
+  "unitTests": 240,
+  "production": {
+    "healthLive": 200,
+    "healthReady": 200,
+    "reasonContractBefore": 400,
+    "reasonContractAfter": 404,
+    "probe": "Nonexistent all-zero inquiry ID, no real inquiry mutations"
+  },
+  "businessDataChanged": false
+}
