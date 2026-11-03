@@ -136,7 +136,7 @@ export class KtvChatController {
   }
   @Post(':id/images')
   @Header('Cache-Control', 'private, no-store')
-  @UseInterceptors(FileInterceptor('file', { limits: { files: 1, fileSize: 5 * 1024 * 1024 } }))
+  @UseInterceptors(FileInterceptor('file', { limits: { files: 1, fileSize: 12 * 1024 * 1024 } }))
   uploadImage(
     @CurrentUser() actor: AuthUserContext,
     @Param('id', new ParseUUIDPipe()) id: string,

@@ -26,8 +26,8 @@ export class KtvChatImageService {
   ): Promise<{ url: string }> {
     // Permission checks precede CPU-intensive image decoding and network uploads.
     await this.chat.assertImageUploadPermission(actor, threadId, unlock);
-    if (!file?.buffer || !file.size || file.size > 5 * 1024 * 1024)
-      throw new BadRequestException('Ảnh chat phải có dung lượng tối đa 5 MB.');
+    if (!file?.buffer || !file.size || file.size > 12 * 1024 * 1024)
+      throw new BadRequestException('Ảnh chat phải có dung lượng tối đa 12 MB.');
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype))
       throw new BadRequestException('Chỉ cho phép ảnh JPG, PNG và WebP.');
 
@@ -42,22 +42,44 @@ export class KtvChatImageService {
     if (info.width * info.height > 24_000_000)
       throw new BadRequestException('Ảnh vượt 24 megapixel. Hãy thu nhỏ ảnh rồi gửi lại.');
 
-    let optimized: Buffer;
-    try {
-      const image = sharp(file.buffer, { limitInputPixels: 24_000_000, failOn: 'error' }).rotate();
-      const encode = (edge: number, quality: number): Promise<Buffer> =>
-        image
-          .clone()
-          .resize(edge, edge, { fit: 'inside', withoutEnlargement: true })
-          .webp({ quality, effort: 3 })
-          .toBuffer();
-      optimized = await encode(2048, 80);
-      if (optimized.length > 1024 * 1024) optimized = await encode(1600, 72);
-      if (optimized.length > 1024 * 1024) optimized = await encode(1280, 64);
-    } catch {
-      throw new BadRequestException('Không xử lý được dữ liệu ảnh. Hãy lưu lại ảnh rồi thử gửi.');
+    // Some Android camera encoders include recoverable JPEG/WebP warnings.
+    // Try strict decoding first, then a bounded tolerant decode if needed.
+    // Invalid headers are still rejected by metadata() above; dimensions
+    // remain limited to 24 megapixels for both paths.
+    const encode = async (
+      edge: number,
+      quality: number,
+      failOn: 'error' | 'none',
+    ): Promise<Buffer> =>
+      sharp(file.buffer, { limitInputPixels: 24_000_000, failOn })
+        .rotate()
+        .resize(edge, edge, { fit: 'inside', withoutEnlargement: true })
+        .webp({ quality, effort: 3 })
+        .toBuffer();
+    const variants: Array<[number, number]> = [
+      [2048, 82],
+      [1600, 76],
+      [1280, 68],
+      [960, 60],
+    ];
+    let optimized: Buffer | null = null;
+    for (const tolerance of ['error', 'none'] as const) {
+      for (const [edge, quality] of variants) {
+        try {
+          const buffer = await encode(edge, quality, tolerance);
+          if (!optimized || buffer.length < optimized.length) optimized = buffer;
+          if (buffer.length <= 2 * 1024 * 1024) break;
+        } catch {
+          // Fallback to a smaller size or tolerant JPEG decode.
+        }
+      }
+      if (optimized && optimized.length <= 2 * 1024 * 1024) break;
     }
-    if (optimized.length > 1024 * 1024)
+    if (!optimized)
+      throw new BadRequestException(
+        'Không xử lý được dữ liệu ảnh. Hãy lưu lại ảnh dưới dạng JPG rồi thử gửi.',
+      );
+    if (optimized.length > 2 * 1024 * 1024)
       throw new BadRequestException('Ảnh vẫn quá nặng sau khi nén. Hãy chọn ảnh nhẹ hơn.');
 
     const zone = process.env['BUNNY_STORAGE_ZONE']?.trim();

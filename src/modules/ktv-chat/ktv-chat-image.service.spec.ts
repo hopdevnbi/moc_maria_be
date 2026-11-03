@@ -1,4 +1,4 @@
-﻿import sharp from 'sharp';
+import sharp from 'sharp';
 import { DataSource } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
 import { KtvChatService } from './ktv-chat.service';
@@ -76,5 +76,39 @@ describe('KTV chat image CDN', () => {
     expect(converted.length).toBeLessThanOrEqual(1024 * 1024);
     expect((await sharp(converted).metadata()).width).toBeLessThanOrEqual(2048);
     expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it('accepts a mobile camera JPEG upload larger than the old 5 MB cap', async () => {
+    const jpg = await sharp({
+      create: { width: 1800, height: 1200, channels: 3, background: '#d8eee1' },
+    })
+      .jpeg()
+      .toBuffer();
+    // Some cameras append extra EXIF or trailer bytes. Keep the original JPEG
+    // valid while exercising the larger request limit and tolerant decoder.
+    const cameraBuffer = Buffer.concat([jpg, Buffer.alloc(6 * 1024 * 1024)]);
+    const output = await service.upload(actor, thread, {
+      buffer: cameraBuffer,
+      size: cameraBuffer.length,
+      mimetype: 'image/jpeg',
+    });
+    expect(output.url).toMatch(/\.webp$/);
+    const uploaded = (
+      global.fetch as jest.Mock<Promise<Response>, [RequestInfo | URL, RequestInit?]>
+    ).mock.calls[0]?.[1]?.body;
+    const encoded = Buffer.from(uploaded as Uint8Array);
+    expect((await sharp(encoded).metadata()).format).toBe('webp');
+    expect(encoded.length).toBeLessThanOrEqual(2 * 1024 * 1024);
+  });
+
+  it('rejects image uploads beyond 12 MB before decoding or contacting Bunny', async () => {
+    await expect(
+      service.upload(actor, thread, {
+        buffer: Buffer.from('image'),
+        size: 12 * 1024 * 1024 + 1,
+        mimetype: 'image/jpeg',
+      }),
+    ).rejects.toThrow('12 MB');
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });
