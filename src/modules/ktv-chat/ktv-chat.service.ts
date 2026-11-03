@@ -287,7 +287,9 @@ export class KtvChatService {
     const attachmentId = dto.imageUrl ? imageIdFromUrl(dto.imageUrl) : null;
     if (dto.imageUrl && !attachmentId) throw new BadRequestException('Ảnh chat không hợp lệ.');
     const storedBody = body || '📷 Ảnh';
-    let notifyRecipient: string | null = null;
+    const alert = {
+      recipient: null as { userId: string; senderRole: 'customer' | 'provider' } | null,
+    };
     const saved = await this.db.transaction(async (manager) => {
       const thread = await this.member(manager, actor.id, threadId, true);
       await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
@@ -401,16 +403,22 @@ export class KtvChatService {
           chatPrivacyProtected: privacy?.isProtected ?? false,
         });
       }
-      // Only a newly inserted customer message triggers KTV alerts.
-      // Idempotent retries return the existing message earlier in this transaction.
-      if (thread.customer_user_id === actor.id) notifyRecipient = thread.provider_user_id;
+      // Notify only the other participant of a committed message.
+      // Idempotent client retries returned above never trigger another alert.
+      alert.recipient =
+        thread.customer_user_id === actor.id
+          ? { userId: thread.provider_user_id, senderRole: 'customer' }
+          : { userId: thread.customer_user_id, senderRole: 'provider' };
       return message;
     });
     this.changed(threadId);
-    if (notifyRecipient && this.notifications) {
-      void this.notifications.notifyProvider(notifyRecipient, saved.id, threadId).catch(() => {
-        // A transport outage never invalidates a committed customer message.
-      });
+    const recipient = alert.recipient;
+    if (recipient && this.notifications) {
+      void this.notifications
+        .notifyRecipient(recipient.userId, saved.id, threadId, recipient.senderRole)
+        .catch(() => {
+          // A transport outage never invalidates a committed private message.
+        });
     }
     return saved;
   }

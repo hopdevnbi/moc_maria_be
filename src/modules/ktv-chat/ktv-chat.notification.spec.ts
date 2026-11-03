@@ -68,7 +68,7 @@ describe('KTV chat notifications', () => {
       {} as ProvidersService,
       { assertAccess: jest.fn().mockResolvedValue(undefined) } as unknown as KtvChatPrivacyService,
       { enqueue: notify } as unknown as ZaloAlertsService,
-      { notifyProvider: push } as unknown as KtvChatPushService,
+      { notifyRecipient: push } as unknown as KtvChatPushService,
     );
     return { service, notify, query, push };
   }
@@ -97,22 +97,27 @@ describe('KTV chat notifications', () => {
     expect(notify.mock.calls[0][1]).toMatchObject({ chatPrivacyProtected: true });
     expect(JSON.stringify(notify.mock.calls[0][1])).not.toContain('Secret');
   });
-  it('does not queue Zalo on duplicate client message', async () => {
-    const { service, notify, push } = setup(true);
-    await service.send(actor(customer), thread, { body: 'Secret', clientMessageId: id });
-    expect(notify).not.toHaveBeenCalled();
-    expect(push).not.toHaveBeenCalled();
-  });
+  it.each([customer, provider])(
+    'never pushes or queues Zalo when %s retries a message',
+    async (senderId) => {
+      const { service, notify, push } = setup(true);
+      await service.send(actor(senderId), thread, { body: 'Secret', clientMessageId: id });
+      expect(notify).not.toHaveBeenCalled();
+      expect(push).not.toHaveBeenCalled();
+    },
+  );
   it('targets only the proper KTV for a new customer message', async () => {
     const { service, push } = setup();
     await service.send(actor(customer), thread, { body: 'Secret', clientMessageId: id });
     expect(push).toHaveBeenCalledTimes(1);
-    expect(push).toHaveBeenCalledWith(provider, id, thread);
+    expect(push).toHaveBeenCalledWith(provider, id, thread, 'customer');
     expect(JSON.stringify(push.mock.calls[0])).not.toContain('Secret');
   });
-  it('never sends a Push for the KTV own reply', async () => {
+  it('notifies the correct customer when the KTV replies', async () => {
     const { service, push } = setup();
     await service.send(actor(provider), thread, { body: 'Secret', clientMessageId: id });
-    expect(push).not.toHaveBeenCalled();
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith(customer, id, thread, 'provider');
+    expect(JSON.stringify(push.mock.calls[0])).not.toContain('Secret');
   });
 });

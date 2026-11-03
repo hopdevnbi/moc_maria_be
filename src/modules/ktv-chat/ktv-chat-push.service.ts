@@ -53,18 +53,21 @@ export class KtvChatPushService {
     if (this.enabled) webPush.setVapidDetails(this.subject, this.publicKey, this.privateKey);
   }
 
-  private ensureTherapist(actor: AuthUserContext): void {
-    if (!actor.isActive || !actor.roles.includes('THERAPIST'))
-      throw new ForbiddenException('Chỉ tài khoản KTV mới có thể bật thông báo.');
+  private ensureChatUser(actor: AuthUserContext): void {
+    if (
+      !actor.isActive ||
+      !actor.roles.some((role) => ['CUSTOMER', 'THERAPIST', 'DOCTOR_CONSULTANT'].includes(role))
+    )
+      throw new ForbiddenException('Chỉ khách hàng và KTV mới có thể bật thông báo chat.');
   }
 
   config(actor: AuthUserContext): { publicKey: string | null } {
-    this.ensureTherapist(actor);
+    this.ensureChatUser(actor);
     return { publicKey: this.enabled ? this.publicKey : null };
   }
 
   async subscribe(actor: AuthUserContext, subscription: KtvPushSubscriptionDto): Promise<void> {
-    this.ensureTherapist(actor);
+    this.ensureChatUser(actor);
     if (!this.enabled) throw new ServiceUnavailableException('Thông báo đẩy chưa được cấu hình.');
     if (!trustedWebPushEndpoint(subscription.endpoint))
       throw new BadRequestException('Máy chủ thông báo của thiết bị không được hỗ trợ.');
@@ -94,7 +97,7 @@ export class KtvChatPushService {
   }
 
   async unsubscribe(actor: AuthUserContext, endpoint: string): Promise<void> {
-    this.ensureTherapist(actor);
+    this.ensureChatUser(actor);
     await this.db.query(
       'DELETE FROM ktv_chat_push_subscriptions WHERE user_id=$1 AND endpoint_hash=$2',
       [actor.id, endpointHash(endpoint)],
@@ -102,13 +105,15 @@ export class KtvChatPushService {
   }
 
   // Best effort: never fail an already committed private chat message.
-  async notifyProvider(
+  async notifyRecipient(
     recipientUserId: string,
     messageId: string,
     threadId: string,
+    senderRole: 'customer' | 'provider',
   ): Promise<void> {
     const tasks: Array<Promise<unknown>> = [];
-    if (this.enabled) tasks.push(this.sendWebPush(recipientUserId, messageId, threadId));
+    if (this.enabled)
+      tasks.push(this.sendWebPush(recipientUserId, messageId, threadId, senderRole));
     const socketBase = process.env['CHAT_SERVICE_URL'];
     const relayKey = process.env['MOC_MARIA_CHAT_RELAY_KEY'];
     if (socketBase && relayKey && relayKey.length >= 32) {
@@ -147,6 +152,7 @@ export class KtvChatPushService {
     recipientUserId: string,
     messageId: string,
     threadId: string,
+    senderRole: 'customer' | 'provider',
   ): Promise<void> {
     const subscriptions = await this.db.query<StoredSubscription[]>(
       `SELECT p.endpoint_hash,p.endpoint,p.p256dh,p.auth_key
@@ -156,17 +162,20 @@ export class KtvChatPushService {
        WHERE p.user_id=$1 AND s.revoked_at IS NULL AND s.expires_at>clock_timestamp()
        AND u.is_active
        AND EXISTS (
-         SELECT 1 FROM user_roles ur JOIN roles r ON r.id=ur.role_id
-         WHERE ur.user_id=p.user_id AND r.name='THERAPIST'
+         SELECT 1 FROM ktv_chat_threads t WHERE t.id=$2
+         AND (t.customer_user_id=p.user_id OR t.provider_user_id=p.user_id)
        )`,
-      [recipientUserId],
+      [recipientUserId, threadId],
     );
     // No customer identity, message text or protected conversation content.
     const payload = JSON.stringify({
       messageId,
       threadId,
       title: 'Mộc Maria',
-      body: 'Bạn có tin nhắn mới từ khách hàng',
+      body:
+        senderRole === 'customer'
+          ? 'Bạn có tin nhắn mới từ khách hàng'
+          : 'Bạn có tin nhắn mới từ KTV',
       url: '/tin-nhan?thread=' + threadId,
     });
     await Promise.allSettled(
