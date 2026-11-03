@@ -45,7 +45,7 @@ export class KtvChatImageService {
     let optimized: Buffer;
     try {
       const image = sharp(file.buffer, { limitInputPixels: 24_000_000, failOn: 'error' }).rotate();
-      const encode = (edge: number, quality: number) =>
+      const encode = (edge: number, quality: number): Promise<Buffer> =>
         image
           .clone()
           .resize(edge, edge, { fit: 'inside', withoutEnlargement: true })
