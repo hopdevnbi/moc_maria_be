@@ -44,7 +44,7 @@
         "class-validator": "^0.14.2",
         "cookie-parser": "^1.4.7",
         "dotenv": "^16.6.1",
-        "joi": "^17.13.3",
+        "joi": "17.13.9",
         "nestjs-pino": "^4.4.0",
         "pg": "^8.23.1",
         "pino-http": "^10.5.0",
@@ -96,6 +96,8 @@
         "testEnvironment": "node"
     },
     "overrides": {
-        "js-yaml": "5.4.3"
+        "js-yaml": "5.4.3",
+        "body-parser": "2.4.0",
+        "multer": "2.5.0"
     }
 }
