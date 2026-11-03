@@ -12,6 +12,7 @@ import { KtvChatService } from '../ktv-chat/ktv-chat.service';
 import { AuditLog } from '../identity/entities/audit-log.entity';
 import { AdminAlertsService } from '../admin-alerts/admin-alerts.service';
 import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
+import { INQUIRY_CARE_SLUGS } from './inquiry-care-services';
 import type {
   CreateInquiryDto,
   ReviewPresentationDto,
@@ -255,7 +256,22 @@ export class CustomerExperienceService {
     if (dto.address.trim().length < 12)
       throw new BadRequestException('Vui lòng nhập địa chỉ đầy đủ.');
     const provider = (await this.chat.directory()).find((p) => p.id === dto.providerId);
-    const service = provider?.services.find((s) => s.id === dto.serviceId);
+    let service = provider?.services.find((s) => s.id === dto.serviceId);
+    if (
+      provider &&
+      !service &&
+      /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(dto.serviceId)
+    ) {
+      const [published] = await this.db.query<{ id: string; name: string }[]>(
+        `SELECT s.id,s.name FROM services s
+         JOIN service_categories c ON c.id=s.category_id
+         WHERE s.id=$1::uuid AND s.is_published AND c.is_published
+           AND s.slug=ANY($2::text[])
+           AND EXISTS(SELECT 1 FROM service_variants v WHERE v.service_id=s.id AND v.is_active)`,
+        [dto.serviceId, INQUIRY_CARE_SLUGS],
+      );
+      service = published;
+    }
     if (!provider || !service)
       throw new BadRequestException('KTV hoặc dịch vụ không còn nhận yêu cầu tư vấn.');
     const [receiver] = await this.db.query<
