@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
 import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
 import { ZaloHoanAlertsService } from './zalo-hoan-alerts.service';
+import { ZaloKtvBotsService } from './zalo-ktv-bots.service';
 
 export interface ZaloAlert {
   kind: 'chat' | 'inquiry';
@@ -48,24 +49,47 @@ const chatContent = (value: string): string =>
     .map((part) => `  ${part}`)
     .join('\n');
 
-export function alertText(alert: ZaloAlert): string {
+// The three staff bots must never receive customer contact fields. If a
+// customer types their contact details into their name or chat, mask those too.
+export function redactCustomerContacts(value: string): string {
+  return value
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email ẩn]')
+    .replace(/(?<!\w)(?:\+?84|0)(?:[\s().-]*\d){9}(?!\d)/g, '[SĐT ẩn]');
+}
+
+export function alertText(
+  alert: ZaloAlert,
+  options: { includeCustomerContacts?: boolean } = {},
+): string {
+  const includeCustomerContacts = options.includeCustomerContacts !== false;
+  const customerName = includeCustomerContacts
+    ? alert.customerName
+    : redactCustomerContacts(alert.customerName);
+  const messageBody =
+    !includeCustomerContacts && alert.senderRole === 'customer' && alert.messageBody
+      ? redactCustomerContacts(alert.messageBody)
+      : alert.messageBody;
   return [
     alert.kind === 'inquiry'
       ? 'Mộc Maria · Yêu cầu đặt lịch mới'
       : alert.senderRole === 'provider'
         ? 'Mộc Maria · KTV nhắn khách'
         : 'Mộc Maria · Khách nhắn KTV',
-    `Khách: ${line(alert.customerName)}`,
-    ...(alert.kind === 'inquiry' ? optionalContact('SĐT khách', alert.customerPhone) : []),
-    ...(alert.kind === 'inquiry' ? optionalContact('Email khách', alert.customerEmail) : []),
+    `Khách: ${line(customerName)}`,
+    ...(includeCustomerContacts && alert.kind === 'inquiry'
+      ? optionalContact('SĐT khách', alert.customerPhone)
+      : []),
+    ...(includeCustomerContacts && alert.kind === 'inquiry'
+      ? optionalContact('Email khách', alert.customerEmail)
+      : []),
     `KTV: ${line(alert.providerName)}`,
     ...(alert.kind === 'chat'
       ? [`Người gửi: ${alert.senderRole === 'provider' ? 'KTV' : 'Khách'}`]
       : []),
     ...(alert.kind === 'chat' && alert.chatPrivacyProtected
       ? ['Nội dung: [Hội thoại được bảo vệ bằng mật khẩu]']
-      : alert.kind === 'chat' && alert.messageBody
-        ? [`Nội dung tin nhắn:\n${chatContent(alert.messageBody)}`]
+      : alert.kind === 'chat' && messageBody
+        ? [`Nội dung tin nhắn:\n${chatContent(messageBody)}`]
         : []),
     ...(alert.kind === 'inquiry' ? optionalContact('SĐT KTV', alert.providerPhone) : []),
     ...(alert.kind === 'inquiry' ? optionalContact('Email KTV', alert.providerEmail) : []),
@@ -86,6 +110,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     private readonly config: ConfigService,
     @Optional() private readonly linhDan?: ZaloLinhDanAlertsService,
     @Optional() private readonly hoan?: ZaloHoanAlertsService,
+    @Optional() private readonly ktvBots?: ZaloKtvBotsService,
   ) {}
 
   private settings(): { token: string; recipients: string[] } {
@@ -120,6 +145,12 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     if (token) await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text);
     await this.linhDan?.enqueue(manager, alert.eventId, text, alert.kind);
     await this.hoan?.enqueue(manager, alert.eventId, text, alert.kind);
+    await this.ktvBots?.enqueue(
+      manager,
+      alert.eventId,
+      alertText(alert, { includeCustomerContacts: false }),
+      alert.kind,
+    );
   }
 
   async configuredRecipients(manager: Pick<EntityManager, 'query'> = this.db): Promise<string[]> {
