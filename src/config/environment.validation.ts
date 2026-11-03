@@ -28,5 +28,9 @@ export const environmentValidationSchema = Joi.object({
   CHAT_TENANT: Joi.string().valid('MOC_MARIA').default('MOC_MARIA'),
   QUEUE_SOURCE: Joi.string().valid('MOC_MARIA').default('MOC_MARIA'),
   CHAT_SERVICE_URL: Joi.string().uri().allow('').default(''),
+  MOC_MARIA_CHAT_RELAY_KEY: Joi.string().allow('').min(32).default(''),
+  WEB_PUSH_VAPID_PUBLIC_KEY: Joi.string().allow('').default(''),
+  WEB_PUSH_VAPID_PRIVATE_KEY: Joi.string().allow('').default(''),
+  WEB_PUSH_SUBJECT: Joi.string().allow('').default(''),
   QUEUE_SERVICE_URL: Joi.string().uri().allow('').default(''),
 });

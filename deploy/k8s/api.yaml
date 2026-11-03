@@ -39,6 +39,8 @@ spec:
               value: MOC_MARIA
             - name: QUEUE_SERVICE_URL
               value: http://moc-maria-email-queue.moc-maria.svc.cluster.local
+            - name: CHAT_SERVICE_URL
+              value: http://acutis-education-chat.giangxa.svc.cluster.local
             - name: QUEUE_API_KEY
               valueFrom:
                 secretKeyRef:

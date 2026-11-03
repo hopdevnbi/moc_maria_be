@@ -191,6 +191,18 @@ export class AuthService {
       current.revokedAt = new Date();
       current.replacedBySessionId = next.sessionId;
       await sessionRepository.save(current);
+      // Preserve device opt-in when a session rotates. Fail safely if the
+      // additive Push migration has not yet been applied to this environment:
+      // normal logins and refreshes must continue functioning.
+      const [pushTable] = await manager.query<{ installed: boolean }[]>(
+        "SELECT to_regclass('public.ktv_chat_push_subscriptions') IS NOT NULL AS installed",
+      );
+      if (pushTable?.installed) {
+        await manager.query(
+          'UPDATE ktv_chat_push_subscriptions SET session_id=$1,updated_at=clock_timestamp() WHERE session_id=$2',
+          [next.sessionId, current.id],
+        );
+      }
       await this.writeAuditWithManager(manager, {
         event: 'AUTH_REFRESH_ROTATED',
         actorUserId: current.userId,

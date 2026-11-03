@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
   HttpException,
+  Optional,
 } from '@nestjs/common';
 import { DataSource, type EntityManager } from 'typeorm';
 import { ProvidersService } from '../providers/providers.service';
@@ -13,6 +14,7 @@ import type { BlockKtvChatDto, SendKtvMessageDto } from './ktv-chat.dto';
 import { KtvChatPrivacyService, privacyKey } from './ktv-chat-privacy.service';
 import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 import { chatImageUploadKey, chatMessageImageKey, imageIdFromUrl } from './ktv-chat-image.keys';
+import { KtvChatPushService } from './ktv-chat-push.service';
 
 export interface KtvThread {
   id: string;
@@ -71,6 +73,7 @@ export class KtvChatService {
     private readonly providers: ProvidersService,
     private readonly privacy: KtvChatPrivacyService,
     private readonly zaloAlerts: ZaloAlertsService,
+    @Optional() private readonly notifications?: KtvChatPushService,
   ) {}
 
   private seededProviders(manager: EntityManager = this.db.manager): Promise<SeedChatProvider[]> {
@@ -284,6 +287,7 @@ export class KtvChatService {
     const attachmentId = dto.imageUrl ? imageIdFromUrl(dto.imageUrl) : null;
     if (dto.imageUrl && !attachmentId) throw new BadRequestException('Ảnh chat không hợp lệ.');
     const storedBody = body || '📷 Ảnh';
+    let notifyRecipient: string | null = null;
     const saved = await this.db.transaction(async (manager) => {
       const thread = await this.member(manager, actor.id, threadId, true);
       await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
@@ -397,9 +401,17 @@ export class KtvChatService {
           chatPrivacyProtected: privacy?.isProtected ?? false,
         });
       }
+      // Only a newly inserted customer message triggers KTV alerts.
+      // Idempotent retries return the existing message earlier in this transaction.
+      if (thread.customer_user_id === actor.id) notifyRecipient = thread.provider_user_id;
       return message;
     });
     this.changed(threadId);
+    if (notifyRecipient && this.notifications) {
+      void this.notifications.notifyProvider(notifyRecipient, saved.id, threadId).catch(() => {
+        // A transport outage never invalidates a committed customer message.
+      });
+    }
     return saved;
   }
 

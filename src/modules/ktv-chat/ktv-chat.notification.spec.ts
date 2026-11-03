@@ -4,6 +4,7 @@ import { ProvidersService } from '../providers/providers.service';
 import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 import { KtvChatPrivacyService } from './ktv-chat-privacy.service';
 import { KtvChatService } from './ktv-chat.service';
+import { KtvChatPushService } from './ktv-chat-push.service';
 
 describe('KTV chat notifications', () => {
   const customer = '11111111-1111-4111-8111-111111111111';
@@ -28,9 +29,11 @@ describe('KTV chat notifications', () => {
   ): {
     service: KtvChatService;
     notify: jest.Mock<Promise<void>, [unknown, unknown]>;
+    push: jest.Mock;
     query: jest.Mock<Promise<unknown[]>, [string]>;
   } {
     const notify = jest.fn<Promise<void>, [unknown, unknown]>().mockResolvedValue(undefined);
+    const push = jest.fn().mockResolvedValue(undefined);
     const query = jest
       .fn<Promise<unknown[]>, [string]>()
       .mockImplementation(async (sql: string) => {
@@ -65,8 +68,9 @@ describe('KTV chat notifications', () => {
       {} as ProvidersService,
       { assertAccess: jest.fn().mockResolvedValue(undefined) } as unknown as KtvChatPrivacyService,
       { enqueue: notify } as unknown as ZaloAlertsService,
+      { notifyProvider: push } as unknown as KtvChatPushService,
     );
-    return { service, notify, query };
+    return { service, notify, query, push };
   }
   it.each([
     [customer, 'customer'],
@@ -94,8 +98,21 @@ describe('KTV chat notifications', () => {
     expect(JSON.stringify(notify.mock.calls[0][1])).not.toContain('Secret');
   });
   it('does not queue Zalo on duplicate client message', async () => {
-    const { service, notify } = setup(true);
+    const { service, notify, push } = setup(true);
     await service.send(actor(customer), thread, { body: 'Secret', clientMessageId: id });
     expect(notify).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
+  });
+  it('targets only the proper KTV for a new customer message', async () => {
+    const { service, push } = setup();
+    await service.send(actor(customer), thread, { body: 'Secret', clientMessageId: id });
+    expect(push).toHaveBeenCalledTimes(1);
+    expect(push).toHaveBeenCalledWith(provider, id, thread);
+    expect(JSON.stringify(push.mock.calls[0])).not.toContain('Secret');
+  });
+  it('never sends a Push for the KTV own reply', async () => {
+    const { service, push } = setup();
+    await service.send(actor(provider), thread, { body: 'Secret', clientMessageId: id });
+    expect(push).not.toHaveBeenCalled();
   });
 });
