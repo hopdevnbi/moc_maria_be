@@ -319,6 +319,8 @@ export class AdminAppointmentInquiriesService {
         delete row.value.fulfillmentStatus;
       }
       row.value.status = dto.status;
+      if (dto.status === 'DECLINED') row.value.declineReason = reason;
+      else delete row.value.declineReason;
       if (dto.status === 'COMPLETED') row.value.adminCompletedAt = new Date().toISOString();
       else {
         delete row.value.providerCompletedAt;

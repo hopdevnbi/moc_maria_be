@@ -36,6 +36,7 @@ export class CreateInquiryDto {
 }
 export class ReplyInquiryDto {
   @IsIn(['CONTACTED', 'DECLINED', 'CANCELLED']) status!: 'CONTACTED' | 'DECLINED' | 'CANCELLED';
+  @IsOptional() @IsString() @Length(10, 500) reason?: string;
 }
 
 export class AdminInquiryQueryDto {

@@ -57,6 +57,7 @@ export interface Inquiry {
   fulfillmentStatus?:
     'PENDING' | 'CONTACTED' | 'CONFIRMED' | 'IN_SERVICE' | 'COMPLETED' | 'CANCELLED' | 'DECLINED';
   adminCompletedAt?: string;
+  declineReason?: string;
 }
 const presentationKey = (id: string): string => 'mocmaria.presentation.' + id;
 const inquiryKey = (id: string): string => 'mocmaria.inquiry.' + id;
@@ -426,15 +427,22 @@ export class CustomerExperienceService {
         throw new ForbiddenException('Cần tài khoản KTV để phản hồi.');
       if (
         value.status !== 'PENDING' &&
-        !(value.status === 'CONTACTED' && dto.status === 'CANCELLED')
+        !(value.status === 'CONTACTED' && ['CANCELLED', 'DECLINED'].includes(dto.status))
       )
         throw new ConflictException('Yêu cầu đã được xử lý.');
+      if (value.archivedAt)
+        throw new ConflictException('Yêu cầu đã lưu trữ. Hãy liên hệ quản trị viên.');
+      const reason = dto.reason?.trim() || '';
+      if (dto.status === 'DECLINED' && (reason.length < 10 || reason.length > 500))
+        throw new BadRequestException('Vui lòng nêu lý do từ chối từ 10 đến 500 ký tự.');
       value.status = dto.status;
+      if (dto.status === 'DECLINED') value.declineReason = reason;
       await this.save(m, inquiryKey(id), value);
       await m.save(AuditLog, {
         event: 'appointment.inquiry.updated',
         actorUserId: actor.id,
-        metadata: { inquiryId: id, status: dto.status },
+        targetUserId: value.customerId,
+        metadata: { inquiryId: id, status: dto.status, ...(reason ? { reason } : {}) },
       });
       return this.visibleInquiry(value);
     });
