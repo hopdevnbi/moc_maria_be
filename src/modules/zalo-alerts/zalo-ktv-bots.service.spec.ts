@@ -95,6 +95,21 @@ describe('KTV Zalo bots keep customer contact information private', () => {
     expect(staffText).toContain('Mã tin: booking-123');
   });
 
+  it('redacts customer contact details when a KTV quotes them in a reply', () => {
+    const text = alertText(
+      {
+        ...inquiry,
+        kind: 'chat',
+        senderRole: 'provider',
+        messageBody: 'Khách vừa cung cấp 0912345678 / mai@example.com, đã nhận lịch',
+      },
+      { includeCustomerContacts: false },
+    );
+    expect(text).not.toContain('0912345678');
+    expect(text).not.toContain('mai@example.com');
+    expect(text).toContain('đã nhận lịch');
+  });
+
   it('continues to conceal messages in password-protected chats', () => {
     const text = alertText(
       {

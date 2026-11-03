@@ -10,7 +10,7 @@ Nguyet Nguyen (slug nguyet).
 
 All six bots receive the same inquiry and individual chat events. Staff bots
 exclude customerPhone and customerEmail from inquiry notifications. If the
-customer's display name or customer-authored chat includes an email address
+customer's display name or chat text (including a KTV quoting customer details) includes an email address
 or Vietnamese telephone number, staff notifications redact it as [email ẩn]
 or [SĐT ẩn]. KTV contact information, service, sender role, event IDs and
 other permitted content remain unchanged. Password-protected chat body

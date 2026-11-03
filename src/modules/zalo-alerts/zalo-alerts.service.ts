@@ -65,8 +65,10 @@ export function alertText(
   const customerName = includeCustomerContacts
     ? alert.customerName
     : redactCustomerContacts(alert.customerName);
+  // Chat text is unstructured: a therapist may quote a customer's phone
+  // or email as well. Always redact contact-like content for staff bots.
   const messageBody =
-    !includeCustomerContacts && alert.senderRole === 'customer' && alert.messageBody
+    !includeCustomerContacts && alert.messageBody
       ? redactCustomerContacts(alert.messageBody)
       : alert.messageBody;
   return [
