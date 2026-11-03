@@ -45,6 +45,17 @@ describe('KTV chat image CDN', () => {
     ).rejects.toThrow();
     expect(global.fetch).not.toHaveBeenCalled();
   });
+  it('rejects an image above the pixel limit before uploading', async () => {
+    const buffer = await sharp({
+      create: { width: 5000, height: 5000, channels: 3, background: 'white' },
+    })
+      .jpeg()
+      .toBuffer();
+    await expect(
+      service.upload(actor, thread, { buffer, size: buffer.length, mimetype: 'image/jpeg' }),
+    ).rejects.toThrow('Ảnh vượt 24 megapixel');
+    expect(global.fetch).not.toHaveBeenCalled();
+  });
   it('resizes actual PNG and stores WebP under chat-attachments', async () => {
     const buffer = await sharp({
       create: { width: 2400, height: 1500, channels: 3, background: 'red' },

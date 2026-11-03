@@ -31,40 +31,34 @@ export class KtvChatImageService {
     if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype))
       throw new BadRequestException('Chỉ cho phép ảnh JPG, PNG và WebP.');
 
+    // Read only the header here so excessive dimensions get a specific error.
+    const info = await sharp(file.buffer, { limitInputPixels: false })
+      .metadata()
+      .catch(() => {
+        throw new BadRequestException('Không đọc được ảnh. Hãy chọn lại ảnh JPG, PNG hoặc WebP.');
+      });
+    if (!info.width || !info.height || !['jpeg', 'png', 'webp'].includes(info.format || ''))
+      throw new BadRequestException('Nội dung file không phải ảnh JPG, PNG hoặc WebP.');
+    if (info.width * info.height > 24_000_000)
+      throw new BadRequestException('Ảnh vượt 24 megapixel. Hãy thu nhỏ ảnh rồi gửi lại.');
+
     let optimized: Buffer;
     try {
-      const image = sharp(file.buffer, { limitInputPixels: 24_000_000, failOn: 'error' });
-      const info = await image.metadata();
-      if (!info.width || !info.height || !['jpeg', 'png', 'webp'].includes(info.format || ''))
-        throw new Error('Invalid image');
-      optimized = await image
-        .rotate()
-        .resize({
-          width: 2048,
-          height: 2048,
-          fit: 'inside',
-          withoutEnlargement: true,
-        })
-        .webp({ quality: 80, effort: 4 })
-        .toBuffer();
-      if (optimized.length > 1024 * 1024) {
-        optimized = await sharp(file.buffer, { limitInputPixels: 24_000_000 })
-          .rotate()
-          .resize(1600, 1600, { fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 72 })
+      const image = sharp(file.buffer, { limitInputPixels: 24_000_000, failOn: 'error' }).rotate();
+      const encode = (edge: number, quality: number) =>
+        image
+          .clone()
+          .resize(edge, edge, { fit: 'inside', withoutEnlargement: true })
+          .webp({ quality, effort: 3 })
           .toBuffer();
-      }
-      if (optimized.length > 1024 * 1024) {
-        optimized = await sharp(file.buffer, { limitInputPixels: 24_000_000 })
-          .rotate()
-          .resize(1280, 1280, { fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 64 })
-          .toBuffer();
-      }
-      if (optimized.length > 1024 * 1024) throw new Error('Image too large after optimization');
+      optimized = await encode(2048, 80);
+      if (optimized.length > 1024 * 1024) optimized = await encode(1600, 72);
+      if (optimized.length > 1024 * 1024) optimized = await encode(1280, 64);
     } catch {
-      throw new BadRequestException('Ảnh không hợp lệ hoặc quá phức tạp. Hãy chọn ảnh khác.');
+      throw new BadRequestException('Không xử lý được dữ liệu ảnh. Hãy lưu lại ảnh rồi thử gửi.');
     }
+    if (optimized.length > 1024 * 1024)
+      throw new BadRequestException('Ảnh vẫn quá nặng sau khi nén. Hãy chọn ảnh nhẹ hơn.');
 
     const zone = process.env['BUNNY_STORAGE_ZONE']?.trim();
     const secret = (
