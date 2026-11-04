@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
-import { staffBotBySlug, staffPendingPrefix } from './zalo-ktv-bots.service';
+import { staffBotBySlug, staffPendingKey } from './zalo-ktv-bots.service';
 import { redactCustomerContacts } from './zalo-message-privacy';
 
 type BotEvent = {
@@ -64,7 +64,7 @@ export class ZaloKtvWebhookController {
     // Never automatically enable a recipient based on an incoming message.
     // A human operator must confirm chat ID ownership and scope, then place
     // the approved value in the corresponding Kubernetes Secret.
-    const key = staffPendingPrefix(bot) + createHash('sha256').update(chatId).digest('hex');
+    const key = staffPendingKey(bot, chatId);
     await this.db.query(
       `INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb)
        ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=clock_timestamp()`,

@@ -224,4 +224,40 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
     ).rejects.toThrow('rollback-qa');
     expect(await deliveries(eventId)).toEqual([]);
   });
+  it('persists private pairing for every bot under the actual varchar100 database limit', async () => {
+    for (const [slug, prefix] of [
+      ['tien-manh', 'ZALO_TIEN_MANH'],
+      ['nguyet', 'ZALO_NGUYET'],
+      ['tung', 'ZALO_TUNG'],
+    ]) {
+      const secret = 'qa-pair-' + slug;
+      app.get(ConfigService).set(prefix + '_WEBHOOK_SECRET', secret);
+      const chatId = 'qa-private-' + slug;
+      const event = {
+        event_name: 'message.text.received',
+        message: {
+          from: { id: chatId, display_name: 'KTV QA', is_bot: false },
+          chat: { id: chatId, chat_type: 'PRIVATE' },
+          text: 'Kết nối Mộc Maria',
+        },
+      };
+      await api()
+        .post('/api/v1/zalo/ktv/' + slug + '/webhook')
+        .set('X-Bot-Api-Secret-Token', secret)
+        .send(event)
+        .expect(200);
+      await api()
+        .post('/api/v1/zalo/ktv/' + slug + '/webhook')
+        .set('X-Bot-Api-Secret-Token', secret)
+        .send(event)
+        .expect(200);
+      const rows = await db.query<Array<{ key: string; value: { chatId: string } }>>(
+        'SELECT key,value FROM app_metadata WHERE key LIKE $1',
+        ['mocmaria.zalo.staff.' + slug + '.pending.%'],
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0].key.length).toBeLessThanOrEqual(100);
+      expect(rows[0].value.chatId).toBe(chatId);
+    }
+  });
 });

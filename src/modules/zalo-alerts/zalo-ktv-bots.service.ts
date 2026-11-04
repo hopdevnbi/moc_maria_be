@@ -22,6 +22,18 @@ export const staffOutboxPrefix = (bot: StaffZaloBot): string =>
 export const staffPendingPrefix = (bot: StaffZaloBot): string =>
   `mocmaria.zalo.staff.${bot.slug}.pending.`;
 
+export function staffPendingKey(bot: StaffZaloBot, chatId: string): string {
+  const prefix = staffPendingPrefix(bot);
+  // Keep existing short-prefix identities stable; app_metadata.key is varchar(100).
+  return (
+    prefix +
+    createHash('sha256')
+      .update(chatId)
+      .digest('hex')
+      .slice(0, 100 - prefix.length)
+  );
+}
+
 type Delivery = {
   providerId?: string;
   recipient: string;

@@ -35,6 +35,7 @@ describe('Staff Zalo Bot secure webhook and enrollment', () => {
       const [sql, params] = query.mock.calls[0];
       expect(sql).toContain('ON CONFLICT(key) DO UPDATE');
       expect(params[0]).toContain(`mocmaria.zalo.staff.${prefix}.pending.`);
+      expect(params[0].length).toBeLessThanOrEqual(100);
       const saved = JSON.parse(params[1]) as { chatId: string; chatType: string };
       expect(saved).toMatchObject({ chatId: 'approved-candidate', chatType: 'PRIVATE' });
       expect(saved).not.toHaveProperty('token');
