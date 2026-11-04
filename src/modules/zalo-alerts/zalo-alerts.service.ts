@@ -6,6 +6,7 @@ import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
 import { ZaloHoanAlertsService } from './zalo-hoan-alerts.service';
 import { ZaloKtvBotsService } from './zalo-ktv-bots.service';
 import { privateZaloText, redactCustomerContacts } from './zalo-message-privacy';
+import { ZaloBotSettingsService, type ZaloNotificationKind } from './zalo-bot-settings.service';
 export { redactCustomerContacts } from './zalo-message-privacy';
 
 export interface ZaloAlert {
@@ -27,6 +28,7 @@ export interface ZaloAlert {
 interface Delivery {
   recipient: string;
   text: string;
+  kind?: ZaloNotificationKind;
   status: 'pending' | 'sent' | 'failed';
   attempts: number;
   nextAt: string;
@@ -112,6 +114,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     @Optional() private readonly linhDan?: ZaloLinhDanAlertsService,
     @Optional() private readonly hoan?: ZaloHoanAlertsService,
     @Optional() private readonly ktvBots?: ZaloKtvBotsService,
+    @Optional() private readonly botSettings?: ZaloBotSettingsService,
   ) {}
 
   private settings(): { token: string; recipients: string[] } {
@@ -170,6 +173,15 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
 
   async enqueueText(manager: EntityManager, eventId: string, text: string): Promise<void> {
     text = privateZaloText(text);
+    // Digest is a chat feature. Gift, pairing and other direct messages are
+    // controlled only by the global enabled switch.
+    const kind: ZaloNotificationKind =
+      eventId.startsWith('chat:') || eventId.startsWith('digest:')
+        ? 'chat'
+        : eventId.startsWith('inquiry:')
+          ? 'inquiry'
+          : 'other';
+    if (this.botSettings && !(await this.botSettings.allows('primary', kind, manager))) return;
     const { token } = this.settings();
     if (!token) return;
     const recipients = await this.configuredRecipients(manager);
@@ -178,6 +190,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
       const delivery: Omit<Delivery, 'nextAt'> = {
         recipient,
         text,
+        kind,
         status: 'pending',
         attempts: 0,
       };
@@ -196,6 +209,8 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     try {
       const { token } = this.settings();
       if (!token) return;
+      const switches = this.botSettings ? await this.botSettings.get('primary') : null;
+      if (switches && !switches.enabled) return;
       const recipients = await this.configuredRecipients();
       if (!recipients.length) return;
       for (let i = 0; i < 10; i++) {
@@ -207,12 +222,20 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
             SELECT key FROM app_metadata WHERE key LIKE $1 AND value->>'status'='pending'
               AND (value->>'nextAt')::timestamptz<=clock_timestamp()
               AND value->>'recipient'=ANY($3::text[])
+              AND ($4::boolean OR value->>'kind' IS DISTINCT FROM 'inquiry')
+              AND ($5::boolean OR value->>'kind' IS DISTINCT FROM 'chat')
             ORDER BY updated_at FOR UPDATE SKIP LOCKED LIMIT 1
           ), claimed AS (UPDATE app_metadata m SET value=m.value||jsonb_build_object('lease',$2::text,
             'nextAt',clock_timestamp()+interval '60 seconds'),updated_at=clock_timestamp()
             FROM candidate c WHERE m.key=c.key RETURNING m.key,m.value)
           SELECT key,value FROM claimed`,
-          [prefix + '%', lease, recipients],
+          [
+            prefix + '%',
+            lease,
+            recipients,
+            switches?.bookingEnabled ?? true,
+            switches?.chatEnabled ?? true,
+          ],
         );
         if (!row) break;
         let sent = false;

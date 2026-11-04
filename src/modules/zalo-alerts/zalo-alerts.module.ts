@@ -11,7 +11,12 @@ import { ChatDigestController } from './chat-digest.controller';
 import { AuthModule } from '../auth/auth.module';
 import { AccessControlModule } from '../access-control/access-control.module';
 import { ZaloBotService } from './zalo-bot.service';
-import { ZaloWebhookController, ZaloBotAdminController } from './zalo-bot.controller';
+import {
+  ZaloWebhookController,
+  ZaloBotAdminController,
+  ZaloBotsAdminController,
+} from './zalo-bot.controller';
+import { ZaloBotSettingsService } from './zalo-bot-settings.service';
 import {
   CommunityGiftZaloAuthGuard,
   CommunityGiftZaloController,
@@ -27,9 +32,11 @@ import {
     ZaloHoanWebhookController,
     ZaloKtvWebhookController,
     ZaloBotAdminController,
+    ZaloBotsAdminController,
     CommunityGiftZaloController,
   ],
   providers: [
+    ZaloBotSettingsService,
     ZaloLinhDanAlertsService,
     ZaloHoanAlertsService,
     ZaloKtvBotsService,

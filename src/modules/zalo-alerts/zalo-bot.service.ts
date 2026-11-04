@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { ZaloAlertsService, zaloRecipientPrefix } from './zalo-alerts.service';
+import { ZaloBotSettingsService } from './zalo-bot-settings.service';
 
 const pairKey = 'mocmaria.zalo.pairing';
 const hash = (value: string): string => createHash('sha256').update(value).digest('hex');
@@ -32,6 +33,7 @@ export class ZaloBotService {
     private readonly db: DataSource,
     private readonly config: ConfigService,
     private readonly alerts: ZaloAlertsService,
+    @Optional() private readonly botSettings?: ZaloBotSettingsService,
   ) {}
 
   async status(): Promise<unknown> {
@@ -146,6 +148,9 @@ export class ZaloBotService {
   }
 
   async test(): Promise<{ queued: true; reference: string }> {
+    if (this.botSettings && !(await this.botSettings.allows('primary', 'other'))) {
+      throw new BadRequestException('Bot Zalo đang tắt. Hãy bật bot trước khi kiểm tra.');
+    }
     if (!(await this.alerts.configuredRecipients()).length)
       throw new BadRequestException('Chưa có người nhận. Hãy kết nối Bot trước.');
     const reference = randomUUID();

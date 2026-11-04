@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { ZaloBotService } from './zalo-bot.service';
 import { ZaloAlertsService } from './zalo-alerts.service';
+import { ZaloBotSettingsService } from './zalo-bot-settings.service';
 
 describe('Zalo webhook and operator connection', () => {
   const query = jest
@@ -71,5 +72,19 @@ describe('Zalo webhook and operator connection', () => {
       'test:' + result.reference,
       expect.stringContaining('không tạo lịch hẹn hoặc hội thoại'),
     );
+  });
+  it('does not claim a test was queued when the main bot is disabled', async () => {
+    alerts.configuredRecipients.mockResolvedValue(['private-recipient']);
+    const settings = {
+      allows: jest.fn().mockResolvedValue(false),
+    } as unknown as ZaloBotSettingsService;
+    const disabledBot = new ZaloBotService(
+      { query, transaction } as unknown as DataSource,
+      { get: (key: string) => values.get(key) } as ConfigService,
+      alerts as unknown as ZaloAlertsService,
+      settings,
+    );
+    await expect(disabledBot.test()).rejects.toThrow('Bot Zalo đang tắt');
+    expect(transaction).not.toHaveBeenCalled();
   });
 });

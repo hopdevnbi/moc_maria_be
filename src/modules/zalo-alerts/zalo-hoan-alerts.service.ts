@@ -1,12 +1,14 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
 import { privateZaloText } from './zalo-message-privacy';
+import { ZaloBotSettingsService } from './zalo-bot-settings.service';
 
 type Delivery = {
   recipient: string;
   text: string;
+  kind?: 'inquiry' | 'chat';
   status: 'pending' | 'sent' | 'failed';
   attempts: number;
   nextAt: string;
@@ -27,6 +29,7 @@ export class ZaloHoanAlertsService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly db: DataSource,
     private readonly config: ConfigService,
+    @Optional() private readonly botSettings?: ZaloBotSettingsService,
   ) {}
 
   private settings(): { token: string; recipients: string[] } {
@@ -61,6 +64,7 @@ export class ZaloHoanAlertsService implements OnModuleInit, OnModuleDestroy {
   ): Promise<void> {
     const { token, recipients } = this.settings();
     if (!token || !recipients.length) return;
+    if (this.botSettings && !(await this.botSettings.allows('hoan', kind, manager))) return;
     for (const recipient of recipients) {
       const key =
         hoanOutboxPrefix +
@@ -74,6 +78,7 @@ export class ZaloHoanAlertsService implements OnModuleInit, OnModuleDestroy {
           JSON.stringify({
             recipient,
             text: privateZaloText(text),
+            kind,
             status: 'pending',
             attempts: 0,
           }),
@@ -88,6 +93,8 @@ export class ZaloHoanAlertsService implements OnModuleInit, OnModuleDestroy {
     try {
       const { token, recipients } = this.settings();
       if (!token || !recipients.length) return;
+      const switches = this.botSettings ? await this.botSettings.get('hoan') : null;
+      if (switches && !switches.enabled) return;
       for (let i = 0; i < 10; i++) {
         const lease = randomUUID();
         const [row] = await this.db.query<{ key: string; value: Delivery }[]>(
@@ -95,13 +102,21 @@ export class ZaloHoanAlertsService implements OnModuleInit, OnModuleDestroy {
             SELECT key FROM app_metadata WHERE key LIKE $1 AND value->>'status'='pending'
               AND (value->>'nextAt')::timestamptz<=clock_timestamp()
               AND value->>'recipient'=ANY($3::text[])
+              AND ($4::boolean OR value->>'kind' IS DISTINCT FROM 'inquiry')
+              AND ($5::boolean OR value->>'kind' IS DISTINCT FROM 'chat')
             ORDER BY updated_at FOR UPDATE SKIP LOCKED LIMIT 1
           ), claimed AS (
             UPDATE app_metadata m SET value=m.value||jsonb_build_object('lease',$2::text,
               'nextAt',clock_timestamp()+interval '60 seconds'),updated_at=clock_timestamp()
             FROM candidate c WHERE m.key=c.key RETURNING m.key,m.value
           ) SELECT key,value FROM claimed`,
-          [hoanOutboxPrefix + '%', lease, recipients],
+          [
+            hoanOutboxPrefix + '%',
+            lease,
+            recipients,
+            switches?.bookingEnabled ?? true,
+            switches?.chatEnabled ?? true,
+          ],
         );
         if (!row) break;
         let sent = false;
