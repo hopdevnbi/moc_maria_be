@@ -1,0 +1,27 @@
+# Allow larger KTV portfolio uploads without lifting the upload limit for all API routes.
+# The existing moc-maria-api ingress still applies its smaller body limit to other paths.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: moc-maria-provider-showcase-media
+  namespace: moc-maria
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "42m"
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts:
+        - api.mocmaria.com
+      secretName: moc-maria-api-tls
+  rules:
+    - host: api.mocmaria.com
+      http:
+        paths:
+          - path: /api/v1/provider-showcase
+            pathType: Prefix
+            backend:
+              service:
+                name: moc-maria-api
+                port:
+                  number: 80
