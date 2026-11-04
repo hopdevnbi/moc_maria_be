@@ -5,6 +5,8 @@ import { DataSource, EntityManager } from 'typeorm';
 import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
 import { ZaloHoanAlertsService } from './zalo-hoan-alerts.service';
 import { ZaloKtvBotsService } from './zalo-ktv-bots.service';
+import { privateZaloText, redactCustomerContacts } from './zalo-message-privacy';
+export { redactCustomerContacts } from './zalo-message-privacy';
 
 export interface ZaloAlert {
   kind: 'chat' | 'inquiry';
@@ -19,6 +21,8 @@ export interface ZaloAlert {
   providerPhone?: string | null;
   providerEmail?: string | null;
   serviceName?: string;
+  providerId?: string;
+  threadId?: string;
 }
 interface Delivery {
   recipient: string;
@@ -51,55 +55,50 @@ const chatContent = (value: string): string =>
 
 // The three staff bots must never receive customer contact fields. If a
 // customer types their contact details into their name or chat, mask those too.
-export function redactCustomerContacts(value: string): string {
-  return value
-    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, '[email ẩn]')
-    .replace(/(?<!\w)(?:\+?84|0)(?:[\s().-]*\d){9}(?!\d)/g, '[SĐT ẩn]');
-}
-
 export function alertText(
   alert: ZaloAlert,
-  options: { includeCustomerContacts?: boolean } = {},
+  options: { includeCustomerContacts?: boolean; audience?: 'admin' | 'ktv' } = {},
 ): string {
-  const includeCustomerContacts = options.includeCustomerContacts !== false;
-  const customerName = includeCustomerContacts
-    ? alert.customerName
-    : redactCustomerContacts(alert.customerName);
+  const customerName = redactCustomerContacts(alert.customerName);
   // Chat text is unstructured: a therapist may quote a customer's phone
   // or email as well. Always redact contact-like content for staff bots.
-  const messageBody =
-    !includeCustomerContacts && alert.messageBody
-      ? redactCustomerContacts(alert.messageBody)
-      : alert.messageBody;
-  return [
-    alert.kind === 'inquiry'
-      ? 'Mộc Maria · Yêu cầu đặt lịch mới'
-      : alert.senderRole === 'provider'
-        ? 'Mộc Maria · KTV nhắn khách'
-        : 'Mộc Maria · Khách nhắn KTV',
-    `Khách: ${line(customerName)}`,
-    ...(includeCustomerContacts && alert.kind === 'inquiry'
-      ? optionalContact('SĐT khách', alert.customerPhone)
-      : []),
-    ...(includeCustomerContacts && alert.kind === 'inquiry'
-      ? optionalContact('Email khách', alert.customerEmail)
-      : []),
-    `KTV: ${line(alert.providerName)}`,
-    ...(alert.kind === 'chat'
-      ? [`Người gửi: ${alert.senderRole === 'provider' ? 'KTV' : 'Khách'}`]
-      : []),
-    ...(alert.kind === 'chat' && alert.chatPrivacyProtected
-      ? ['Nội dung: [Hội thoại được bảo vệ bằng mật khẩu]']
-      : alert.kind === 'chat' && messageBody
-        ? [`Nội dung tin nhắn:\n${chatContent(messageBody)}`]
+  const messageBody = alert.messageBody
+    ? redactCustomerContacts(alert.messageBody)
+    : alert.messageBody;
+  const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  const chatLink =
+    alert.kind === 'chat' && alert.threadId && uuid.test(alert.threadId)
+      ? `https://mocmaria.com/tin-nhan?thread=${alert.threadId}`
+      : alert.kind === 'inquiry' && /^[a-f0-9]{64}$/.test(alert.eventId)
+        ? `https://mocmaria.com/tin-nhan?inquiry=${alert.eventId}`
+        : 'https://mocmaria.com/tin-nhan';
+  return privateZaloText(
+    [
+      alert.kind === 'inquiry'
+        ? 'Mộc Maria · Yêu cầu đặt lịch mới'
+        : alert.senderRole === 'provider'
+          ? 'Mộc Maria · KTV nhắn khách'
+          : 'Mộc Maria · Khách nhắn KTV',
+      `Khách: ${line(customerName)}`,
+      `KTV: ${line(alert.providerName)}`,
+      ...(alert.kind === 'chat'
+        ? [`Người gửi: ${alert.senderRole === 'provider' ? 'KTV' : 'Khách'}`]
         : []),
-    ...(alert.kind === 'inquiry' ? optionalContact('SĐT KTV', alert.providerPhone) : []),
-    ...(alert.kind === 'inquiry' ? optionalContact('Email KTV', alert.providerEmail) : []),
-    ...(alert.serviceName ? [`Dịch vụ: ${line(alert.serviceName)}`] : []),
-    `Mã ${alert.kind === 'chat' ? 'tin' : 'yêu cầu'}: ${line(alert.eventId)}`,
-    'Vui lòng liên hệ KTV để hỗ trợ khách.',
-    'https://mocmaria.com/quan-tri/lich-hen',
-  ].join('\n');
+      ...(alert.kind === 'chat' && alert.chatPrivacyProtected
+        ? ['Nội dung: [Hội thoại được bảo vệ bằng mật khẩu]']
+        : alert.kind === 'chat' && messageBody
+          ? [`Nội dung tin nhắn:\n${chatContent(messageBody)}`]
+          : []),
+      ...(alert.kind === 'inquiry' ? optionalContact('SĐT KTV', alert.providerPhone) : []),
+      ...(alert.kind === 'inquiry' ? optionalContact('Email KTV', alert.providerEmail) : []),
+      ...(alert.serviceName ? [`Dịch vụ: ${line(alert.serviceName)}`] : []),
+      `Mã ${alert.kind === 'chat' ? 'tin' : 'yêu cầu'}: ${line(alert.eventId)}`,
+      options.audience === 'ktv'
+        ? 'Mở cuộc trò chuyện với khách:'
+        : 'Vui lòng liên hệ KTV để hỗ trợ khách.',
+      options.audience === 'ktv' ? chatLink : 'https://mocmaria.com/quan-tri/lich-hen',
+    ].join('\n'),
+  );
 }
 
 @Injectable()
@@ -150,8 +149,10 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     await this.ktvBots?.enqueue(
       manager,
       alert.eventId,
-      alertText(alert, { includeCustomerContacts: false }),
+      alertText(alert, { audience: 'ktv' }),
       alert.kind,
+      alert.providerId,
+      alert.senderRole,
     );
   }
 
@@ -168,6 +169,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async enqueueText(manager: EntityManager, eventId: string, text: string): Promise<void> {
+    text = privateZaloText(text);
     const { token } = this.settings();
     if (!token) return;
     const recipients = await this.configuredRecipients(manager);
@@ -221,7 +223,10 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: row.value.recipient, text: row.value.text }),
+              body: JSON.stringify({
+                chat_id: row.value.recipient,
+                text: privateZaloText(row.value.text),
+              }),
               signal: AbortSignal.timeout(8000),
             },
           );

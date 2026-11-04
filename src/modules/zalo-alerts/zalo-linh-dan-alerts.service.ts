@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
+import { privateZaloText } from './zalo-message-privacy';
 
 type Delivery = {
   recipient: string;
@@ -68,7 +69,15 @@ export class ZaloLinhDanAlertsService implements OnModuleInit, OnModuleDestroy {
         `INSERT INTO app_metadata(key,value)
          VALUES($1,$2::jsonb||jsonb_build_object('nextAt',clock_timestamp()))
          ON CONFLICT(key) DO NOTHING`,
-        [key, JSON.stringify({ recipient, text, status: 'pending', attempts: 0 })],
+        [
+          key,
+          JSON.stringify({
+            recipient,
+            text: privateZaloText(text),
+            status: 'pending',
+            attempts: 0,
+          }),
+        ],
       );
     }
   }
@@ -103,7 +112,10 @@ export class ZaloLinhDanAlertsService implements OnModuleInit, OnModuleDestroy {
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ chat_id: row.value.recipient, text: row.value.text }),
+              body: JSON.stringify({
+                chat_id: row.value.recipient,
+                text: privateZaloText(row.value.text),
+              }),
               signal: AbortSignal.timeout(8000),
             },
           );

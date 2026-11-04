@@ -39,7 +39,7 @@ describe('Zalo durable notifications', () => {
       'KTV: KTV Fake: alert',
     );
   });
-  it('includes customer and KTV contact data for booking inquiries', () => {
+  it('keeps phone and email out of all booking notifications', () => {
     const text = alertText({
       ...event,
       kind: 'inquiry',
@@ -48,10 +48,10 @@ describe('Zalo durable notifications', () => {
       providerPhone: '0987654321',
       providerEmail: 'provider@example.com',
     });
-    expect(text).toContain('SĐT khách: 0912345678');
-    expect(text).toContain('Email khách: customer@example.com');
-    expect(text).toContain('SĐT KTV: 0987654321');
-    expect(text).toContain('Email KTV: provider@example.com');
+    expect(text).not.toContain('SĐT khách: 0912345678');
+    expect(text).not.toContain('Email khách: customer@example.com');
+    expect(text).not.toContain('SĐT KTV: 0987654321');
+    expect(text).not.toContain('Email KTV: provider@example.com');
   });
   it('omits missing details and does not change chat notifications', () => {
     const inquiry: ZaloAlert = {
@@ -115,7 +115,7 @@ describe('Zalo durable notifications', () => {
       kind: 'inquiry',
       providerEmail: 'provider@example.com\nFake: test',
     });
-    expect(text).toContain('Email KTV: provider@example.com Fake: test');
+    expect(text).toContain('Email KTV: [email ẩn] Fake: test');
     expect(text).not.toContain('\nFake:');
   });
   it('disabled configuration does not contact database or external service', async () => {

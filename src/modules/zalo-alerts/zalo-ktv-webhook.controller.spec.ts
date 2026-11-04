@@ -16,7 +16,7 @@ describe('Staff Zalo Bot secure webhook and enrollment', () => {
   const event = {
     event_name: 'message.text.received',
     message: {
-      from: { is_bot: false },
+      from: { id: 'approved-candidate', display_name: 'KTV', is_bot: false },
       chat: { id: 'approved-candidate', chat_type: 'PRIVATE' },
       text: 'Kết nối Mộc Maria',
     },
@@ -57,6 +57,17 @@ describe('Staff Zalo Bot secure webhook and enrollment', () => {
     await controller.receive('tung', 'tung-test-secret', {
       ...event,
       message: { ...event.message, from: { is_bot: true } },
+    });
+    expect(query).not.toHaveBeenCalled();
+  });
+  it('does not enroll group chats or mismatched private sender identities', async () => {
+    await controller.receive('nguyet', 'nguyet-test-secret', {
+      ...event,
+      message: { ...event.message, chat: { id: 'approved-candidate', chat_type: 'GROUP' } },
+    });
+    await controller.receive('nguyet', 'nguyet-test-secret', {
+      ...event,
+      message: { ...event.message, from: { id: 'different-sender', is_bot: false } },
     });
     expect(query).not.toHaveBeenCalled();
   });

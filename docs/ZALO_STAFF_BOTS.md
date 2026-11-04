@@ -1,74 +1,28 @@
-# Mộc Maria - Three additional staff Zalo bots
+# Zalo notifications for KTV Nguyệt and Tiến Mạnh
 
-## Scope
+Owner scope on 2026-11-04: both recipients are KTV, not Super Admin. Persisted provider records are Nguyệt Nguyễn (1ddd7a59-3150-4ced-aa5b-052a51f367f9) and Bác sĩ Tiến Mạnh (44174274-e46e-418d-a08b-e26ceede49b7). Read-only production verification found active users with THERAPIST only, application status APPLIED. This integration grants no roles or operational approvals.
 
-Existing super-admin bots: Hop, Hoan, Linh Dan. Their tokens, recipients,
-outbox, webhook, workers and formatting remain unchanged.
+The previous staff worker broadcast every event to all configured staff bots. It also used a 101-character Tiến Mạnh outbox key for a varchar(100) column, and linked to an admin-only page. All three defects are covered by the new tests.
 
-New bots: Dr Tien Manh (slug tien-manh), Son Tung Thao Y (slug tung),
-Nguyet Nguyen (slug nguyet).
+Each staff bot now requires token, approved private recipient and exact PROVIDER_ID binding. Only bookings assigned to that provider and inbound customer chat for that provider enqueue its notification. KTV replies, missing identity and another provider's events never fan out to staff. Existing primary/Hoàn/Linh Đan administrator channels keep receiving every booking/chat event through their existing recipient lists and outboxes.
 
-All six bots receive the same inquiry and individual chat events. Staff bots
-exclude customerPhone and customerEmail from inquiry notifications. If the
-customer's display name or chat text (including a KTV quoting customer details) includes an email address
-or Vietnamese telephone number, staff notifications redact it as [email ẩn]
-or [SĐT ẩn]. KTV contact information, service, sender role, event IDs and
-other permitted content remain unchanged. Password-protected chat body
-remains concealed for all six bots.
+Customer-created and Admin-created inquiries both enqueue inside the business transaction. Rollback and idempotent customer retries do not create additional deliveries. SHA-256 delivery identity uses a 56-hex digest so every staff key fits the database column. The worker also checks provider identity while claiming rows; legacy unscoped staff rows are excluded, never replayed blindly.
 
-New bots have independently leased, idempotent outboxes in app_metadata and
-retry up to 12 times, following the existing Hoan/Linh Dan design. No
-database migration, Chat Socket, Frontend or Queue modification is required.
+No customer phone/email is included in new Zalo payloads, including admin payloads. Contact-like strings inside names, service labels and message excerpts are masked. All four sender implementations sanitize again immediately before HTTP so older pending messages are also protected. Protected conversations omit bodies. No change to email content or customer chat history.
 
-## Production Kubernetes Secret keys
+KTV message links:
+- Incoming chat: /tin-nhan?thread=<thread UUID>, selected after member authentication.
+- Booking: /tin-nhan?inquiry=<64-hex persisted inquiry ID>. After login the client POSTs /api/v1/ktv-chat/inquiries/:id/thread. The server verifies the persisted provider user, application, active customer/provider and THERAPIST role. An admin or unrelated KTV gets 404. Only then is an existing one-to-one thread reused or created; no message is sent automatically. Existing block/privacy rules remain in KtvChatService. Login retains the original inquiry/thread locator.
 
-Place values in existing moc-maria-api-secrets (namespace moc-maria).
-Never commit tokens or recipient chat IDs.
+Dedicated Kubernetes Secrets, namespace moc-maria:
+- moc-maria-zalo-nguyet
+- moc-maria-zalo-tien-manh
+Each contains token, provider-id, chat-ids, webhook-secret. Values never belong in Git/logs. Deployment env references are ZALO_NGUYET_* and ZALO_TIEN_MANH_* (BOT_TOKEN, PROVIDER_ID, CHAT_IDS, WEBHOOK_SECRET). Existing admin Secret values and recipient registries are preserved.
 
-Dr Tien Manh:
-- ZALO_TIEN_MANH_BOT_TOKEN
-- ZALO_TIEN_MANH_CHAT_IDS (comma-separated, initially empty)
-- ZALO_TIEN_MANH_WEBHOOK_SECRET
+Webhook paths are POST /api/v1/zalo/ktv/nguyet/webhook and /api/v1/zalo/ktv/tien-manh/webhook. Signed events containing the exact phrase “Kết nối Mộc Maria” save a pending candidate only. Only private chats whose sender ID equals chat ID qualify; groups cannot enroll. Operator verifies the intended KTV before copying a chat ID into its dedicated Secret and restarting the API. Arbitrary senders are never automatically subscribed. Tokens/invite URLs/bot IDs are not recipient IDs.
 
-KTV Tung:
-- ZALO_TUNG_BOT_TOKEN
-- ZALO_TUNG_CHAT_IDS
-- ZALO_TUNG_WEBHOOK_SECRET
+Official API methods were verified against the Zalo Bot documentation (POST getMe, getUpdates, setWebhook/getWebhookInfo). Polling timeout error408 means no message was available. Webhook is used in production after deployment. No real customer test bookings/messages or synthetic notification sends are created during acceptance. QA uses disposable PostgreSQL and fake delivery transports only.
 
-KTV Nguyet:
-- ZALO_NGUYET_BOT_TOKEN
-- ZALO_NGUYET_CHAT_IDS
-- ZALO_NGUYET_WEBHOOK_SECRET
+Validation: full BE units and FE tests/build plus seven new isolated PostgreSQL HTTP cases; final counts, source/image/deploy IDs and recipient readiness are recorded in deploy/ktv-zalo-release.json. Backend runner: node test/ktv-zalo-scope-runner.cjs (QA_LOCAL_PORT can select an unused local SSH forwarding port). Frontend tests include guest login preservation, owned inquiry entry and failure retry.
 
-The webhook URLs are:
-- https://api.mocmaria.com/api/v1/zalo/ktv/tien-manh/webhook
-- https://api.mocmaria.com/api/v1/zalo/ktv/tung/webhook
-- https://api.mocmaria.com/api/v1/zalo/ktv/nguyet/webhook
-
-Configure each bot via the Zalo Bot setWebhook API with its own URL and
-secret_token. Never log token-bearing API URLs.
-
-## Recipient enrollment (not automatic)
-
-1. Invite each bot into its intended Zalo group or open its private chat.
-2. Send the exact phrase: Kết nối Mộc Maria
-3. Webhook verifies the header X-Bot-Api-Secret-Token and saves the chat ID
-   only as a pending candidate in app_metadata, under
-   mocmaria.zalo.staff.<slug>.pending.
-4. An operator validates the chat ID and adds it to that bot's CHAT_IDS
-   Kubernetes Secret value. Restart backend after updating the secret.
-5. Test one booking and one chat using test accounts. Confirm the distinct
-   six outboxes, privacy-preserving staff payloads, and delivery status.
-
-The bot's token, public invite URL and bot ID are NOT recipient chat IDs.
-Until a CHAT_IDS value is approved and configured, the bot cannot receive
-automated notifications.
-
-## Production safety
-
-- Outboxes for old admin bots can contain customer contact details: avoid
-  dumping app_metadata.value in production logs.
-- Keep each webhook secret distinct; a webhook only stores pending IDs and
-  must never auto-subscribe an unverified group.
-- Tokens supplied in conversation should be rotated after integration.
-- Do not bypass the backend quality/security gate merely to activate bots.
+No new database migration. Public RAM cache/flags, existing bank QR, chat Web Push, Redis queue and other tenants remain intact. Runtime rollout must use a scoped container image/env patch and retain the current RollingUpdate strategy. Release source must be an ancestor of main; record exact digest, CI and live versions. Rollback restores the previous image and dedicated env bindings, preserving all other environment values.

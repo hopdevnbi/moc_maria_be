@@ -398,6 +398,8 @@ export class KtvChatService {
           eventId: message.id,
           customerName: contact.customerName,
           providerName: contact.providerName,
+          providerId: thread.provider_application_id,
+          threadId,
           senderRole: thread.customer_user_id === actor.id ? 'customer' : 'provider',
           messageBody: privacy?.isProtected ? undefined : message.body,
           chatPrivacyProtected: privacy?.isProtected ?? false,

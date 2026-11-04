@@ -4,203 +4,174 @@ import { alertText, ZaloAlertsService, type ZaloAlert } from './zalo-alerts.serv
 import { STAFF_ZALO_BOTS, staffOutboxPrefix, ZaloKtvBotsService } from './zalo-ktv-bots.service';
 import { ZaloHoanAlertsService } from './zalo-hoan-alerts.service';
 import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
+import { privateZaloText } from './zalo-message-privacy';
 
-describe('KTV Zalo bots keep customer contact information private', () => {
-  const inquiry: ZaloAlert = {
-    kind: 'inquiry',
-    eventId: 'booking-123',
-    customerName: 'Chị Mai',
-    customerPhone: '0912345678',
-    customerEmail: 'mai@example.com',
-    providerName: 'Bác sĩ Tiến Mạnh',
-    providerPhone: '0987654321',
-    providerEmail: 'ktv@example.com',
-    serviceName: 'Massage body',
-  };
-
-  const variables = new Map([
-    ['NODE_ENV', 'test'],
-    ['ZALO_BOT_TOKEN', 'primary-test-token'],
-    ['ZALO_ADMIN_CHAT_IDS', 'admin-1'],
-    ['ZALO_LINH_DAN_BOT_TOKEN', 'linh-dan-test-token'],
-    ['ZALO_LINH_DAN_CHAT_IDS', 'dan-1'],
-    ['ZALO_HOAN_BOT_TOKEN', 'hoan-test-token'],
-    ['ZALO_HOAN_CHAT_IDS', 'hoan-1'],
-    ['ZALO_TIEN_MANH_BOT_TOKEN', 'manh-test-token'],
-    ['ZALO_TIEN_MANH_CHAT_IDS', 'manh-1,manh-1,bad/id'],
-    ['ZALO_TUNG_BOT_TOKEN', 'tung-test-token'],
-    ['ZALO_TUNG_CHAT_IDS', 'tung-1'],
-    ['ZALO_NGUYET_BOT_TOKEN', 'nguyet-test-token'],
-    ['ZALO_NGUYET_CHAT_IDS', 'nguyet-1'],
-  ]);
-
-  function setup(values = variables): {
-    staff: ZaloKtvBotsService;
-    main: ZaloAlertsService;
-    query: jest.Mock<Promise<unknown[]>, [string, string[]]>;
-    manager: EntityManager;
-  } {
-    const config = { get: (name: string): string | undefined => values.get(name) } as ConfigService;
-    const query = jest.fn<Promise<unknown[]>, [string, string[]]>().mockResolvedValue([]);
-    const db = { query } as unknown as DataSource;
-    const staff = new ZaloKtvBotsService(db, config);
-    const main = new ZaloAlertsService(
-      db,
-      config,
-      new ZaloLinhDanAlertsService(db, config),
-      new ZaloHoanAlertsService(db, config),
-      staff,
-    );
-    jest.spyOn(main, 'configuredRecipients').mockResolvedValue(['admin-1']);
-    return { staff, main, query, manager: { query } as unknown as EntityManager };
-  }
-
-  it('preserves full contact information for the three established admin bots', () => {
-    const full = alertText(inquiry);
-    expect(full).toContain('0912345678');
-    expect(full).toContain('mai@example.com');
-    expect(full).toContain('0987654321');
-    expect(full).toContain('ktv@example.com');
-  });
-
-  it('removes only customer contact fields from the staff booking payload', () => {
-    const text = alertText(inquiry, { includeCustomerContacts: false });
-    expect(text).not.toContain('0912345678');
-    expect(text).not.toContain('mai@example.com');
-    expect(text).toContain('Bác sĩ Tiến Mạnh');
-    expect(text).toContain('Massage body');
-    expect(text).toContain('0987654321');
-    expect(text).toContain('ktv@example.com');
-    expect(text).toContain('booking-123');
-  });
-
-  it('redacts contacts inside customer-authored chat and display names, without changing the admin body', () => {
-    const alert: ZaloAlert = {
-      ...inquiry,
-      kind: 'chat',
-      senderRole: 'customer',
-      customerName: 'Mai 0912345678 mai@example.com',
-      messageBody: 'Nhắn tôi +84987654321 hoặc mai@example.com, xin cảm ơn',
-    };
-    const original = alertText(alert);
-    const staffText = alertText(alert, { includeCustomerContacts: false });
-    expect(original).toContain('mai@example.com');
-    expect(original).toContain('+84987654321');
-    expect(staffText).not.toContain('0912345678');
-    expect(staffText).not.toContain('+84987654321');
-    expect(staffText).not.toContain('mai@example.com');
-    expect(staffText).toContain('[SĐT ẩn]');
-    expect(staffText).toContain('[email ẩn]');
-    expect(staffText).toContain('xin cảm ơn');
-    expect(staffText).toContain('Mã tin: booking-123');
-  });
-
-  it('redacts customer contact details when a KTV quotes them in a reply', () => {
-    const text = alertText(
-      {
-        ...inquiry,
-        kind: 'chat',
-        senderRole: 'provider',
-        messageBody: 'Khách vừa cung cấp 0912345678 / mai@example.com, đã nhận lịch',
-      },
-      { includeCustomerContacts: false },
-    );
-    expect(text).not.toContain('0912345678');
-    expect(text).not.toContain('mai@example.com');
-    expect(text).toContain('đã nhận lịch');
-  });
-
-  it('continues to conceal messages in password-protected chats', () => {
-    const text = alertText(
-      {
-        ...inquiry,
-        kind: 'chat',
-        senderRole: 'customer',
-        messageBody: 'secret 0912345678',
-        chatPrivacyProtected: true,
-      },
-      { includeCustomerContacts: false },
-    );
-    expect(text).not.toContain('secret');
-    expect(text).not.toContain('0912345678');
-  });
-
-  it('fans out both booking and chat events to six isolated bot outboxes', async () => {
+const manh = '44174274-e46e-418d-a08b-e26ceede49b7';
+const nguyet = '1ddd7a59-3150-4ced-aa5b-052a51f367f9';
+const eventId = 'ab'.repeat(32);
+const inquiry: ZaloAlert = {
+  kind: 'inquiry',
+  eventId,
+  providerId: manh,
+  customerName: 'Khách 0912345678 mai@example.com',
+  customerPhone: '0912345678',
+  customerEmail: 'mai@example.com',
+  providerName: 'Bác sĩ Tiến Mạnh',
+  serviceName: 'Massage body',
+};
+const variables = new Map([
+  ['NODE_ENV', 'test'],
+  ['ZALO_BOT_TOKEN', 'main-test'],
+  ['ZALO_ADMIN_CHAT_IDS', 'admin-1'],
+  ['ZALO_LINH_DAN_BOT_TOKEN', 'dan-test'],
+  ['ZALO_LINH_DAN_CHAT_IDS', 'dan-1'],
+  ['ZALO_HOAN_BOT_TOKEN', 'hoan-test'],
+  ['ZALO_HOAN_CHAT_IDS', 'hoan-1'],
+  ['ZALO_TIEN_MANH_BOT_TOKEN', 'manh-test'],
+  ['ZALO_TIEN_MANH_CHAT_IDS', 'manh-1,manh-1,bad/id'],
+  ['ZALO_TIEN_MANH_PROVIDER_ID', manh],
+  ['ZALO_NGUYET_BOT_TOKEN', 'nguyet-test'],
+  ['ZALO_NGUYET_CHAT_IDS', 'nguyet-1'],
+  ['ZALO_NGUYET_PROVIDER_ID', nguyet],
+]);
+function setup(values = variables): {
+  staff: ZaloKtvBotsService;
+  main: ZaloAlertsService;
+  manager: EntityManager;
+  query: jest.Mock<Promise<unknown[]>, [string, unknown[]]>;
+} {
+  const config = { get: (key: string): string | undefined => values.get(key) } as ConfigService;
+  const query = jest.fn<Promise<unknown[]>, [string, unknown[]]>().mockResolvedValue([]);
+  const db = { query } as unknown as DataSource;
+  const staff = new ZaloKtvBotsService(db, config);
+  const main = new ZaloAlertsService(
+    db,
+    config,
+    new ZaloLinhDanAlertsService(db, config),
+    new ZaloHoanAlertsService(db, config),
+    staff,
+  );
+  jest.spyOn(main, 'configuredRecipients').mockResolvedValue(['admin-1']);
+  return { staff, main, manager: { query } as unknown as EntityManager, query };
+}
+describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
+  it.each([
+    [manh, 'tien-manh', 'manh-1'],
+    [nguyet, 'nguyet', 'nguyet-1'],
+  ])(
+    'sends %s booking only to its own KTV plus all three admin channels',
+    async (providerId, slug, recipient) => {
+      const { main, manager, query } = setup();
+      await main.enqueue(manager, { ...inquiry, providerId });
+      expect(query).toHaveBeenCalledTimes(4);
+      const keys = query.mock.calls.map(([, params]) => params[0]);
+      expect(keys.every((key) => (key as string).length <= 100)).toBe(true);
+      expect(keys.slice(0, 3)).toEqual([
+        expect.stringContaining('mocmaria.zalo.outbox.'),
+        expect.stringContaining('mocmaria.zalo.linh-dan.outbox.'),
+        expect.stringContaining('mocmaria.zalo.hoan.outbox.'),
+      ]);
+      expect(keys[3]).toEqual(expect.stringContaining(`mocmaria.zalo.staff.${slug}.outbox.`));
+      const payload = JSON.parse(query.mock.calls[3][1][1] as string) as {
+        recipient: string;
+        providerId: string;
+        text: string;
+      };
+      expect(payload).toMatchObject({ recipient, providerId });
+      expect(payload.text).toContain('/tin-nhan?inquiry=' + eventId);
+      for (const [, params] of query.mock.calls) {
+        const text = (JSON.parse(params[1] as string) as { text: string }).text;
+        expect(text).not.toContain('0912345678');
+        expect(text).not.toContain('mai@example.com');
+      }
+    },
+  );
+  it('routes inbound customer chat to one KTV with exact thread link and deterministic deduplication', async () => {
     const { main, manager, query } = setup();
-    await main.enqueue(manager, inquiry);
-    await main.enqueue(manager, {
+    const threadId = 'c03e834b-7a53-4f6f-b893-87fd04039bd5';
+    const event: ZaloAlert = {
       ...inquiry,
       kind: 'chat',
       senderRole: 'customer',
-      messageBody: 'Hi',
-    });
-    await main.enqueue(manager, inquiry);
-    expect(query).toHaveBeenCalledTimes(18);
-    const first = query.mock.calls.slice(0, 6);
-    const repeats = query.mock.calls.slice(12, 18);
-    expect(new Set(first.map((call) => call[1][0])).size).toBe(6);
-    expect(repeats.map((call) => call[1][0])).toEqual(first.map((call) => call[1][0]));
-    expect(first[0][1][0]).toContain('mocmaria.zalo.outbox.');
-    expect(first[1][1][0]).toContain('mocmaria.zalo.linh-dan.outbox.');
-    expect(first[2][1][0]).toContain('mocmaria.zalo.hoan.outbox.');
-    for (let index = 0; index < STAFF_ZALO_BOTS.length; index++) {
-      const call = first[index + 3];
-      expect(call[1][0]).toContain(staffOutboxPrefix(STAFF_ZALO_BOTS[index]));
-      expect(call[0]).toContain('ON CONFLICT(key) DO NOTHING');
-      const payload = JSON.parse(call[1][1]) as { text: string; recipient: string };
-      expect(payload.text).not.toContain('0912345678');
-      expect(payload.text).not.toContain('mai@example.com');
-      expect(payload.text).toContain('0987654321');
+      threadId,
+      messageBody: 'Gọi +84 912 345 678, mai@example.com',
+    };
+    await main.enqueue(manager, event);
+    await main.enqueue(manager, event);
+    expect(query).toHaveBeenCalledTimes(8);
+    expect(query.mock.calls[3][1][0]).toBe(query.mock.calls[7][1][0]);
+    const text = (JSON.parse(query.mock.calls[3][1][1] as string) as { text: string }).text;
+    expect(text).toContain('/tin-nhan?thread=' + threadId);
+    expect(text).not.toContain('+84 912 345 678');
+    expect(text).not.toContain('mai@example.com');
+  });
+  it('keeps outgoing KTV replies and unknown providers on admin channels only', async () => {
+    const { main, manager, query } = setup();
+    await main.enqueue(manager, { ...inquiry, kind: 'chat', senderRole: 'provider' });
+    await main.enqueue(manager, { ...inquiry, providerId: 'other-provider' });
+    await main.enqueue(manager, { ...inquiry, providerId: undefined });
+    expect(query).toHaveBeenCalledTimes(9);
+    expect(query.mock.calls.every(([, p]) => !(p[0] as string).includes('.staff.'))).toBe(true);
+  });
+  it('fails closed if recipient or provider binding is absent', async () => {
+    for (const missing of [
+      'ZALO_TIEN_MANH_CHAT_IDS',
+      'ZALO_TIEN_MANH_PROVIDER_ID',
+      'ZALO_TIEN_MANH_BOT_TOKEN',
+    ]) {
+      const values = new Map(variables);
+      values.delete(missing);
+      const t = setup(values);
+      await t.staff.enqueue(t.manager, eventId, 'hello', 'inquiry', manh);
+      expect(t.query).not.toHaveBeenCalled();
     }
-    expect(JSON.parse(first[0][1][1]) as { text: string }).toMatchObject({
-      text: expect.stringContaining('0912345678') as string,
-    });
   });
-
-  it('does not enqueue for a staff bot without a token or approved chat IDs', async () => {
-    const values = new Map([
-      ['NODE_ENV', 'test'],
-      ['ZALO_TUNG_BOT_TOKEN', 'test-token'],
-    ]);
-    const { staff, manager, query } = setup(values);
-    await staff.enqueue(manager, 'booking-123', 'Private details withheld');
-    expect(query).not.toHaveBeenCalled();
+  it('never exposes password protected chat excerpts', () => {
+    const text = alertText(
+      { ...inquiry, kind: 'chat', messageBody: 'secret@example.com', chatPrivacyProtected: true },
+      { audience: 'ktv' },
+    );
+    expect(text).toContain('Hội thoại được bảo vệ');
+    expect(text).not.toContain('secret@example.com');
   });
-
-  it('sends an isolated outbox to its configured recipient only', async () => {
-    const values = new Map([
-      ['NODE_ENV', 'test'],
-      ['ZALO_TUNG_BOT_TOKEN', 'fake-test-token'],
-      ['ZALO_TUNG_CHAT_IDS', 'tung-1'],
-    ]);
-    const { staff, query } = setup(values);
-    const send = jest.spyOn(global, 'fetch').mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ ok: true }),
-    } as Response);
+  it('redacts legacy pending delivery bodies and keeps validated internal UUID links intact', () => {
+    const text = privateZaloText(
+      'Khách: Mai\nSĐT khách: 0912345678\nEmail: mai@example.com\n  Call +1 (202) 555-0123\nhttps://mocmaria.com/tin-nhan?inquiry=' +
+        eventId,
+    );
+    expect(text).not.toMatch(/0912345678|mai@example.com|202.*555/);
+    expect(text).toContain('/tin-nhan?inquiry=' + eventId);
+  });
+  it('requires scoped owner identity in the leased delivery query and sanitizes before HTTP', async () => {
+    const { staff, query } = setup();
     query
       .mockResolvedValueOnce([
         {
-          key: staffOutboxPrefix(STAFF_ZALO_BOTS[1]) + 'key',
+          key: staffOutboxPrefix(STAFF_ZALO_BOTS[0]) + 'a',
           value: {
-            recipient: 'tung-1',
-            text: 'Private details withheld',
-            status: 'pending',
+            providerId: manh,
+            recipient: 'manh-1',
+            text: 'phone 0912345678 mai@example.com',
             attempts: 0,
           },
         },
       ])
       .mockResolvedValue([]);
+    const send = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ ok: true }) } as Response);
     try {
       await staff.drain();
+      expect(query.mock.calls[0][0]).toContain("value->>'providerId'=$4");
+      expect(query.mock.calls[0][1][3]).toBe(manh);
       expect(send).toHaveBeenCalledTimes(1);
-      const init = send.mock.calls[0][1];
-      if (!init) throw new Error('Expected Zalo POST request options');
-      expect(JSON.parse(init.body as string)).toEqual({
-        chat_id: 'tung-1',
-        text: 'Private details withheld',
-      });
-      expect(query.mock.calls[0][1][0]).toContain(staffOutboxPrefix(STAFF_ZALO_BOTS[1]));
+      const body = JSON.parse(send.mock.calls[0][1]!.body as string) as {
+        chat_id: string;
+        text: string;
+      };
+      expect(body.chat_id).toBe('manh-1');
+      expect(body.text).not.toContain('0912345678');
+      expect(body.text).not.toContain('mai@example.com');
     } finally {
       send.mockRestore();
     }

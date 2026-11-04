@@ -361,6 +361,7 @@ export class CustomerExperienceService {
         customerPhone: actor.phone,
         customerEmail: actor.email,
         providerName: value.providerName,
+        providerId: value.providerId,
         providerPhone: receiver.providerPhone,
         providerEmail: receiver.providerEmail,
         serviceName: value.serviceName,

@@ -4,11 +4,13 @@ import {
   ForbiddenException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { DataSource, EntityManager } from 'typeorm';
 import { randomUUID, createHash } from 'node:crypto';
 import { PERMISSIONS } from '../identity/identity.constants';
 import { KtvChatService } from '../ktv-chat/ktv-chat.service';
+import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 import type { AuthUserContext } from '../identity/identity.types';
 import { AuditLog } from '../identity/entities/audit-log.entity';
 import type { Inquiry } from './experience.service';
@@ -68,6 +70,7 @@ export class AdminAppointmentInquiriesService {
   constructor(
     private readonly db: DataSource,
     private readonly chat: KtvChatService = {} as KtvChatService,
+    @Optional() private readonly zaloAlerts?: ZaloAlertsService,
   ) {}
 
   private superAdmin(actor: AuthUserContext): void {
@@ -402,6 +405,14 @@ export class AdminAppointmentInquiriesService {
         inquiryKey(id),
         JSON.stringify(record),
       ]);
+      await this.zaloAlerts?.enqueue(m, {
+        kind: 'inquiry',
+        eventId: id,
+        customerName: customer.display_name,
+        providerId: dto.providerId,
+        providerName: selected.publicName,
+        serviceName: service.name,
+      });
       await m.save(AuditLog, {
         event: 'appointment.inquiry.admin_created',
         actorUserId: actor.id,

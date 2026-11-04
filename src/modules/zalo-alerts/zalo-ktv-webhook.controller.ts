@@ -13,11 +13,12 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { DataSource } from 'typeorm';
 import { staffBotBySlug, staffPendingPrefix } from './zalo-ktv-bots.service';
+import { redactCustomerContacts } from './zalo-message-privacy';
 
 type BotEvent = {
   event_name?: string;
   message?: {
-    from?: { is_bot?: boolean };
+    from?: { id?: string; display_name?: string; is_bot?: boolean };
     chat?: { id?: string; chat_type?: string };
     text?: string;
   };
@@ -53,7 +54,8 @@ export class ZaloKtvWebhookController {
       event?.event_name !== 'message.text.received' ||
       msg?.from?.is_bot === true ||
       typeof msg?.text !== 'string' ||
-      !['PRIVATE', 'GROUP'].includes(msg?.chat?.chat_type ?? '') ||
+      msg?.chat?.chat_type !== 'PRIVATE' ||
+      msg.from?.id !== chatId ||
       !/^[A-Za-z0-9._-]{1,160}$/.test(chatId) ||
       msg.text.trim().normalize('NFC') !== 'Kết nối Mộc Maria'
     )
@@ -70,7 +72,8 @@ export class ZaloKtvWebhookController {
         key,
         JSON.stringify({
           chatId,
-          chatType: msg.chat!.chat_type,
+          chatType: msg.chat.chat_type,
+          senderName: redactCustomerContacts(msg.from?.display_name ?? '').slice(0, 160),
           receivedAt: new Date().toISOString(),
         }),
       ],

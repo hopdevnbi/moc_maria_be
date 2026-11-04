@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
+import { privateZaloText } from './zalo-message-privacy';
 
 // These are separate BOT identities, not a shared super-admin recipient list.
 // Never place a token, chat ID or webhook secret in source code.
@@ -22,6 +23,7 @@ export const staffPendingPrefix = (bot: StaffZaloBot): string =>
   `mocmaria.zalo.staff.${bot.slug}.pending.`;
 
 type Delivery = {
+  providerId?: string;
   recipient: string;
   text: string;
   status: 'pending' | 'sent' | 'failed';
@@ -43,7 +45,7 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
     private readonly config: ConfigService,
   ) {}
 
-  private settings(bot: StaffZaloBot): { token: string; recipients: string[] } {
+  private settings(bot: StaffZaloBot): { token: string; recipients: string[]; providerId: string } {
     const token = this.config.get<string>(bot.env + '_BOT_TOKEN')?.trim() || '';
     const recipients = [
       ...new Set(
@@ -53,7 +55,8 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
           .filter((id) => /^[A-Za-z0-9._-]{1,160}$/.test(id)),
       ),
     ];
-    return { token, recipients };
+    const providerId = this.config.get<string>(bot.env + '_PROVIDER_ID')?.trim() || '';
+    return { token, recipients, providerId };
   }
 
   onModuleInit(): void {
@@ -75,19 +78,33 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
     eventId: string,
     text: string,
     kind: 'inquiry' | 'chat' = 'inquiry',
+    providerId?: string,
+    senderRole?: 'customer' | 'provider',
   ): Promise<void> {
+    // No identity or outgoing KTV reply can fall through to a broadcast.
+    if (!providerId || (kind === 'chat' && senderRole !== 'customer')) return;
     for (const bot of STAFF_ZALO_BOTS) {
-      const { token, recipients } = this.settings(bot);
-      if (!token || !recipients.length) continue;
+      const { token, recipients, providerId: owner } = this.settings(bot);
+      if (!token || !recipients.length || owner !== providerId) continue;
       for (const recipient of recipients) {
         const key =
           staffOutboxPrefix(bot) +
-          createHash('sha256').update(`${kind}:${eventId}:${recipient}`).digest('hex');
+          // app_metadata.key is varchar(100); the longest bot prefix needs headroom.
+          createHash('sha256').update(`${kind}:${eventId}:${recipient}`).digest('hex').slice(0, 56);
         await manager.query(
           `INSERT INTO app_metadata(key,value)
            VALUES($1,$2::jsonb||jsonb_build_object('nextAt',clock_timestamp()))
            ON CONFLICT(key) DO NOTHING`,
-          [key, JSON.stringify({ recipient, text, status: 'pending', attempts: 0 })],
+          [
+            key,
+            JSON.stringify({
+              providerId,
+              recipient,
+              text: privateZaloText(text),
+              status: 'pending',
+              attempts: 0,
+            }),
+          ],
         );
       }
     }
@@ -111,8 +128,8 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async drainBot(bot: StaffZaloBot): Promise<void> {
-    const { token, recipients } = this.settings(bot);
-    if (!token || !recipients.length) return;
+    const { token, recipients, providerId } = this.settings(bot);
+    if (!token || !recipients.length || !providerId) return;
     for (let i = 0; i < 10; i++) {
       const lease = randomUUID();
       const [row] = await this.db.query<{ key: string; value: Delivery }[]>(
@@ -120,13 +137,14 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
           SELECT key FROM app_metadata WHERE key LIKE $1 AND value->>'status'='pending'
             AND (value->>'nextAt')::timestamptz<=clock_timestamp()
             AND value->>'recipient'=ANY($3::text[])
+            AND value->>'providerId'=$4
           ORDER BY updated_at FOR UPDATE SKIP LOCKED LIMIT 1
         ), claimed AS (
           UPDATE app_metadata m SET value=m.value||jsonb_build_object('lease',$2::text,
             'nextAt',clock_timestamp()+interval '60 seconds'),updated_at=clock_timestamp()
           FROM candidate c WHERE m.key=c.key RETURNING m.key,m.value
         ) SELECT key,value FROM claimed`,
-        [staffOutboxPrefix(bot) + '%', lease, recipients],
+        [staffOutboxPrefix(bot) + '%', lease, recipients, providerId],
       );
       if (!row) break;
 
@@ -136,7 +154,10 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
         const response = await fetch(`https://bot-api.zaloplatforms.com/bot${token}/sendMessage`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ chat_id: row.value.recipient, text: row.value.text }),
+          body: JSON.stringify({
+            chat_id: row.value.recipient,
+            text: privateZaloText(row.value.text),
+          }),
           signal: AbortSignal.timeout(8000),
         });
         const result = (await response.json()) as {
