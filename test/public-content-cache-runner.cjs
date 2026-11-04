@@ -166,7 +166,9 @@ async function main() {
         '--config',
         'test/jest-e2e.json',
         '--runInBand',
-        'test/public-content-cache.e2e-spec.ts',
+        ...(process.env.PUBLIC_CACHE_QA_FULL_SUITE === 'true'
+          ? []
+          : ['test/public-content-cache.e2e-spec.ts']),
       ],
       env,
     );
