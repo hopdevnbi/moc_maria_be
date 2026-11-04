@@ -1,0 +1,79 @@
+{
+  "date": "2026-11-04",
+  "status": "CODE_DEPLOYED_WEBHOOK_READY_AWAITING_KTV_PAIRING",
+  "source": "af25f67bef70637446074fc4aca6f2c93ddde563",
+  "frontendSource": "91508972c8a86558c9ccb01daf4a9ee0fbe8e9a5",
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:0502fa999d47536ecb6a717c93939182ad64b8fadddd81cd62ece56777c9d2e0",
+  "backendQuality": 41806391714,
+  "backendQualityState": "SUCCESS",
+  "backendImageCI": 41806391657,
+  "frontendDeployment": "dpl_9toVYfmRUfq9HtmozVaDsLEVyuGg",
+  "frontendDeploymentState": "READY",
+  "frontendInitialQuality": 41806805036,
+  "frontendInitialQualityState": "367tests/typecheck/format/lint PASS;build failed in existing next/font Google URL parser;fresh evidence validation requested via main",
+  "tests": {
+    "backendUnits": 296,
+    "frontendTests": 367,
+    "isolatedPostgresHTTP": 7,
+    "frontendChatAndEntryTests": 39
+  },
+  "rollout": {
+    "source": "af25f67bef70637446074fc4aca6f2c93ddde563",
+    "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:0502fa999d47536ecb6a717c93939182ad64b8fadddd81cd62ece56777c9d2e0",
+    "environmentPreserved": true,
+    "existingAdminBindingsPreserved": true,
+    "cacheFlagPreserved": true,
+    "replicas": 1,
+    "strategy": "RollingUpdate"
+  },
+  "webhooks": [
+    {
+      "slug": "nguyet",
+      "webhookRegistered": true,
+      "verification": "webhook.ok",
+      "capturedPairingForwarded": false,
+      "recipientsConfigured": false
+    },
+    {
+      "slug": "tien-manh",
+      "webhookRegistered": true,
+      "verification": "webhook.ok",
+      "capturedPairingForwarded": false,
+      "recipientsConfigured": false
+    }
+  ],
+  "existingAdminRecipientCounts": {
+    "primary": 1,
+    "hoan": 1,
+    "linhDan": 1
+  },
+  "staff": [
+    {
+      "slug": "nguyet",
+      "providerId": "1ddd7a59-3150-4ced-aa5b-052a51f367f9",
+      "role": "THERAPIST only",
+      "applicationStatus": "APPLIED unchanged",
+      "tokenConfigured": true,
+      "webhookConfigured": true,
+      "recipientCount": 0,
+      "pendingCandidates": 0
+    },
+    {
+      "slug": "tien-manh",
+      "providerId": "44174274-e46e-418d-a08b-e26ceede49b7",
+      "role": "THERAPIST only",
+      "applicationStatus": "APPLIED unchanged",
+      "tokenConfigured": true,
+      "webhookConfigured": true,
+      "recipientCount": 0,
+      "pendingCandidates": 0
+    }
+  ],
+  "migrations": "29 already applied;no schema changes in Zalo work",
+  "routing": "Exact provider binding for customer-created/admin-created inquiries and inbound customer chats;KTV replies do not self-notify;3 existing admin channels retained",
+  "privacy": "Phone/email excluded from all new payloads and sanitized before all4senderHTTP calls including older pending messages;protected excerpts withheld",
+  "chatLink": "Actual64hex inquiry locator authenticated to assigned KTV only,existing thread UUID for messages;anonymous login retains locator",
+  "businessData": "No production customer booking/chat/test notifications or role changes. Dedicated2Secrets+8deploymentenvrefs+2Zalowebhookregistrations only;no recipient set without intended KTV pairing.",
+  "cache": "Existing RAM/Next flag remains true;servicesHIT;queueRedis/GiangXa unchanged",
+  "report": "docs/ZALO_STAFF_BOTS.md"
+}

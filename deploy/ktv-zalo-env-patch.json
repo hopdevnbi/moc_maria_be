@@ -1,0 +1,97 @@
+{
+  "metadata": {
+    "name": "moc-maria-api",
+    "namespace": "moc-maria"
+  },
+  "spec": {
+    "template": {
+      "metadata": {
+        "annotations": {
+          "mocmaria.com/source-sha": "af25f67bef70637446074fc4aca6f2c93ddde563"
+        }
+      },
+      "spec": {
+        "containers": [
+          {
+            "name": "api",
+            "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:0502fa999d47536ecb6a717c93939182ad64b8fadddd81cd62ece56777c9d2e0",
+            "env": [
+              {
+                "name": "ZALO_NGUYET_BOT_TOKEN",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-zalo-nguyet",
+                    "key": "token"
+                  }
+                }
+              },
+              {
+                "name": "ZALO_NGUYET_CHAT_IDS",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-zalo-nguyet",
+                    "key": "chat-ids"
+                  }
+                }
+              },
+              {
+                "name": "ZALO_NGUYET_PROVIDER_ID",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-zalo-nguyet",
+                    "key": "provider-id"
+                  }
+                }
+              },
+              {
+                "name": "ZALO_NGUYET_WEBHOOK_SECRET",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-zalo-nguyet",
+                    "key": "webhook-secret"
+                  }
+                }
+              },
+              {
+                "name": "ZALO_TIEN_MANH_BOT_TOKEN",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-zalo-tien-manh",
+                    "key": "token"
+                  }
+                }
+              },
+              {
+                "name": "ZALO_TIEN_MANH_CHAT_IDS",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-zalo-tien-manh",
+                    "key": "chat-ids"
+                  }
+                }
+              },
+              {
+                "name": "ZALO_TIEN_MANH_PROVIDER_ID",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-zalo-tien-manh",
+                    "key": "provider-id"
+                  }
+                }
+              },
+              {
+                "name": "ZALO_TIEN_MANH_WEBHOOK_SECRET",
+                "valueFrom": {
+                  "secretKeyRef": {
+                    "name": "moc-maria-zalo-tien-manh",
+                    "key": "webhook-secret"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}
