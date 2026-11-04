@@ -58,6 +58,14 @@ export class StaffAttendance1793836800000 implements MigrationInterface {
     await queryRunner.query(
       'CREATE INDEX "idx_staff_coin_ledger_user_created" ON "staff_coin_ledger" ("user_id", "created_at" DESC)',
     );
+
+    // Staff location, selfie, and wallet data must not be exposed via Supabase Data API.
+    // The backend connects as the table owner or a role with BYPASSRLS.
+    for (const table of ['staff_check_ins', 'staff_coin_wallets', 'staff_coin_ledger']) {
+      await queryRunner.query(`ALTER TABLE "${table}" ENABLE ROW LEVEL SECURITY`);
+      // PUBLIC includes every DB role; REVOKE does not affect ownership rights.
+      await queryRunner.query(`REVOKE ALL ON TABLE "${table}" FROM PUBLIC, anon, authenticated`);
+    }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
