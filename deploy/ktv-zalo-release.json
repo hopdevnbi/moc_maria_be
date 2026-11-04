@@ -75,5 +75,14 @@
   "chatLink": "Actual64hex inquiry locator authenticated to assigned KTV only,existing thread UUID for messages;anonymous login retains locator",
   "businessData": "No production customer booking/chat/test notifications or role changes. Dedicated2Secrets+8deploymentenvrefs+2Zalowebhookregistrations only;no recipient set without intended KTV pairing.",
   "cache": "Existing RAM/Next flag remains true;servicesHIT;queueRedis/GiangXa unchanged",
-  "report": "docs/ZALO_STAFF_BOTS.md"
+  "report": "docs/ZALO_STAFF_BOTS.md",
+  "frontendMain": "3fc6fba92c2261f7526db755ee87c15736819c47",
+  "frontendFinalQuality": 41807526200,
+  "frontendFinalQualityState": "SUCCESS",
+  "frontendFinalDeployment": "dpl_H6xdMoi5Fx4cVG3ZFHrGPtsUcPUA",
+  "frontendFinalDeploymentState": "READY",
+  "backendOpsQuality": 41807550778,
+  "backendOpsQualityState": "SUCCESS",
+  "browser": "Production inquiry prompt and login URL preserve64hex inquiry;existing browser session may restore;no credentials entered,no real inquiry thread created",
+  "recipientReadiness": "Both recipientCount0 and no pending candidate as of final polling;awaiting intended KTV private phrase before enabling delivery"
 }
