@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PublicCacheModule } from './shared/public-cache/public-cache.module';
 import { ProviderWorkspaceModule } from './modules/provider-workspace/provider-workspace.module';
 import { ZaloAlertsModule } from './modules/zalo-alerts/zalo-alerts.module';
 import { KtvSafetyModule } from './modules/ktv-safety/safety.module';
@@ -34,6 +35,7 @@ import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.
     ApplicationLoggingModule,
     AdminAlertsModule,
     DatabaseModule,
+    PublicCacheModule,
     HealthModule,
     AuthModule,
     AdminUsersModule,
