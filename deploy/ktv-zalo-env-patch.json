@@ -7,14 +7,14 @@
     "template": {
       "metadata": {
         "annotations": {
-          "mocmaria.com/source-sha": "af25f67bef70637446074fc4aca6f2c93ddde563"
+          "mocmaria.com/source-sha": "c8678245e558843bae0f6dcf96865837e8277c6a"
         }
       },
       "spec": {
         "containers": [
           {
             "name": "api",
-            "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:0502fa999d47536ecb6a717c93939182ad64b8fadddd81cd62ece56777c9d2e0",
+            "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:257d8c287205d09864034f3adfd66de50bc3fc57134d0d1a9f0405420b7b8e12",
             "env": [
               {
                 "name": "ZALO_NGUYET_BOT_TOKEN",
