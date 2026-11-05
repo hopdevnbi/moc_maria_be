@@ -16,6 +16,11 @@ export class StartSafetyDto {
   @Equals(true) consent!: boolean;
   @IsISO8601() expectedCheckAt!: string;
 }
+/** An explicit, time-limited work-shift route session, independent of customer bookings. */
+export class StartShiftTrackingDto {
+  @Equals(true) consent!: boolean;
+  @IsISO8601() expectedCheckAt!: string;
+}
 export class SafetyPointDto {
   @IsNumber() @Min(-90) @Max(90) latitude!: number;
   @IsNumber() @Min(-180) @Max(180) longitude!: number;
@@ -23,8 +28,8 @@ export class SafetyPointDto {
   @IsISO8601() recordedAt!: string;
 }
 export class SafetyActionDto {
-  @IsEnum(['PAUSE', 'RESUME', 'ARRIVED', 'FINISH', 'STOP', 'SOS']) action!:
-    'PAUSE' | 'RESUME' | 'ARRIVED' | 'FINISH' | 'STOP' | 'SOS';
+  @IsEnum(['PAUSE', 'RESUME', 'ARRIVED', 'CHECK', 'FINISH', 'STOP', 'SOS']) action!:
+    'PAUSE' | 'RESUME' | 'ARRIVED' | 'CHECK' | 'FINISH' | 'STOP' | 'SOS';
   @IsOptional() @IsInt() @Min(15) @Max(240) checkAfterMinutes?: number;
 }
 export class SafetyIncidentDto {

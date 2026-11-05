@@ -6,6 +6,11 @@ export interface SafetyPoint {
   recordedAt: string;
   receivedAt: string;
 }
+/** Short-lived, encrypted route samples; never exposed outside the Super Admin monitor. */
+export type SafetyTrailPoint = Pick<
+  SafetyPoint,
+  'latitude' | 'longitude' | 'accuracy' | 'recordedAt'
+>;
 export interface SafetyVisit {
   customerName: string;
   serviceName: string;
@@ -15,8 +20,11 @@ export interface SafetySession {
   id: string;
   providerUserId: string;
   providerName: string;
-  inquiryId: string;
-  consentVersion: '2026-10-v1';
+  inquiryId?: string;
+  purpose?: 'VISIT' | 'SHIFT';
+  /** Legacy sessions have no route consent and must never collect a trail. */
+  routeConsent?: boolean;
+  consentVersion: '2026-10-v1' | '2026-11-route-v1';
   startedAt: string;
   expiresAt: string;
   expectedCheckAt: string;
@@ -26,6 +34,7 @@ export interface SafetySession {
   sealedVisit?: string;
   sealedPoint?: string;
   pointRecordedAt?: string;
+  sealedTrail?: string;
   sos?: {
     id: string;
     status: 'OPEN' | 'ACKNOWLEDGED' | 'RESOLVED';
@@ -69,6 +78,7 @@ export function maintain(s: SafetySession, now = Date.now()): SafetySession {
     delete s.sos.pointRecordedAt;
   }
   if (s.endedAt && now - Date.parse(s.endedAt) > 86400000) delete s.sealedVisit;
+  if (s.endedAt && now - Date.parse(s.endedAt) > 86400000) delete s.sealedTrail;
   return s;
 }
 export function seal(value: unknown, key: Buffer, context: string): string {

@@ -75,3 +75,51 @@ describe('Safety privacy and freshness', () => {
     expect(s.sos?.sealedPoint).toBe('SOS');
   });
 });
+
+describe('Explicit KTV route retention', () => {
+  const secret = randomBytes(32);
+  const instant = Date.UTC(2026, 10, 5, 10);
+  function finished(endedAt: number): SafetySession {
+    return {
+      id: 'route-test',
+      providerUserId: 'provider',
+      providerName: 'KTV',
+      purpose: 'SHIFT',
+      routeConsent: true,
+      consentVersion: '2026-11-route-v1',
+      startedAt: new Date(instant - 4 * 3600000).toISOString(),
+      expiresAt: new Date(instant + 4 * 3600000).toISOString(),
+      expectedCheckAt: new Date(instant - 3600000).toISOString(),
+      status: 'FINISHED',
+      sharing: false,
+      endedAt: new Date(endedAt).toISOString(),
+      sealedTrail: seal(
+        [
+          {
+            latitude: 21.01,
+            longitude: 105.8,
+            accuracy: 10,
+            recordedAt: new Date(instant).toISOString(),
+          },
+        ],
+        secret,
+        'route-test:trail',
+      ),
+    };
+  }
+  it('encrypts route samples with per-session context and rejects a different context', () => {
+    const s = finished(instant);
+    expect(s.sealedTrail).not.toContain('21.01');
+    const trail = unseal<Array<{ latitude: number }>>(s.sealedTrail!, secret, 'route-test:trail');
+    expect(trail[0].latitude).toBe(21.01);
+    expect(() => unseal(s.sealedTrail!, secret, 'another-route:trail')).toThrow();
+  });
+  it('removes completed routes 24 hours after the session ends', () => {
+    const recent = finished(instant - 23 * 3600000);
+    maintain(recent, instant);
+    expect(recent.sealedTrail).toBeDefined();
+    const expired = finished(instant - 25 * 3600000);
+    maintain(expired, instant);
+    expect(expired.sealedTrail).toBeUndefined();
+  });
+});

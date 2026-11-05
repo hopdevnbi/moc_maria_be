@@ -27,3 +27,15 @@ COMMIT: https://github.com/hopdevnbi/moc_maria_fe/pull/24; https://github.com/ho
 DEPLOY: Vercel production 6978653776; ghcr.io/hopdevnbi/moc_maria_be@sha256:fba61122bf79d31da44e10f1447fd86f4575359214832ec7efb006b926116782
 BUSINESS_DATA: No production safety sessions, GPS points, SOS alerts, bookings, approvals or public reviews created. Dedicated production encryption key stored in Kubernetes Secret only. Safety feature requires no new schema migration.
 LIMITATIONS: Web GPS needs visible foreground page; native background tracking is future work. SOS needs network and an on-duty operator, no automatic calls/SMS. Real device GPS was not enabled during QA. OSM tiles unreachable from QA machine network; fallback coordinates/stale status verified, map background availability not verified. Existing internal seed/database IDs preserved.
+
+## Extension: opted-in KTV route / work-shift tracking (2026-11-05, local implementation)
+
+The original October release intentionally saved only the latest point. That behavior remains unchanged for older sessions (consentVersion 2026-10-v1). NEW KTV sessions explicitly disclose route retention and use consentVersion 2026-11-route-v1. No route tracking is retroactive.
+
+- `POST /ktv-safety/shift` accepts explicit consent and a future reminder time, and creates a time-limited KTV work-shift session without a customer appointment. Only active THERAPIST / DOCTOR_CONSULTANT roles can start, update or stop their own session.
+- New home-visit sessions also require updated route-specific consent. Only one active visit or shift session may exist per KTV.
+- Route samples are encrypted with the existing dedicated KTV safety key, max 960 points (~30-second samples); implausibly inaccurate fixes (>150m) are not added to the trail. Latest point and route are encrypted at rest.
+- Only the authenticated, active SUPER_ADMIN monitor may receive a decrypted `trail` array; the KTV's own APIs do NOT return the route and customer APIs cannot access the monitor. Every monitor access is audited, with rate-limited audit entries.
+- Pause stops updates immediately, and removes the live fix; previously shared route stays available. STOP irrevocably deletes the route immediately. FINISH retains the route for at most 24 hours, then the existing maintenance cleanup removes it. Old sessions never acquire a trail.
+- The admin check-in screen exposes a dedicated tracking tab, route lines, per-KTV selection, latest GPS quality and SOS. Web/PWA requires a visible foreground page. This is NOT native background tracking.
+- These changes are local until separately released; the 2026-10-10 production release evidence above is historical and does not attest to this extension.

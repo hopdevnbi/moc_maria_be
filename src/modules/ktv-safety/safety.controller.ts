@@ -12,7 +12,13 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AccessTokenGuard } from '../auth/guards/access-token.guard';
 import type { AuthUserContext } from '../identity/identity.types';
 import { KtvSafetyService } from './safety.service';
-import { SafetyActionDto, SafetyIncidentDto, SafetyPointDto, StartSafetyDto } from './safety.dto';
+import {
+  SafetyActionDto,
+  SafetyIncidentDto,
+  SafetyPointDto,
+  StartSafetyDto,
+  StartShiftTrackingDto,
+} from './safety.dto';
 @Controller('ktv-safety')
 @UseGuards(AccessTokenGuard)
 export class KtvSafetyController {
@@ -32,6 +38,12 @@ export class KtvSafetyController {
     @Body() d: StartSafetyDto,
   ): Promise<unknown> {
     return this.service.start(a, d);
+  }
+  @Post('shift') @Header('Cache-Control', 'private, no-store') startShift(
+    @CurrentUser() a: AuthUserContext,
+    @Body() d: StartShiftTrackingDto,
+  ): Promise<unknown> {
+    return this.service.startShift(a, d);
   }
   @Post(':id/point') @Header('Cache-Control', 'private, no-store') point(
     @CurrentUser() a: AuthUserContext,

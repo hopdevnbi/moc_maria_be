@@ -19,6 +19,7 @@ import type {
   SafetyIncidentDto,
   SafetyPointDto,
   StartSafetyDto,
+  StartShiftTrackingDto,
 } from './safety.dto';
 import {
   active,
@@ -29,8 +30,11 @@ import {
   type SafetySession,
   type SafetyVisit,
   type SafetyPoint,
+  type SafetyTrailPoint,
 } from './safety.model';
 const prefix = 'mocmaria.safety.session.';
+const MAX_TRAIL_POINTS = 960;
+const MIN_TRAIL_SAMPLE_MS = 30000;
 @Injectable()
 export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
   private timer?: NodeJS.Timeout;
@@ -58,11 +62,11 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
   private provider(a: AuthUserContext): void {
-    if (!a.roles.some((r) => r === 'THERAPIST' || r === 'DOCTOR_CONSULTANT'))
+    if (!a.isActive || !a.roles.some((r) => r === 'THERAPIST' || r === 'DOCTOR_CONSULTANT'))
       throw new ForbiddenException('Chỉ KTV được sử dụng chế độ an toàn.');
   }
   private admin(a: AuthUserContext): void {
-    if (!a.roles.includes('SUPER_ADMIN'))
+    if (!a.isActive || !a.roles.includes('SUPER_ADMIN'))
       throw new ForbiddenException('Chỉ super admin được theo dõi an toàn KTV.');
   }
   private async lock(m: EntityManager, key: string): Promise<void> {
@@ -95,12 +99,20 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
       metadata: { sessionId: s.id, ...extra },
     });
   }
-  private visible(s: SafetySession): Record<string, unknown> {
+  private visible(s: SafetySession, includeTrail = false): Record<string, unknown> {
     const clean = maintain(structuredClone(s)),
-      { sealedVisit, sealedPoint, sos, ...v } = clean,
+      { sealedVisit, sealedPoint, sealedTrail, sos, ...v } = clean,
       key = this.key();
     return {
       ...v,
+      ...(includeTrail
+        ? {
+            trail:
+              clean.routeConsent && sealedTrail
+                ? unseal<SafetyTrailPoint[]>(sealedTrail, key, clean.id + ':trail')
+                : [],
+          }
+        : {}),
       locationState: locationState(clean),
       overdue: active(clean) && Date.parse(clean.expectedCheckAt) < Date.now(),
       visit: sealedVisit ? unseal<SafetyVisit>(sealedVisit, key, clean.id + ':visit') : null,
@@ -177,8 +189,51 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
     });
     return {
       serverTime: new Date().toISOString(),
-      sessions: rows.map((r) => this.visible(r.value)),
+      sessions: rows.map((r) => this.visible(r.value, true)),
     };
+  }
+  private async ensureNoActive(m: EntityManager, userId: string): Promise<void> {
+    const [existing] = await m.query<{ value: SafetySession }[]>(
+      `SELECT value FROM app_metadata WHERE key LIKE $1 AND value->>'providerUserId'=$2 AND value->>'status' IN ('TRAVELLING','ARRIVED') AND (value->>'expiresAt')::timestamptz>clock_timestamp() LIMIT 1`,
+      [prefix + '%', userId],
+    );
+    if (existing)
+      throw new ConflictException('Bạn đang có phiên an toàn. Hãy kết thúc phiên hiện tại trước.');
+  }
+  async startShift(a: AuthUserContext, d: StartShiftTrackingDto): Promise<unknown> {
+    this.provider(a);
+    this.key();
+    const now = Date.now();
+    const expected = Date.parse(d.expectedCheckAt);
+    if (
+      !d.consent ||
+      !Number.isFinite(expected) ||
+      expected < now + 60000 ||
+      expected > now + 8 * 3600000
+    )
+      throw new BadRequestException(
+        'Cần đồng ý chia sẻ hành trình và chọn giờ cập nhật trong 8 giờ tới.',
+      );
+    return this.db.transaction(async (m) => {
+      await this.lock(m, 'mocmaria.safety.provider.' + a.id);
+      await this.ensureNoActive(m, a.id);
+      const s: SafetySession = {
+        id: randomUUID(),
+        providerUserId: a.id,
+        providerName: a.displayName,
+        purpose: 'SHIFT',
+        routeConsent: true,
+        consentVersion: '2026-11-route-v1',
+        startedAt: new Date(now).toISOString(),
+        expiresAt: new Date(now + 8 * 3600000).toISOString(),
+        expectedCheckAt: new Date(expected).toISOString(),
+        status: 'TRAVELLING',
+        sharing: true,
+      };
+      await this.save(m, s);
+      await this.audit(m, a, 'shift.started', s);
+      return this.visible(s);
+    });
   }
   async start(a: AuthUserContext, d: StartSafetyDto): Promise<unknown> {
     this.provider(a);
@@ -199,20 +254,15 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
         throw new NotFoundException('Không tìm thấy yêu cầu phục vụ.');
       if (q.location !== 'AT_HOME' || q.status !== 'CONTACTED')
         throw new BadRequestException('Chỉ bật an toàn cho yêu cầu tại nhà đã trao đổi với khách.');
-      const [existing] = await m.query<{ value: SafetySession }[]>(
-        `SELECT value FROM app_metadata WHERE key LIKE $1 AND value->>'providerUserId'=$2 AND value->>'status' IN ('TRAVELLING','ARRIVED') AND (value->>'expiresAt')::timestamptz>clock_timestamp() LIMIT 1`,
-        [prefix + '%', a.id],
-      );
-      if (existing)
-        throw new ConflictException(
-          'Bạn đang có phiên an toàn. Hãy kết thúc phiên hiện tại trước.',
-        );
+      await this.ensureNoActive(m, a.id);
       const s: SafetySession = {
         id: randomUUID(),
         providerUserId: a.id,
         providerName: a.displayName,
         inquiryId: q.id,
-        consentVersion: '2026-10-v1',
+        purpose: 'VISIT',
+        routeConsent: true,
+        consentVersion: '2026-11-route-v1',
         startedAt: new Date(now).toISOString(),
         expiresAt: new Date(now + 8 * 3600000).toISOString(),
         expectedCheckAt: new Date(expected).toISOString(),
@@ -262,6 +312,24 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
       const p: SafetyPoint = { ...d, receivedAt: new Date(now).toISOString() };
       s.sealedPoint = seal(p, this.key(), s.id + ':point');
       s.pointRecordedAt = d.recordedAt;
+      // Routes exist only for sessions started after explicit route-consent. Poor
+      // fixes are not used to draw misleading paths, even if shown as last GPS.
+      if (s.routeConsent && d.accuracy <= 150) {
+        const trail = s.sealedTrail
+          ? unseal<SafetyTrailPoint[]>(s.sealedTrail, this.key(), s.id + ':trail')
+          : [];
+        const previous = trail[trail.length - 1];
+        if (!previous || taken - Date.parse(previous.recordedAt) >= MIN_TRAIL_SAMPLE_MS) {
+          trail.push({
+            latitude: d.latitude,
+            longitude: d.longitude,
+            accuracy: d.accuracy,
+            recordedAt: d.recordedAt,
+          });
+          if (trail.length > MAX_TRAIL_POINTS) trail.splice(0, trail.length - MAX_TRAIL_POINTS);
+          s.sealedTrail = seal(trail, this.key(), s.id + ':trail');
+        }
+      }
     });
   }
   async action(a: AuthUserContext, id: string, d: SafetyActionDto): Promise<unknown> {
@@ -270,7 +338,16 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
       if (d.action === 'PAUSE') s.sharing = false;
       if (d.action === 'RESUME') s.sharing = true;
       if (d.action === 'ARRIVED') {
+        if (s.purpose === 'SHIFT')
+          throw new BadRequestException('Ca làm việc không hỗ trợ trạng thái đến nhà khách.');
         s.status = 'ARRIVED';
+        s.expectedCheckAt = new Date(
+          Math.min(Date.now() + (d.checkAfterMinutes || 120) * 60000, Date.parse(s.expiresAt)),
+        ).toISOString();
+      }
+      if (d.action === 'CHECK') {
+        if (s.purpose !== 'SHIFT')
+          throw new BadRequestException('Thao tác này chỉ áp dụng cho phiên ca làm việc.');
         s.expectedCheckAt = new Date(
           Math.min(Date.now() + (d.checkAfterMinutes || 120) * 60000, Date.parse(s.expiresAt)),
         ).toISOString();
@@ -279,6 +356,9 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
         s.status = d.action === 'FINISH' ? 'FINISHED' : 'STOPPED';
         s.sharing = false;
         s.endedAt = new Date().toISOString();
+        // Stop revokes route sharing immediately. A normal completion retains
+        // the opted-in route for up to 24 hours for shift reconciliation.
+        if (d.action === 'STOP') delete s.sealedTrail;
       }
       if (d.action === 'SOS') {
         if (s.sos && s.sos.status !== 'RESOLVED') return;

@@ -272,4 +272,85 @@ describe('KTV safety isolated PostgreSQL', () => {
     await app.get(KtvSafetyService).sweep();
     expect((await db.query('SELECT key FROM app_metadata WHERE key=$1', [key])).length).toBe(0);
   });
+  it('tracks an explicitly opted-in KTV shift only for Super Admin, with encrypted route and revocation', async () => {
+    const requestBody = {
+      consent: true,
+      expectedCheckAt: new Date(Date.now() + 3600000).toISOString(),
+    };
+    await api().post('/api/v1/ktv-safety/shift').send(requestBody).expect(401);
+    await api(0).post('/api/v1/ktv-safety/shift').send(requestBody).expect(403);
+    await api(1)
+      .post('/api/v1/ktv-safety/shift')
+      .send({ ...requestBody, consent: false })
+      .expect(400);
+    const started = await api(1).post('/api/v1/ktv-safety/shift').send(requestBody).expect(201);
+    const id = started.body.id as string;
+    expect(started.body.purpose).toBe('SHIFT');
+    expect(started.body.trail).toBeUndefined();
+    await api(1)
+      .post('/api/v1/ktv-safety/' + id + '/point')
+      .send(point())
+      .expect(201);
+    const own = await api(1).get('/api/v1/ktv-safety/me').expect(200);
+    expect(own.body.find((s: { id: string }) => s.id === id).trail).toBeUndefined();
+    await api(3).get('/api/v1/ktv-safety/monitor').expect(403);
+    const monitored = await api(2).get('/api/v1/ktv-safety/monitor').expect(200);
+    const session = monitored.body.sessions.find((s: { id: string }) => s.id === id);
+    expect(session.trail).toHaveLength(1);
+    expect(session.trail[0].latitude).toBe(21.01234);
+    await api(1)
+      .post('/api/v1/ktv-safety/' + id + '/action')
+      .send({ action: 'ARRIVED' })
+      .expect(400);
+    const checked = await api(1)
+      .post('/api/v1/ktv-safety/' + id + '/action')
+      .send({ action: 'CHECK', checkAfterMinutes: 120 })
+      .expect(201);
+    expect(Date.parse(checked.body.expectedCheckAt)).toBeGreaterThan(Date.now() + 110 * 60000);
+    const key = 'mocmaria.safety.session.' + id;
+    const [raw] = await db.query<{ value: unknown }[]>(
+      'SELECT value FROM app_metadata WHERE key=$1',
+      [key],
+    );
+    expect(JSON.stringify(raw.value)).not.toContain('21.01234');
+    await api(1)
+      .post('/api/v1/ktv-safety/' + id + '/action')
+      .send({ action: 'PAUSE' })
+      .expect(201);
+    const paused = (await api(2).get('/api/v1/ktv-safety/monitor')).body.sessions.find(
+      (s: { id: string }) => s.id === id,
+    );
+    expect(paused.point).toBeNull();
+    expect(paused.trail).toHaveLength(1);
+    await api(1)
+      .post('/api/v1/ktv-safety/' + id + '/action')
+      .send({ action: 'STOP' })
+      .expect(201);
+    const stopped = (await api(2).get('/api/v1/ktv-safety/monitor')).body.sessions.find(
+      (s: { id: string }) => s.id === id,
+    );
+    expect(stopped.trail).toEqual([]);
+    expect(stopped.point).toBeNull();
+    const finished = await api(1).post('/api/v1/ktv-safety/shift').send(requestBody).expect(201);
+    const completeId = finished.body.id as string;
+    await api(1)
+      .post('/api/v1/ktv-safety/' + completeId + '/point')
+      .send(point())
+      .expect(201);
+    await api(1)
+      .post('/api/v1/ktv-safety/' + completeId + '/action')
+      .send({ action: 'FINISH' })
+      .expect(201);
+    const completeKey = 'mocmaria.safety.session.' + completeId;
+    await db.query(
+      `UPDATE app_metadata SET value=jsonb_set(value,'{endedAt}',to_jsonb($2::text)) WHERE key=$1`,
+      [completeKey, new Date(Date.now() - 2 * 86400000).toISOString()],
+    );
+    await app.get(KtvSafetyService).sweep();
+    const [after] = await db.query<{ value: { sealedTrail?: string } }[]>(
+      'SELECT value FROM app_metadata WHERE key=$1',
+      [completeKey],
+    );
+    expect(after.value.sealedTrail).toBeUndefined();
+  });
 });
