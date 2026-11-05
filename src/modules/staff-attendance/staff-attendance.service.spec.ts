@@ -1,8 +1,14 @@
-import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import type { DataSource, Repository } from 'typeorm';
 import { Branch } from '../catalog/entities/branch.entity';
 import type { AuthUserContext } from '../identity/identity.types';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
+import { AuditLog } from '../identity/entities/audit-log.entity';
 import { StaffCheckIn } from './entities/staff-check-in.entity';
 import { StaffCoinWallet } from './entities/staff-coin-wallet.entity';
 import {
@@ -32,8 +38,9 @@ function setup(
   service: StaffAttendanceService;
   db: { transaction: jest.Mock };
   manager: { query: jest.Mock; getRepository: jest.Mock };
-  attendanceRepo: { create: jest.Mock; save: jest.Mock };
-  ledgerRepo: { insert: jest.Mock };
+  attendanceRepo: { create: jest.Mock; save: jest.Mock; findOne: jest.Mock; remove: jest.Mock };
+  ledgerRepo: { insert: jest.Mock; findOne: jest.Mock; remove: jest.Mock };
+  auditRepo: { save: jest.Mock };
   branches: { findOne: jest.Mock; find: jest.Mock };
   staffProfiles: { findOne: jest.Mock };
 } {
@@ -53,12 +60,21 @@ function setup(
   const attendanceRepo = {
     create: jest.fn((data: object) => data),
     save: jest.fn((data: object) => Promise.resolve({ ...data, id: 'check-in-id' })),
+    findOne: jest.fn(),
+    remove: jest.fn().mockResolvedValue(undefined),
   };
-  const ledgerRepo = { insert: jest.fn().mockResolvedValue({}) };
+  const ledgerRepo = {
+    insert: jest.fn().mockResolvedValue({}),
+    findOne: jest.fn(),
+    remove: jest.fn().mockResolvedValue(undefined),
+  };
+  const auditRepo = { save: jest.fn().mockResolvedValue(undefined) };
   const manager = {
-    getRepository: jest.fn((entity: unknown) =>
-      entity === StaffCheckIn ? attendanceRepo : ledgerRepo,
-    ),
+    getRepository: jest.fn((entity: unknown) => {
+      if (entity === StaffCheckIn) return attendanceRepo;
+      if (entity === AuditLog) return auditRepo;
+      return ledgerRepo;
+    }),
     query: jest.fn().mockResolvedValue([]),
   };
   const db = {
@@ -81,10 +97,101 @@ function setup(
     branches: [],
     policy: {},
   });
-  return { service, db, manager, attendanceRepo, ledgerRepo, branches, staffProfiles };
+  return { service, db, manager, attendanceRepo, ledgerRepo, auditRepo, branches, staffProfiles };
 }
 
 describe('staff attendance', () => {
+  const superAdmin: AuthUserContext = {
+    ...employee,
+    roles: ['SUPER_ADMIN'],
+    permissions: ['staff.manage', 'admin.portal'],
+  };
+  const recordId = 'f2d1138b-895a-40be-b9ce-59cd4637e431';
+  const checkIn = {
+    id: recordId,
+    userId: employee.id,
+    branchId,
+    localDate: '2026-11-05',
+    status: 'IN_RANGE',
+    coinsEarned: 5,
+    selfieUrl: 'https://giangxa-media-cdn.b-cdn.net/moc-maria/staff-attendance/image.webp',
+  };
+
+  it('rejects deletion from KTV/admin without Super Admin and from disabled Super Admin', async () => {
+    const { service, db } = setup(21, 105);
+    for (const actor of [
+      employee,
+      { ...employee, roles: ['ADMIN'] as AuthUserContext['roles'] },
+      { ...superAdmin, isActive: false },
+    ]) {
+      await expect(service.deleteCheckIn(actor, recordId)).rejects.toThrow(ForbiddenException);
+    }
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('atomically undoes earned coins, deletes ledger/check-in and preserves a Super Admin audit trail', async () => {
+    const { service, manager, attendanceRepo, ledgerRepo, auditRepo } = setup(21, 105);
+    attendanceRepo.findOne.mockResolvedValueOnce({ ...checkIn });
+    ledgerRepo.findOne.mockResolvedValueOnce({ checkInId: recordId, amount: 5 });
+    manager.query.mockResolvedValueOnce([{ user_id: employee.id }]);
+    expect(await service.deleteCheckIn(superAdmin, recordId)).toEqual({
+      deleted: true,
+      id: recordId,
+      localDate: '2026-11-05',
+      coinsReversed: 5,
+    });
+    expect(manager.query).toHaveBeenCalledWith(
+      expect.stringContaining('total_earned = total_earned - $2'),
+      [employee.id, 5],
+    );
+    expect(ledgerRepo.remove).toHaveBeenCalledTimes(1);
+    expect(attendanceRepo.remove).toHaveBeenCalledWith(expect.objectContaining({ id: recordId }));
+    expect(auditRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        event: 'staff.attendance.admin_deleted',
+        actorUserId: superAdmin.id,
+        targetUserId: employee.id,
+      }),
+    );
+    const auditCalls = auditRepo.save.mock.calls as unknown as Array<
+      [{ metadata: Record<string, unknown> }]
+    >;
+    expect(auditCalls[0]?.[0].metadata).toMatchObject({
+      checkInId: recordId,
+      coinsReversed: 5,
+      hadSelfie: true,
+    });
+  });
+
+  it('deletes a 0-coin record without modifying wallets and records the action', async () => {
+    const { service, manager, attendanceRepo, ledgerRepo, auditRepo } = setup(21, 105);
+    attendanceRepo.findOne.mockResolvedValueOnce({
+      ...checkIn,
+      status: 'LOCATION_UNAVAILABLE',
+      coinsEarned: 0,
+      selfieUrl: null,
+    });
+    ledgerRepo.findOne.mockResolvedValueOnce(null);
+    const result = await service.deleteCheckIn(superAdmin, recordId);
+    expect(result.coinsReversed).toBe(0);
+    expect(manager.query).not.toHaveBeenCalled();
+    expect(ledgerRepo.remove).not.toHaveBeenCalled();
+    expect(attendanceRepo.remove).toHaveBeenCalledTimes(1);
+    expect(auditRepo.save).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not permit duplicate deletes or a negative balance when coin was already spent', async () => {
+    const { service, manager, attendanceRepo, ledgerRepo, auditRepo } = setup(21, 105);
+    attendanceRepo.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({ ...checkIn });
+    ledgerRepo.findOne.mockResolvedValueOnce({ checkInId: recordId, amount: 5 });
+    await expect(service.deleteCheckIn(superAdmin, recordId)).rejects.toThrow(NotFoundException);
+    manager.query.mockResolvedValueOnce([]);
+    await expect(service.deleteCheckIn(superAdmin, recordId)).rejects.toThrow(ConflictException);
+    expect(attendanceRepo.remove).not.toHaveBeenCalled();
+    expect(ledgerRepo.remove).not.toHaveBeenCalled();
+    expect(auditRepo.save).not.toHaveBeenCalled();
+  });
+
   it('uses Vietnam calendar boundaries rather than UTC calendar days', () => {
     expect(vietnamCalendarDate(new Date('2026-11-04T16:59:59.999Z'))).toBe('2026-11-04');
     expect(vietnamCalendarDate(new Date('2026-11-04T17:00:00.000Z'))).toBe('2026-11-05');

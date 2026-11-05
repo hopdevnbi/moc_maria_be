@@ -4,6 +4,7 @@ import { AccessControlModule } from '../access-control/access-control.module';
 import { AuthModule } from '../auth/auth.module';
 import { Branch } from '../catalog/entities/branch.entity';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
+import { AuditLog } from '../identity/entities/audit-log.entity';
 import { StaffCheckIn } from './entities/staff-check-in.entity';
 import { StaffCoinLedger } from './entities/staff-coin-ledger.entity';
 import { StaffCoinWallet } from './entities/staff-coin-wallet.entity';
@@ -22,6 +23,7 @@ import { StaffAttendanceStorage } from './staff-attendance.storage';
       StaffCoinLedger,
       Branch,
       StaffProfile,
+      AuditLog,
     ]),
     AuthModule,
     AccessControlModule,

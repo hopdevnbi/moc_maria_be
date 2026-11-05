@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
 import { StaffProfile } from '../identity/entities/staff-profile.entity';
+import { AuditLog } from '../identity/entities/audit-log.entity';
 import { Branch } from '../catalog/entities/branch.entity';
 import { StaffCheckIn, type CheckInStatus } from './entities/staff-check-in.entity';
 import { StaffCoinLedger } from './entities/staff-coin-ledger.entity';
@@ -215,6 +216,70 @@ export class StaffAttendanceService {
       .execute();
     if (!updated.affected) throw new ConflictException('Lượt check-in đã có ảnh selfie.');
     return (await this.checkIns.findOne({ where: { id, userId: actor.id } }))!;
+  }
+
+  /**
+   * Administrative reset of a single attendance day, for testing/recheck-in.
+   * The coin reversal, ledger deletion, audit entry and attendance deletion
+   * form one transaction. Never reset the wallet without reversing the ledger.
+   */
+  async deleteCheckIn(
+    actor: AuthUserContext,
+    id: string,
+  ): Promise<{ deleted: true; id: string; localDate: string; coinsReversed: number }> {
+    if (!actor.isActive || !actor.roles.includes('SUPER_ADMIN')) {
+      throw new ForbiddenException('Chỉ Super Admin được xóa lượt chấm công.');
+    }
+    return this.dataSource.transaction(async (manager) => {
+      const attendanceRepo = manager.getRepository(StaffCheckIn);
+      const checkIn = await attendanceRepo.findOne({
+        where: { id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!checkIn) throw new NotFoundException('Lượt check-in đã được xóa hoặc không tồn tại.');
+
+      const ledgerRepo = manager.getRepository(StaffCoinLedger);
+      const ledger = await ledgerRepo.findOne({
+        where: { checkInId: id },
+        lock: { mode: 'pessimistic_write' },
+      });
+      const amount = checkIn.coinsEarned;
+      if (!Number.isInteger(amount) || amount < 0 || amount !== (ledger?.amount ?? 0)) {
+        throw new ConflictException('Coin của lượt điểm danh không khớp sổ giao dịch.');
+      }
+      if (amount > 0) {
+        const wallet = await manager.query<Array<{ user_id: string }>>(
+          `UPDATE staff_coin_wallets
+             SET balance = balance - $2,
+                 total_earned = total_earned - $2,
+                 updated_at = now()
+           WHERE user_id = $1::uuid AND balance >= $2 AND total_earned >= $2
+           RETURNING user_id`,
+          [checkIn.userId, amount],
+        );
+        if (!wallet.length) {
+          throw new ConflictException(
+            'Số dư coin không đủ hoàn tác. Hãy kiểm tra ví coin trước khi xóa lượt điểm danh.',
+          );
+        }
+      }
+      if (ledger) await ledgerRepo.remove(ledger);
+      await attendanceRepo.remove(checkIn);
+      await manager.getRepository(AuditLog).save({
+        event: 'staff.attendance.admin_deleted',
+        actorUserId: actor.id,
+        targetUserId: checkIn.userId,
+        metadata: {
+          checkInId: checkIn.id,
+          localDate: checkIn.localDate,
+          branchId: checkIn.branchId,
+          previousStatus: checkIn.status,
+          coinsReversed: amount,
+          hadSelfie: !!checkIn.selfieUrl,
+        },
+      });
+      return { deleted: true, id, localDate: checkIn.localDate, coinsReversed: amount };
+    });
   }
 
   async listAdmin(dto: ListStaffCheckInsDto): Promise<unknown> {

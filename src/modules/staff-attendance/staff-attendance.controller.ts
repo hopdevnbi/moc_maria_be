@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Header,
   Param,
@@ -74,6 +75,15 @@ export class AdminStaffAttendanceController {
   @Header('Cache-Control', 'private, no-store')
   list(@Query() dto: ListStaffCheckInsDto): Promise<unknown> {
     return this.service.listAdmin(dto);
+  }
+
+  @Delete('check-ins/:id')
+  @Header('Cache-Control', 'private, no-store')
+  removeCheckIn(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ): Promise<unknown> {
+    return this.service.deleteCheckIn(actor, id);
   }
 
   @Get('summary')
