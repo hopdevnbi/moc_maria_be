@@ -118,6 +118,21 @@ export class StaffAttendanceService {
     if (hasLatitude !== hasLongitude)
       throw new BadRequestException('Vui lòng cung cấp cả vĩ độ và kinh độ.');
     const localDate = vietnamCalendarDate(new Date());
+    // Resolve a retry before validating new location/branch data: the daily record is final.
+    const existing = await this.checkIns.findOne({ where: { userId: actor.id, localDate } });
+    if (existing)
+      return { ...((await this.me(actor)) as Record<string, unknown>), alreadyCheckedIn: true };
+    if (
+      hasLatitude &&
+      hasLongitude &&
+      (typeof dto.accuracyMeters !== 'number' ||
+        !Number.isFinite(dto.accuracyMeters) ||
+        dto.accuracyMeters < 0 ||
+        dto.accuracyMeters > 100)
+    )
+      throw new BadRequestException(
+        'GPS chưa đủ chính xác (sai số tối đa 100m). Hãy lấy lại vị trí hoặc chọn check-in không có GPS. Chưa ghi nhận lượt điểm danh.',
+      );
     const branch = await this.branches.findOne({ where: { id: dto.branchId, isActive: true } });
     if (!branch) throw new NotFoundException('Không tìm thấy cơ sở Mộc Maria đang hoạt động.');
     let status: CheckInStatus = 'LOCATION_UNAVAILABLE';

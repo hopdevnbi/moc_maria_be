@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   Param,
   ParseUUIDPipe,
   Post,
@@ -31,11 +32,13 @@ export class StaffAttendanceController {
   constructor(private readonly service: StaffAttendanceService) {}
 
   @Get('me')
+  @Header('Cache-Control', 'private, no-store')
   me(@CurrentUser() actor: AuthUserContext): Promise<unknown> {
     return this.service.me(actor);
   }
 
   @Get('me/history')
+  @Header('Cache-Control', 'private, no-store')
   history(@CurrentUser() actor: AuthUserContext, @Query('limit') limit?: string): Promise<unknown> {
     return this.service.history(actor, limit);
   }
@@ -68,16 +71,19 @@ export class AdminStaffAttendanceController {
   constructor(private readonly service: StaffAttendanceService) {}
 
   @Get('check-ins')
+  @Header('Cache-Control', 'private, no-store')
   list(@Query() dto: ListStaffCheckInsDto): Promise<unknown> {
     return this.service.listAdmin(dto);
   }
 
   @Get('summary')
+  @Header('Cache-Control', 'private, no-store')
   summary(@Query('date') date?: string): Promise<unknown> {
     return this.service.summary(date);
   }
 
   @Get('branches')
+  @Header('Cache-Control', 'private, no-store')
   branches(): Promise<unknown> {
     return this.service.adminBranches();
   }

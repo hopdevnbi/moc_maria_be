@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { DataSource, Repository } from 'typeorm';
 import { Branch } from '../catalog/entities/branch.entity';
 import type { AuthUserContext } from '../identity/identity.types';
@@ -124,7 +124,12 @@ describe('staff attendance', () => {
 
   it('records an outside check-in but never awards coins', async () => {
     const { service, ledgerRepo, manager, attendanceRepo } = setup(21, 105);
-    await service.create(employee, { branchId, latitude: 21.01, longitude: 105 });
+    await service.create(employee, {
+      branchId,
+      latitude: 21.01,
+      longitude: 105,
+      accuracyMeters: 15,
+    });
     expect(attendanceRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'OUT_OF_RANGE',
@@ -137,7 +142,7 @@ describe('staff attendance', () => {
 
   it('records missing branch location with zero coins', async () => {
     const { service, ledgerRepo, attendanceRepo } = setup(null, null);
-    await service.create(employee, { branchId, latitude: 21, longitude: 105 });
+    await service.create(employee, { branchId, latitude: 21, longitude: 105, accuracyMeters: 15 });
     expect(attendanceRepo.save).toHaveBeenCalledWith(
       expect.objectContaining({
         status: 'LOCATION_NOT_CONFIGURED',
@@ -163,8 +168,33 @@ describe('staff attendance', () => {
         constraint: 'uq_staff_checkin_user_local_date',
       }),
     );
-    const result = await service.create(employee, { branchId, latitude: 21, longitude: 105 });
+    const result = await service.create(employee, {
+      branchId,
+      latitude: 21,
+      longitude: 105,
+      accuracyMeters: 15,
+    });
     expect(result).toMatchObject({ alreadyCheckedIn: true });
     expect(manager.query).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, 101, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'rejects imprecise GPS before consuming the daily attendance for accuracy %s',
+    async (accuracyMeters) => {
+      const { service, db } = setup(21, 105);
+      await expect(
+        service.create(employee, { branchId, latitude: 21, longitude: 105, accuracyMeters }),
+      ).rejects.toThrow(BadRequestException);
+      expect(db.transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it('records explicitly missing GPS without coins', async () => {
+    const { service, attendanceRepo, ledgerRepo } = setup(21, 105);
+    await service.create(employee, { branchId });
+    expect(attendanceRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: 'LOCATION_UNAVAILABLE', coinsEarned: 0 }),
+    );
+    expect(ledgerRepo.insert).not.toHaveBeenCalled();
   });
 });
