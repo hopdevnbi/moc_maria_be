@@ -37,6 +37,74 @@ const row = {
 };
 
 describe('Admin appointment inquiries contract', () => {
+  it('never lets a KTV use Super Admin status changes, even for their own inquiry', async () => {
+    const transaction = jest.fn();
+    const service = new AdminAppointmentInquiriesService({ transaction } as unknown as DataSource);
+    await expect(
+      service.update(
+        {
+          ...actor,
+          id: inquiry.providerUserId,
+          roles: ['THERAPIST'],
+        },
+        id,
+        { status: 'CANCELLED', reason: 'Đã liên hệ khách và thống nhất hủy lịch.' },
+      ),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(transaction).not.toHaveBeenCalled();
+  });
+
+  it('allows Super Admin to cancel another KTV inquiry with a fresh snapshot and audit trail', async () => {
+    let current: Inquiry = { ...inquiry, status: 'CONTACTED' };
+    const save = jest.fn().mockResolvedValue(undefined);
+    const query = jest.fn((sql: string, params: unknown[] = []) => {
+      if (sql.includes('pg_advisory_xact_lock')) return Promise.resolve([]);
+      if (sql.includes('SELECT value,updated_at'))
+        return Promise.resolve([{ value: current, updatedAt: row.updatedAt }]);
+      if (sql.startsWith('INSERT INTO app_metadata')) {
+        current = JSON.parse(String(params[1])) as Inquiry;
+        return Promise.resolve([]);
+      }
+      throw Error('Unexpected SQL: ' + sql);
+    });
+    const manager = { query, save } as unknown as EntityManager;
+    const db = {
+      transaction: (callback: (m: EntityManager) => Promise<unknown>) => callback(manager),
+    } as unknown as DataSource;
+    const service = new AdminAppointmentInquiriesService(db);
+    jest.spyOn(service, 'detail').mockResolvedValue({} as never);
+    await service.update(actor, id, {
+      status: 'CANCELLED',
+      reason: 'Khách đã được liên hệ và đồng ý hủy lịch.',
+      expectedStatus: 'CONTACTED',
+      expectedUpdatedAt: row.updatedAt,
+    });
+    expect(current.status).toBe('CANCELLED');
+    expect(save).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        event: 'appointment.inquiry.admin_updated',
+        actorUserId: actor.id,
+      }),
+    );
+    const auditCalls = save.mock.calls as unknown as Array<
+      [unknown, { metadata: Record<string, unknown> }]
+    >;
+    expect(auditCalls[0]?.[1].metadata).toMatchObject({
+      inquiryId: id,
+      status: 'CANCELLED',
+      superAdminOverride: true,
+    });
+    await expect(
+      service.update(actor, id, {
+        status: 'PENDING',
+        reason: 'Quản trị viên muốn mở lại lịch yêu cầu.',
+        expectedStatus: 'CONTACTED',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(current.status).toBe('CANCELLED');
+  });
+
   it('requires both an admin role and customers.manage permission', async () => {
     const query = jest.fn();
     const service = new AdminAppointmentInquiriesService({ query } as unknown as DataSource);
