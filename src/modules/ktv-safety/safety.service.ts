@@ -65,6 +65,14 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
     if (!a.isActive || !a.roles.some((r) => r === 'THERAPIST' || r === 'DOCTOR_CONSULTANT'))
       throw new ForbiddenException('Chỉ KTV được sử dụng chế độ an toàn.');
   }
+  /** Work-shift tracking may also be started by a Super Admin for themselves. */
+  private participant(a: AuthUserContext): void {
+    if (
+      !a.isActive ||
+      !a.roles.some((r) => r === 'THERAPIST' || r === 'DOCTOR_CONSULTANT' || r === 'SUPER_ADMIN')
+    )
+      throw new ForbiddenException('Chỉ KTV hoặc Super Admin được chia sẻ hành trình.');
+  }
   private admin(a: AuthUserContext): void {
     if (!a.isActive || !a.roles.includes('SUPER_ADMIN'))
       throw new ForbiddenException('Chỉ super admin được theo dõi an toàn KTV.');
@@ -157,7 +165,7 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
     }
   }
   async own(a: AuthUserContext): Promise<unknown> {
-    this.provider(a);
+    this.participant(a);
     this.key();
     if (Date.now() - this.lastSweep > 60000) await this.sweep();
     const rows = await this.db.query<{ value: SafetySession }[]>(
@@ -201,7 +209,7 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
       throw new ConflictException('Bạn đang có phiên an toàn. Hãy kết thúc phiên hiện tại trước.');
   }
   async startShift(a: AuthUserContext, d: StartShiftTrackingDto): Promise<unknown> {
-    this.provider(a);
+    this.participant(a);
     this.key();
     const now = Date.now();
     const expected = Date.parse(d.expectedCheckAt);
@@ -286,7 +294,7 @@ export class KtvSafetyService implements OnModuleInit, OnModuleDestroy {
     fn: (s: SafetySession, m: EntityManager) => Promise<void> | void,
   ): Promise<unknown> {
     if (admin) this.admin(a);
-    else this.provider(a);
+    else this.participant(a);
     this.key();
     return this.db.transaction(async (m) => {
       await this.lock(m, prefix + id);
