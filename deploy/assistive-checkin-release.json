@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-05",
+  "sourceSha": "d2353a4b97d4e4345fc200e74ca86aa837104696",
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:b733b7796e8402853220377d30f1dccff9ebd26ea82a4fb13cc8f05238fc63d3",
+  "previousImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:d8aa9afb7eb8226839a1f84dea91bc8b7072f0a44beff51d49606cbbc9732055",
+  "readyReplicas": 1,
+  "envAndSecretReferencesUnchanged": true,
+  "qualityRun": 41971900469,
+  "imageRun": 41971900471,
+  "unitTests": 319,
+  "isolatedHttpTests": 13,
+  "migration": "none",
+  "productionAttendanceWrites": 0
+}
