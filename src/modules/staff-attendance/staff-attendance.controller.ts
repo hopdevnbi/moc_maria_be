@@ -21,6 +21,7 @@ import { PermissionsGuard } from '../access-control/guards/permissions.guard';
 import { PERMISSIONS } from '../identity/identity.constants';
 import type { AuthUserContext } from '../identity/identity.types';
 import { CreateStaffCheckInDto } from './dto/check-in.dto';
+import { CreateCustomerCheckInDto } from './dto/customer-check-in.dto';
 import { ListStaffCheckInsDto } from './dto/list-check-ins.dto';
 import { StaffAttendanceService } from './staff-attendance.service';
 import type { AttendanceImageFile } from './staff-attendance.storage';
@@ -60,6 +61,29 @@ export class StaffAttendanceController {
     @UploadedFile() file: AttendanceImageFile | undefined,
   ): Promise<unknown> {
     return this.service.uploadSelfie(actor, id, file);
+  }
+}
+
+@ApiTags('customer-attendance')
+@ApiBearerAuth()
+@Controller('customer-attendance')
+@UseGuards(AccessTokenGuard)
+export class CustomerAttendanceController {
+  constructor(private readonly service: StaffAttendanceService) {}
+
+  @Get('me')
+  @Header('Cache-Control', 'private, no-store')
+  me(@CurrentUser() actor: AuthUserContext): Promise<unknown> {
+    return this.service.customerMe(actor);
+  }
+
+  @Post('check-ins')
+  @Header('Cache-Control', 'private, no-store')
+  checkIn(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: CreateCustomerCheckInDto,
+  ): Promise<unknown> {
+    return this.service.customerCreate(actor, dto);
   }
 }
 

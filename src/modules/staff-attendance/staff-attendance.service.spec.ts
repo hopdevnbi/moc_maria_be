@@ -13,6 +13,7 @@ import { StaffCheckIn } from './entities/staff-check-in.entity';
 import { StaffCoinWallet } from './entities/staff-coin-wallet.entity';
 import {
   StaffAttendanceService,
+  customerDeviceHash,
   distanceInMeters,
   vietnamCalendarDate,
 } from './staff-attendance.service';
@@ -303,5 +304,103 @@ describe('staff attendance', () => {
       expect.objectContaining({ status: 'LOCATION_UNAVAILABLE', coinsEarned: 0 }),
     );
     expect(ledgerRepo.insert).not.toHaveBeenCalled();
+  });
+});
+
+describe('customer attendance (100m and 1 browser installation per day)', () => {
+  const customer: AuthUserContext = { ...employee, roles: ['CUSTOMER'], permissions: [] };
+  const deviceId = '4141b6a9-e657-431c-b422-3f38a61596dc';
+  const dto = {
+    branchId,
+    deviceId,
+    latitude: 21,
+    longitude: 105,
+    accuracyMeters: 12,
+  };
+
+  it('does not accept privileged staff or inactive accounts as customers', async () => {
+    const { service, db } = setup(21, 105);
+    for (const actor of [
+      employee,
+      { ...customer, roles: ['SUPER_ADMIN'] as AuthUserContext['roles'] },
+      { ...customer, isActive: false },
+    ]) {
+      await expect(service.customerCreate(actor, dto)).rejects.toThrow(ForbiddenException);
+    }
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it('accepts a signed-in user with no job roles', async () => {
+    const { service, attendanceRepo } = setup(21, 105);
+    await service.customerCreate({ ...customer, roles: [] }, dto);
+    expect(attendanceRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({ checkinCategory: 'CUSTOMER', coinsEarned: 5 }),
+    );
+  });
+
+  it('rejects out-of-range check-ins without using a daily slot or coins', async () => {
+    const { service, db } = setup(21.003, 105);
+    await expect(service.customerCreate(customer, dto)).rejects.toThrow(/100m/);
+    expect(db.transaction).not.toHaveBeenCalled();
+  });
+
+  it.each([undefined, 51, 100, -1, Number.NaN])(
+    'rejects inaccurate or missing GPS, accuracy %s',
+    async (accuracyMeters) => {
+      const { service, db } = setup(21, 105);
+      await expect(service.customerCreate(customer, { ...dto, accuracyMeters })).rejects.toThrow(
+        BadRequestException,
+      );
+      expect(db.transaction).not.toHaveBeenCalled();
+    },
+  );
+
+  it('atomically rewards exactly 5 coins and stores only an opaque device hash', async () => {
+    const { service, manager, attendanceRepo, ledgerRepo } = setup(21, 105);
+    const result = await service.customerCreate(customer, dto);
+    expect(result).toMatchObject({ alreadyCheckedIn: false });
+    expect(attendanceRepo.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        status: 'IN_RANGE',
+        coinsEarned: 5,
+        customerDeviceHash: customerDeviceHash(deviceId),
+        checkinCategory: 'CUSTOMER',
+      }),
+    );
+    expect(customerDeviceHash(deviceId)).not.toContain(deviceId);
+    expect(ledgerRepo.insert).toHaveBeenCalledTimes(1);
+    expect(ledgerRepo.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        amount: 5,
+        reason: 'CUSTOMER_CHECK_IN',
+      }),
+    );
+    expect(manager.query).toHaveBeenCalledWith(
+      expect.stringContaining('INSERT INTO staff_coin_wallets'),
+      [customer.id, 5],
+    );
+  });
+
+  it('blocks reuse of the same browser on a different account today', async () => {
+    const { service, db, manager } = setup(21, 105);
+    db.transaction.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate device'), {
+        code: '23505',
+        constraint: 'uq_customer_checkin_device_date',
+      }),
+    );
+    await expect(service.customerCreate(customer, dto)).rejects.toThrow(ConflictException);
+    expect(manager.query).not.toHaveBeenCalled();
+  });
+
+  it('is idempotent for an already checked-in customer account', async () => {
+    const { service, db } = setup(21, 105);
+    db.transaction.mockRejectedValueOnce(
+      Object.assign(new Error('duplicate account'), {
+        code: '23505',
+        constraint: 'uq_staff_checkin_user_local_date',
+      }),
+    );
+    expect(await service.customerCreate(customer, dto)).toMatchObject({ alreadyCheckedIn: true });
   });
 });

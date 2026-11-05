@@ -47,6 +47,13 @@ export class StaffCheckIn {
   @Column({ type: 'integer', default: 0 })
   coinsEarned!: number;
 
+  @Column({ type: 'varchar', length: 12, default: 'STAFF' })
+  checkinCategory!: 'STAFF' | 'CUSTOMER';
+
+  /** Opaque browser installation key hash; never return to clients. */
+  @Column({ type: 'char', length: 64, nullable: true, select: false })
+  customerDeviceHash!: string | null;
+
   @Column({ type: 'varchar', length: 2048, nullable: true })
   selfieUrl!: string | null;
 

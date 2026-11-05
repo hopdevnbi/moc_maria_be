@@ -10,6 +10,7 @@ import { StaffCoinLedger } from './entities/staff-coin-ledger.entity';
 import { StaffCoinWallet } from './entities/staff-coin-wallet.entity';
 import {
   AdminStaffAttendanceController,
+  CustomerAttendanceController,
   StaffAttendanceController,
 } from './staff-attendance.controller';
 import { StaffAttendanceService } from './staff-attendance.service';
@@ -28,7 +29,11 @@ import { StaffAttendanceStorage } from './staff-attendance.storage';
     AuthModule,
     AccessControlModule,
   ],
-  controllers: [StaffAttendanceController, AdminStaffAttendanceController],
+  controllers: [
+    StaffAttendanceController,
+    CustomerAttendanceController,
+    AdminStaffAttendanceController,
+  ],
   providers: [StaffAttendanceService, StaffAttendanceStorage],
 })
 export class StaffAttendanceModule {}

@@ -32,13 +32,11 @@ export class ProfilesController {
   ) {}
 
   @Get('customers/me')
-  @RequirePermissions(PERMISSIONS.CUSTOMER_PORTAL)
   getCustomer(@CurrentUser() user: AuthUserContext): Promise<unknown> {
     return this.service.getCustomer(user.id);
   }
 
   @Patch('customers/me')
-  @RequirePermissions(PERMISSIONS.CUSTOMER_PORTAL)
   updateCustomer(
     @CurrentUser() user: AuthUserContext,
     @Body() dto: UpdateCustomerProfileDto,
@@ -47,7 +45,6 @@ export class ProfilesController {
   }
 
   @Post('customers/me/avatar')
-  @RequirePermissions(PERMISSIONS.CUSTOMER_PORTAL)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
   async uploadCustomerAvatar(
     @CurrentUser() user: AuthUserContext,

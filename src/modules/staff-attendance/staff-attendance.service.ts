@@ -5,6 +5,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { createHash } from 'node:crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
@@ -15,11 +16,14 @@ import { StaffCheckIn, type CheckInStatus } from './entities/staff-check-in.enti
 import { StaffCoinLedger } from './entities/staff-coin-ledger.entity';
 import { StaffCoinWallet } from './entities/staff-coin-wallet.entity';
 import type { CreateStaffCheckInDto } from './dto/check-in.dto';
+import type { CreateCustomerCheckInDto } from './dto/customer-check-in.dto';
 import type { ListStaffCheckInsDto } from './dto/list-check-ins.dto';
 import { StaffAttendanceStorage, type AttendanceImageFile } from './staff-attendance.storage';
 
 export const ATTENDANCE_RADIUS_METERS = 200;
 export const ATTENDANCE_COIN_REWARD = 5;
+export const CUSTOMER_ATTENDANCE_RADIUS_METERS = 100;
+export const CUSTOMER_GPS_MAX_ACCURACY_METERS = 50;
 export const ATTENDANCE_TIMEZONE = 'Asia/Ho_Chi_Minh';
 const EMPLOYEE_ROLES = new Set([
   'BRANCH_MANAGER',
@@ -27,6 +31,15 @@ const EMPLOYEE_ROLES = new Set([
   'THERAPIST',
   'DOCTOR_CONSULTANT',
 ]);
+const PRIVILEGED_ROLES = new Set(['SUPER_ADMIN', 'ADMIN', ...EMPLOYEE_ROLES]);
+
+export function customerDeviceHash(deviceId: string): string {
+  // A random per-browser identifier is stored as a one-way hash. This is
+  // not a physical-device fingerprint and can be reset by clearing site data.
+  return createHash('sha256')
+    .update('mocmaria-customer-checkin:v1:' + deviceId)
+    .digest('hex');
+}
 
 export function vietnamCalendarDate(instant: Date): string {
   const parts = new Intl.DateTimeFormat('en-US', {
@@ -69,6 +82,147 @@ export class StaffAttendanceService {
     const employeeRole = actor.roles.some((role) => EMPLOYEE_ROLES.has(role));
     if ((profile && !profile.isActive) || (!employeeRole && !profile?.isActive))
       throw new ForbiddenException('Chỉ nhân viên và KTV của Mộc Maria được check-in.');
+  }
+
+  private async assertCustomer(actor: AuthUserContext): Promise<void> {
+    if (!actor.isActive) throw new ForbiddenException('Tài khoản đã bị vô hiệu hóa.');
+    if (actor.roles.some((role) => PRIVILEGED_ROLES.has(role)))
+      throw new ForbiddenException('Nhân viên và quản trị sử dụng check-in nhân sự.');
+    const profile = await this.staffProfiles.findOne({ where: { userId: actor.id } });
+    if (profile?.isActive)
+      throw new ForbiddenException('Tài khoản nhân sự sử dụng check-in nhân viên.');
+  }
+
+  private async customerView(actor: AuthUserContext): Promise<unknown> {
+    const localDate = vietnamCalendarDate(new Date());
+    const [today, wallet, branches] = await Promise.all([
+      this.checkIns.findOne({ where: { userId: actor.id, localDate } }),
+      this.wallets.findOne({ where: { userId: actor.id } }),
+      this.branches.find({ where: { isActive: true }, order: { name: 'ASC' } }),
+    ]);
+    return {
+      localDate,
+      today,
+      wallet: { balance: wallet?.balance ?? 0, totalEarned: wallet?.totalEarned ?? 0 },
+      branches: branches.map((branch) => ({
+        id: branch.id,
+        name: branch.name,
+        address: branch.address,
+        latitude: branch.latitude,
+        longitude: branch.longitude,
+        locationConfigured: branch.latitude != null && branch.longitude != null,
+      })),
+      policy: {
+        timezone: ATTENDANCE_TIMEZONE,
+        radiusMeters: CUSTOMER_ATTENDANCE_RADIUS_METERS,
+        maxAccuracyMeters: CUSTOMER_GPS_MAX_ACCURACY_METERS,
+        coinsPerValidCheckIn: ATTENDANCE_COIN_REWARD,
+        maxCheckInsPerDay: 1,
+        deviceScope: 'browser-installation',
+      },
+    };
+  }
+
+  async customerMe(actor: AuthUserContext): Promise<unknown> {
+    await this.assertCustomer(actor);
+    return this.customerView(actor);
+  }
+
+  async customerCreate(actor: AuthUserContext, dto: CreateCustomerCheckInDto): Promise<unknown> {
+    await this.assertCustomer(actor);
+    const localDate = vietnamCalendarDate(new Date());
+    const existing = await this.checkIns.findOne({ where: { userId: actor.id, localDate } });
+    if (existing)
+      return {
+        ...((await this.customerView(actor)) as Record<string, unknown>),
+        alreadyCheckedIn: true,
+      };
+    if (
+      typeof dto.latitude !== 'number' ||
+      typeof dto.longitude !== 'number' ||
+      !Number.isFinite(dto.latitude) ||
+      !Number.isFinite(dto.longitude) ||
+      typeof dto.accuracyMeters !== 'number' ||
+      !Number.isFinite(dto.accuracyMeters) ||
+      dto.accuracyMeters < 0 ||
+      dto.accuracyMeters > CUSTOMER_GPS_MAX_ACCURACY_METERS
+    )
+      throw new BadRequestException(
+        'Khách hàng cần bật GPS với sai số tối đa 50m để nhận coin. Vui lòng thử lại ở nơi thoáng.',
+      );
+    if (
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(dto.deviceId)
+    )
+      throw new BadRequestException('Thiết bị chưa có định danh hợp lệ.');
+
+    const branch = await this.branches.findOne({ where: { id: dto.branchId, isActive: true } });
+    if (!branch || branch.latitude == null || branch.longitude == null)
+      throw new BadRequestException('Cơ sở Mộc Maria chưa có cấu hình vị trí GPS hợp lệ.');
+    const distanceMeters = distanceInMeters(
+      { latitude: dto.latitude, longitude: dto.longitude },
+      { latitude: branch.latitude, longitude: branch.longitude },
+    );
+    if (distanceMeters > CUSTOMER_ATTENDANCE_RADIUS_METERS)
+      throw new BadRequestException(
+        `Bạn đang cách Mộc Maria ${Math.round(distanceMeters)}m, ngoài phạm vi 100m. Chưa ghi nhận lượt và chưa cộng coin.`,
+      );
+
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        const repository = manager.getRepository(StaffCheckIn);
+        const saved = await repository.save(
+          repository.create({
+            userId: actor.id,
+            branchId: branch.id,
+            localDate,
+            latitude: dto.latitude,
+            longitude: dto.longitude,
+            accuracyMeters: dto.accuracyMeters,
+            distanceMeters: Number(distanceMeters.toFixed(2)),
+            status: 'IN_RANGE',
+            checkinCategory: 'CUSTOMER',
+            customerDeviceHash: customerDeviceHash(dto.deviceId),
+            coinsEarned: ATTENDANCE_COIN_REWARD,
+            selfieUrl: null,
+          }),
+        );
+        await manager.getRepository(StaffCoinLedger).insert({
+          userId: actor.id,
+          checkInId: saved.id,
+          amount: ATTENDANCE_COIN_REWARD,
+          reason: 'CUSTOMER_CHECK_IN',
+        });
+        await manager.query(
+          `INSERT INTO staff_coin_wallets (user_id,balance,total_earned) VALUES ($1,$2,$2)
+           ON CONFLICT (user_id) DO UPDATE SET
+             balance=staff_coin_wallets.balance+EXCLUDED.balance,
+             total_earned=staff_coin_wallets.total_earned+EXCLUDED.total_earned,
+             updated_at=now()`,
+          [actor.id, ATTENDANCE_COIN_REWARD],
+        );
+      });
+      return {
+        ...((await this.customerView(actor)) as Record<string, unknown>),
+        alreadyCheckedIn: false,
+      };
+    } catch (error) {
+      const dbError = error as {
+        code?: string;
+        constraint?: string;
+        driverError?: { code?: string; constraint?: string };
+      };
+      if ((dbError.code ?? dbError.driverError?.code) === '23505') {
+        const constraint = dbError.constraint ?? dbError.driverError?.constraint;
+        if (constraint === 'uq_customer_checkin_device_date')
+          throw new ConflictException('Thiết bị này đã check-in hôm nay bằng một tài khoản khác.');
+        if (constraint === 'uq_staff_checkin_user_local_date')
+          return {
+            ...((await this.customerView(actor)) as Record<string, unknown>),
+            alreadyCheckedIn: true,
+          };
+      }
+      throw error;
+    }
   }
 
   async me(actor: AuthUserContext): Promise<unknown> {
@@ -161,6 +315,7 @@ export class StaffAttendanceService {
             distanceMeters,
             status,
             coinsEarned,
+            checkinCategory: 'STAFF',
             selfieUrl: null,
           }),
         );

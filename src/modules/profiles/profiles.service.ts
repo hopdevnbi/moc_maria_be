@@ -62,14 +62,13 @@ export class ProfilesService {
     manager: DataSource | EntityManager = this.dataSource,
   ): Promise<void> {
     const rows = await manager.query<{ id: string }[]>(
-      `SELECT u.id FROM users u JOIN app_metadata vip ON vip.key='mocmaria.customer.vip.'||u.id::text
-       WHERE u.id=$1 AND u.is_active AND vip.value->>'isVip'='true'
-       AND (vip.value->>'expiresAt' IS NULL OR (vip.value->>'expiresAt')::timestamptz>clock_timestamp())
-       FOR SHARE OF u,vip`,
+      `SELECT u.id FROM users u JOIN customers c ON c.user_id=u.id
+       WHERE u.id=$1 AND u.is_active
+       FOR SHARE OF u,c`,
       [userId],
     );
     if (!rows.length)
-      throw new ForbiddenException('Đổi ảnh đại diện dành cho hội viên VIP còn hiệu lực.');
+      throw new ForbiddenException('Chỉ khách hàng có tài khoản hoạt động được đổi ảnh đại diện.');
   }
 
   async updateCustomer(userId: string, dto: UpdateCustomerProfileDto): Promise<unknown> {
@@ -219,13 +218,11 @@ export class ProfilesService {
         expiresAt: isVip ? record?.expiresAt || null : null,
         startedAt: isVip ? record?.startedAt || null : null,
       },
-      avatarUploadEnabled:
-        isVip &&
-        Boolean(
-          process.env['BUNNY_STORAGE_ZONE'] &&
-          (process.env['BUNNY_STORAGE_ACCESS_KEY'] || process.env['BUNNY_STORAGE_API_KEY']) &&
-          (process.env['BUNNY_CDN_BASE_URL'] || process.env['BUNNY_STORAGE_CDN_URL']),
-        ),
+      avatarUploadEnabled: Boolean(
+        process.env['BUNNY_STORAGE_ZONE'] &&
+        (process.env['BUNNY_STORAGE_ACCESS_KEY'] || process.env['BUNNY_STORAGE_API_KEY']) &&
+        (process.env['BUNNY_CDN_BASE_URL'] || process.env['BUNNY_STORAGE_CDN_URL']),
+      ),
       customer: {
         id: customer.id,
         birthday: customer.birthday,
