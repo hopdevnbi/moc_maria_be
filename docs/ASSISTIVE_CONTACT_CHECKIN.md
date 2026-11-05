@@ -16,3 +16,7 @@ Attendance remains once per Vietnam calendar day, 200m and five coins from the s
 ## Production boundaries
 
 No production attendance, coins, customer bookings, messages, GPS readings or selfies were created during QA. No migration or credential/configuration change is required. Browser GPS is a device reading, not tamper-proof proof of physical presence. Existing attendance rows and business policy are preserved.
+
+## Production verification
+
+Frontend main 8a3c8cf, Vercel dpl_HoGCo2uvP8FrMjfbStCzPTyJyiwZ READY. Main/event release endpoints match the exact source SHA. Actual signed-in KTV opened /check-in: saved branch location configured, radius 200m, wallet loaded, no browser errors; no GPS request, check-in, upload or coin write was performed. Backend source d2353a4, image b733b7796e84, one ready replica; live/ready 200 and anonymous attendance 401. Environment and Secret references compare identical before/after. Both backend source CI jobs succeeded. Frontend full local quality 389 tests/83 files and final production build pass; initial GitHub CI passed those tests but failed in next/font Google font parsing; failed job rerun is tracked in Plan release evidence.
