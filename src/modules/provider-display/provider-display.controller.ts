@@ -17,6 +17,8 @@ import { ProviderDisplayService } from './provider-display.service';
 import { ReorderProviderDisplayDto, UpdateProviderDisplayDto } from './provider-display.dto';
 import { CreateKtvDto } from './create-ktv.dto';
 import { KtvOnboardingService, type CreatedKtv } from './ktv-onboarding.service';
+import { KtvAccountAdminService, type KtvAccountAdminView } from './ktv-account-admin.service';
+import { UpdateKtvAccountDto } from './update-ktv-account.dto';
 
 @Controller('provider-display')
 export class PublicProviderDisplayController {
@@ -34,6 +36,7 @@ export class AdminProviderDisplayController {
   constructor(
     private readonly display: ProviderDisplayService,
     private readonly onboarding: KtvOnboardingService,
+    private readonly account: KtvAccountAdminService,
   ) {}
   @Get()
   @Header('Cache-Control', 'private, no-store')
@@ -51,6 +54,23 @@ export class AdminProviderDisplayController {
   @Header('Cache-Control', 'private, no-store')
   createKtv(@CurrentUser() actor: AuthUserContext, @Body() dto: CreateKtvDto): Promise<CreatedKtv> {
     return this.onboarding.create(actor, dto);
+  }
+  @Get('ktv/:id/account')
+  @Header('Cache-Control', 'private, no-store')
+  accountInfo(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<KtvAccountAdminView> {
+    return this.account.get(actor, id);
+  }
+  @Patch('ktv/:id/account')
+  @Header('Cache-Control', 'private, no-store')
+  updateKtvAccount(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: UpdateKtvAccountDto,
+  ): Promise<KtvAccountAdminView> {
+    return this.account.update(actor, id, dto);
   }
   @Patch(':id/avatar')
   @Header('Cache-Control', 'private, no-store')
