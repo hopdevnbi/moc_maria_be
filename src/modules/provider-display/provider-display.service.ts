@@ -170,6 +170,46 @@ export class ProviderDisplayService {
       .sort((a, b) => (byId.get(a.id)?.position ?? 0) - (byId.get(b.id)?.position ?? 0));
   }
 
+  async setAvatarFromShowcase(
+    actor: AuthUserContext,
+    id: string,
+    mediaId: string,
+  ): Promise<{ avatarUrl: string }> {
+    if (!actor.roles.includes('SUPER_ADMIN') || !actor.permissions.includes('staff.manage'))
+      throw new ForbiddenException('Chỉ Super Admin được thay ảnh đại diện KTV.');
+    if (!/^[0-9a-f-]{36}$/i.test(mediaId))
+      throw new BadRequestException('Mã ảnh tải lên không hợp lệ.');
+    const cdn = (
+      process.env['BUNNY_CDN_BASE_URL'] || process.env['BUNNY_STORAGE_CDN_URL']
+    )?.replace(/\/$/, '');
+    if (!cdn || !/^https:\/\/[a-z0-9.-]+$/i.test(cdn))
+      throw new BadRequestException('Chưa cấu hình CDN KTV.');
+    const avatarUrl = `${cdn}/moc-maria/provider-showcase/${id}/${mediaId}.webp`;
+    return this.db.transaction(async (manager) => {
+      const [row] = await manager.query<
+        { value: { media?: Array<{ id: string; kind: string; url: string }> } }[]
+      >('SELECT value FROM app_metadata WHERE key=$1', [`mocmaria.ktv.showcase.v1.${id}`]);
+      if (
+        !row?.value?.media?.some(
+          (entry) => entry.id === mediaId && entry.kind === 'IMAGE' && entry.url === avatarUrl,
+        )
+      )
+        throw new BadRequestException('Ảnh đại diện phải là ảnh đã công khai trong hồ sơ này.');
+      const updated = await manager.query<{ user_id: string }[]>(
+        `UPDATE staff_profiles s SET avatar_url=$2,updated_at=now()
+         FROM provider_applications p WHERE p.id=$1 AND p.user_id=s.user_id
+         RETURNING s.user_id`,
+        [id, avatarUrl],
+      );
+      if (updated.length !== 1) throw new NotFoundException('Không tìm thấy hồ sơ nhân viên.');
+      await manager.query(
+        "INSERT INTO audit_logs(event,actor_user_id,target_user_id,metadata) VALUES('provider.staff.avatar_updated',$1,$2,$3::jsonb)",
+        [actor.id, updated[0].user_id, JSON.stringify({ providerId: id, mediaId })],
+      );
+      return { avatarUrl };
+    });
+  }
+
   private async write(
     actor: AuthUserContext,
     version: number,

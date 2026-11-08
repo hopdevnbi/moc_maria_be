@@ -125,6 +125,9 @@ export class KtvChatService {
           (/^\/media\/ktv\/[a-zA-Z0-9._-]+\.webp$/.test(p.avatar_url) ||
             /^https:\/\/giangxa-media-cdn\.b-cdn\.net\/moc-maria\/ktv\/[a-zA-Z0-9/_-]+\.(?:webp|jpg)$/.test(
               p.avatar_url,
+            ) ||
+            /^https:\/\/giangxa-media-cdn\.b-cdn\.net\/moc-maria\/provider-showcase\/[0-9a-f-]{36}\/[0-9a-f-]{36}\.webp$/i.test(
+              p.avatar_url,
             ))
             ? p.avatar_url
             : null,
