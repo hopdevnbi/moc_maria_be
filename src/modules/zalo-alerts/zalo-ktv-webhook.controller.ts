@@ -57,7 +57,8 @@ export class ZaloKtvWebhookController {
       msg?.chat?.chat_type !== 'PRIVATE' ||
       msg.from?.id !== chatId ||
       !/^[A-Za-z0-9._-]{1,160}$/.test(chatId) ||
-      msg.text.trim().normalize('NFC') !== 'Kết nối Mộc Maria'
+      msg.text.normalize('NFC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('vi') !==
+        'kết nối mộc maria'
     )
       return { ok: true };
 

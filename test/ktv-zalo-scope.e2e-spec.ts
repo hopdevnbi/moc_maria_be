@@ -287,7 +287,7 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
       await api()
         .post('/api/v1/zalo/ktv/' + slug + '/webhook')
         .set('X-Bot-Api-Secret-Token', secret)
-        .send(event)
+        .send({ ...event, message: { ...event.message, text: '  kết   nối mộc maria  ' } })
         .expect(200);
       await api()
         .post('/api/v1/zalo/ktv/' + slug + '/webhook')

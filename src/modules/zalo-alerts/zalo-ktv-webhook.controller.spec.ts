@@ -54,6 +54,31 @@ describe('Staff Zalo Bot secure webhook and enrollment', () => {
     expect(query).not.toHaveBeenCalled();
   });
 
+  it.each([
+    'Kết nối mộc maria',
+    'kết nối mộc maria',
+    'KẾT NỐI MỘC MARIA',
+    '  Kết   nối\tmộc\u00a0maria  ',
+    'Kết nối Mộc Maria'.normalize('NFD'),
+  ])('accepts the private pairing command regardless of casing and spacing: %s', async (text) => {
+    await controller.receive('thanh-thanh', 'thanh-thanh-test-secret', {
+      ...event,
+      message: { ...event.message, text },
+    });
+    expect(query).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['Kết nối mộc meria', 'Xin chào', 'Kết nối mộc maria nhé'])(
+    'does not treat unrelated or misspelled text as a pairing command: %s',
+    async (text) => {
+      await controller.receive('thanh-thanh', 'thanh-thanh-test-secret', {
+        ...event,
+        message: { ...event.message, text },
+      });
+      expect(query).not.toHaveBeenCalled();
+    },
+  );
+
   it('ignores probes, incoming messages not requesting connection and bot messages', async () => {
     await controller.receive('tung', 'tung-test-secret', {});
     await controller.receive('tung', 'tung-test-secret', {
