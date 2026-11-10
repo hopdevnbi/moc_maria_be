@@ -1,0 +1,50 @@
+{
+  "releasedAt": "2026-11-10T17:38:15.8617214+07:00",
+  "backendRuntimeSource": "4dc594e207d651fbb3973493ec1f467bfe627f29",
+  "frontend": "cac21643abff2c769bebcc93a606cf52d60625e4",
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:2b3e8d150b647b6d1ab93ce8070c2230335c556374a3cb70afddb1264a02a9cb",
+  "ci": {
+    "image": 42799792325,
+    "backendQuality": 42799791762,
+    "frontendQuality": 42800262986,
+    "state": "SUCCESS"
+  },
+  "tests": {
+    "formatLintTypecheckBuild": "PASS",
+    "isolatedPostgreSQLHTTP": 12,
+    "backendUnits": 373,
+    "frontend": 495
+  },
+  "backend": {
+    "readyReplicas": 1,
+    "thanhThanhZaloBindingsPresent": true,
+    "inactiveDenied": true,
+    "runtimeStaffCapability": "PASS",
+    "health": "live200/ready200",
+    "all47EnvironmentEntriesAndEntireOtherSpecPreserved": true,
+    "imageOnlyPatch": true
+  },
+  "frontendProduction": {
+    "branch": "main",
+    "bothDomainReleaseVersionsMatch": true,
+    "domains": [
+      "mocmaria.com",
+      "event.mocmaria.com"
+    ],
+    "state": "READY",
+    "deployment": "dpl_4juNbfR2PjpZsgf83WRTsksyZACU"
+  },
+  "browser": {
+    "checkedErrors": 0,
+    "productionSubmission": "Not submitted; actual creation/chat/outbox covered in disposable PostgreSQL",
+    "selectedKtv": "Thanh Thanh",
+    "proof": "C:/Users/User/.codex/private/moc-staff-personal-booking-production.png",
+    "ownSentRequestsPage": "Loaded successfully, empty own list; incoming work excluded",
+    "viewport": "414x896",
+    "bookingButtonEnabled": true,
+    "existingKtvSession": "Nguyet Nguyen"
+  },
+  "policy": "Staff/admin may request personal service from another KTV. Authenticated actor is buyer; no customer role grants or impersonation. Self-booking/self-chat and unrelated participant access rejected. Existing assigned-KTV and admin Zalo routing preserved.",
+  "businessData": "No synthetic production booking/chat/testnotification; no role/schema/secret changes; isolated QA pod and Secret removed.",
+  "report": "docs/STAFF_PERSONAL_BOOKING.md"
+}
