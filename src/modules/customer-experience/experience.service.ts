@@ -1,3 +1,4 @@
+import { canUsePersonalBooking } from './personal-booking';
 import {
   BadRequestException,
   ConflictException,
@@ -244,8 +245,8 @@ export class CustomerExperienceService {
     actor: AuthUserContext,
     dto: CreateInquiryDto,
   ): Promise<Omit<Inquiry, 'signature' | 'providerUserId'>> {
-    if (!actor.permissions.includes('customer.portal'))
-      throw new ForbiddenException('Cần tài khoản khách hàng để gửi yêu cầu.');
+    if (!canUsePersonalBooking(actor))
+      throw new ForbiddenException('Tài khoản này chưa thể gửi yêu cầu đặt lịch.');
     const requested = new Date(dto.requestedAt).getTime();
     if (
       !Number.isFinite(requested) ||

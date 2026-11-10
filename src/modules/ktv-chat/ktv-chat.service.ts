@@ -1,3 +1,4 @@
+import { canUsePersonalBooking } from '../customer-experience/personal-booking';
 import { randomUUID } from 'node:crypto';
 import {
   BadRequestException,
@@ -186,8 +187,8 @@ export class KtvChatService {
   }
 
   async open(actor: AuthUserContext, applicationId: string): Promise<KtvThread> {
-    if (!actor.permissions.includes('customer.portal'))
-      throw new ForbiddenException('Tài khoản khách hàng mới có thể bắt đầu hội thoại.');
+    if (!canUsePersonalBooking(actor))
+      throw new ForbiddenException('Tài khoản này chưa thể bắt đầu hội thoại.');
     const seeded = (await this.seededProviders()).some((p) => p.id === applicationId);
     if (!seeded) await this.providers.publicProvider(applicationId);
     const [app] = await this.db.query<{ user_id: string }[]>(

@@ -48,7 +48,7 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
     configureApplication(app);
     await app.init();
     db = app.get(DataSource);
-    for (let index = 0; index < 5; index++) {
+    for (let index = 0; index < 6; index++) {
       const email = randomUUID() + '@zalo-qa.test',
         password = randomBytes(24).toString('base64url') + '1!';
       const registered = await api()
@@ -64,14 +64,20 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
       if (index > 0)
         await db.query(
           'INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name=$2 ON CONFLICT DO NOTHING',
-          [id, index === 3 ? 'SUPER_ADMIN' : 'THERAPIST'],
+          [id, index === 3 ? 'SUPER_ADMIN' : index === 5 ? 'ADMIN' : 'THERAPIST'],
         );
-      const login = await api()
-        .post('/api/v1/auth/login')
-        .set('Origin', 'http://localhost:3001')
-        .send({ identifier: email, password })
-        .expect(200);
-      actors.push({ id, token: login.body.accessToken });
+      if (index > 0) {
+        await db.query(
+          "DELETE FROM user_roles WHERE user_id=$1 AND role_id=(SELECT id FROM roles WHERE name='CUSTOMER')",
+          [id],
+        );
+      }
+      // The access guard resolves current roles from DB on every request.
+      actors.push({ id, token: registered.body.accessToken });
+      if (index === 1 || index === 5) {
+        const me = await api(index).get('/api/v1/auth/me').expect(200);
+        expect(me.body.permissions).not.toContain('customer.portal');
+      }
       if (index === 1 || index === 2 || index === 4) {
         const [row] = await db.query<Array<{ id: string }>>(
           "INSERT INTO provider_applications(user_id,public_name,status) VALUES($1,$2,'APPROVED') RETURNING id",
@@ -80,6 +86,27 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
         providers.push(row.id);
       }
     }
+    await db.query(
+      'INSERT INTO staff_profiles(user_id,public_name,is_active,is_public) SELECT user_id,public_name,true,false FROM provider_applications',
+    );
+    const accounts = providers.map((applicationId, index) => ({
+      applicationId,
+      userId: actors[[1, 2, 4][index]].id,
+      seedId: 'qa-ktv-' + index,
+      chatEnabled: true,
+    }));
+    await db.query(
+      "INSERT INTO app_metadata(key,value) VALUES('mocmaria.ktv.accounts.v1',$1::jsonb)",
+      [JSON.stringify({ accounts })],
+    );
+    await db.query("INSERT INTO app_metadata(key,value) VALUES('mocmaria.demo.ktv.v1',$1::jsonb)", [
+      JSON.stringify({
+        profiles: accounts.map((a) => ({
+          id: a.seedId,
+          demoServices: [{ id: 'neck', name: 'Chăm sóc cổ vai gáy' }],
+        })),
+      }),
+    ]);
     jest.spyOn(app.get(KtvChatService), 'directory').mockResolvedValue(
       providers.map((id, index) => ({
         id,
@@ -302,5 +329,69 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
       expect(rows[0].key.length).toBeLessThanOrEqual(100);
       expect(rows[0].value.chatId).toBe(chatId);
     }
+  });
+  it.each([1, 5])(
+    'lets a staff/admin account %s request another KTV under its own identity and chat',
+    async (index) => {
+      const input = { ...booking(2), idempotencyKey: randomUUID() };
+      const created = await api(index)
+        .post('/api/v1/appointment-inquiries')
+        .send(input)
+        .expect(201);
+      expect(created.body.customerId).toBe(actors[index].id);
+      expect(created.body.providerId).toBe(providers[2]);
+      const notifications = await deliveries(created.body.id);
+      expect(notifications.map((row) => row.value.recipient).sort()).toEqual([
+        'qa-admin',
+        'qa-dan',
+        'qa-hoan',
+        'qa-thanh-thanh',
+      ]);
+      const list = await api(index).get('/api/v1/appointment-inquiries').expect(200);
+      expect((list.body as Array<{ id: string }>).some((row) => row.id === created.body.id)).toBe(
+        true,
+      );
+      const thread = await api(index)
+        .post('/api/v1/ktv-chat/threads')
+        .send({ providerApplicationId: providers[2] })
+        .expect(201);
+      expect(thread.body.customer_user_id).toBe(actors[index].id);
+      const sent = await api(index)
+        .post(`/api/v1/ktv-chat/threads/${thread.body.id}/messages`)
+        .send({ clientMessageId: randomUUID(), body: 'Tôi muốn trao đổi về lịch vừa đặt.' })
+        .expect(201);
+      expect((await deliveries(sent.body.id)).map((row) => row.value.recipient).sort()).toEqual([
+        'qa-admin',
+        'qa-dan',
+        'qa-hoan',
+        'qa-thanh-thanh',
+      ]);
+      const unrelated = await api(2).get('/api/v1/ktv-chat/threads').expect(200);
+      expect(
+        (unrelated.body as Array<{ id: string }>).some((row) => row.id === thread.body.id),
+      ).toBe(false);
+      await api(2)
+        .patch('/api/v1/appointment-inquiries/' + created.body.id)
+        .send({ status: 'CANCELLED' })
+        .expect(404);
+      await api(index)
+        .patch('/api/v1/appointment-inquiries/' + created.body.id)
+        .send({ status: 'CANCELLED' })
+        .expect(200);
+    },
+  );
+  it('rejects self-booking, self-chat and a caller-supplied customer identity', async () => {
+    await api(1)
+      .post('/api/v1/appointment-inquiries')
+      .send({ ...booking(0), idempotencyKey: randomUUID() })
+      .expect(400);
+    await api(1)
+      .post('/api/v1/ktv-chat/threads')
+      .send({ providerApplicationId: providers[0] })
+      .expect(400);
+    await api(5)
+      .post('/api/v1/appointment-inquiries')
+      .send({ ...booking(2), idempotencyKey: randomUUID(), customerId: actors[0].id })
+      .expect(400);
   });
 });
