@@ -45,7 +45,7 @@ describe('Zalo bot management switches', () => {
     return { service, db, query, saved };
   }
 
-  it('defaults all six bots and all features to enabled without stored records', async () => {
+  it('defaults all seven bots and all features to enabled without stored records', async () => {
     const { service } = setup();
     const { bots } = await service.list();
     expect(bots.map((bot) => bot.id)).toEqual([
@@ -55,6 +55,7 @@ describe('Zalo bot management switches', () => {
       'tien-manh',
       'tung',
       'nguyet',
+      'thanh-thanh',
     ]);
     for (const bot of bots) {
       expect(bot).toMatchObject({

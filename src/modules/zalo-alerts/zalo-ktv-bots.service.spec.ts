@@ -8,6 +8,7 @@ import { privateZaloText } from './zalo-message-privacy';
 
 const manh = '44174274-e46e-418d-a08b-e26ceede49b7';
 const nguyet = '1ddd7a59-3150-4ced-aa5b-052a51f367f9';
+const thanhThanh = '4d0f6e3e-fd0e-4c84-841c-1be521de1086';
 const eventId = 'ab'.repeat(32);
 const inquiry: ZaloAlert = {
   kind: 'inquiry',
@@ -33,6 +34,9 @@ const variables = new Map([
   ['ZALO_NGUYET_BOT_TOKEN', 'nguyet-test'],
   ['ZALO_NGUYET_CHAT_IDS', 'nguyet-1'],
   ['ZALO_NGUYET_PROVIDER_ID', nguyet],
+  ['ZALO_THANH_THANH_BOT_TOKEN', 'thanh-thanh-test'],
+  ['ZALO_THANH_THANH_CHAT_IDS', 'thanh-thanh-1'],
+  ['ZALO_THANH_THANH_PROVIDER_ID', thanhThanh],
 ]);
 function setup(values = variables): {
   staff: ZaloKtvBotsService;
@@ -58,6 +62,7 @@ describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
   it.each([
     [manh, 'tien-manh', 'manh-1'],
     [nguyet, 'nguyet', 'nguyet-1'],
+    [thanhThanh, 'thanh-thanh', 'thanh-thanh-1'],
   ])(
     'sends %s booking only to its own KTV plus all three admin channels',
     async (providerId, slug, recipient) => {
@@ -86,24 +91,39 @@ describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
       }
     },
   );
-  it('routes inbound customer chat to one KTV with exact thread link and deterministic deduplication', async () => {
-    const { main, manager, query } = setup();
-    const threadId = 'c03e834b-7a53-4f6f-b893-87fd04039bd5';
-    const event: ZaloAlert = {
-      ...inquiry,
-      kind: 'chat',
-      senderRole: 'customer',
-      threadId,
-      messageBody: 'Gọi +84 912 345 678, mai@example.com',
-    };
-    await main.enqueue(manager, event);
-    await main.enqueue(manager, event);
-    expect(query).toHaveBeenCalledTimes(8);
-    expect(query.mock.calls[3][1][0]).toBe(query.mock.calls[7][1][0]);
-    const text = (JSON.parse(query.mock.calls[3][1][1] as string) as { text: string }).text;
-    expect(text).toContain('/tin-nhan?thread=' + threadId);
-    expect(text).not.toContain('+84 912 345 678');
-    expect(text).not.toContain('mai@example.com');
+  it.each([manh, nguyet, thanhThanh])(
+    'routes inbound customer chat to only provider %s with deterministic deduplication',
+    async (providerId) => {
+      const { main, manager, query } = setup();
+      const threadId = 'c03e834b-7a53-4f6f-b893-87fd04039bd5';
+      const event: ZaloAlert = {
+        ...inquiry,
+        providerId,
+        kind: 'chat',
+        senderRole: 'customer',
+        threadId,
+        messageBody: 'Gọi +84 912 345 678, mai@example.com',
+      };
+      await main.enqueue(manager, event);
+      await main.enqueue(manager, event);
+      expect(query).toHaveBeenCalledTimes(8);
+      expect(query.mock.calls[3][1][0]).toBe(query.mock.calls[7][1][0]);
+      const text = (JSON.parse(query.mock.calls[3][1][1] as string) as { text: string }).text;
+      expect(text).toContain('/tin-nhan?thread=' + threadId);
+      expect(text).not.toContain('+84 912 345 678');
+      expect(text).not.toContain('mai@example.com');
+    },
+  );
+  it('never creates a Thanh Thanh outbox for another KTV or an outgoing KTV reply', async () => {
+    const { staff, manager, query } = setup();
+    for (const providerId of [manh, nguyet, 'unknown-provider']) {
+      await staff.enqueue(manager, eventId, 'Own booking', 'inquiry', providerId);
+      await staff.enqueue(manager, eventId, 'Customer message', 'chat', providerId, 'customer');
+    }
+    await staff.enqueue(manager, eventId, 'KTV reply', 'chat', thanhThanh, 'provider');
+    expect(
+      query.mock.calls.every(([, params]) => !(params[0] as string).includes('.thanh-thanh.')),
+    ).toBe(true);
   });
   it('keeps outgoing KTV replies and unknown providers on admin channels only', async () => {
     const { main, manager, query } = setup();

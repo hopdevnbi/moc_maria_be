@@ -48,7 +48,7 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
     configureApplication(app);
     await app.init();
     db = app.get(DataSource);
-    for (let index = 0; index < 4; index++) {
+    for (let index = 0; index < 5; index++) {
       const email = randomUUID() + '@zalo-qa.test',
         password = randomBytes(24).toString('base64url') + '1!';
       const registered = await api()
@@ -72,7 +72,7 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
         .send({ identifier: email, password })
         .expect(200);
       actors.push({ id, token: login.body.accessToken });
-      if (index === 1 || index === 2) {
+      if (index === 1 || index === 2 || index === 4) {
         const [row] = await db.query<Array<{ id: string }>>(
           "INSERT INTO provider_applications(user_id,public_name,status) VALUES($1,$2,'APPROVED') RETURNING id",
           [id, 'KTV QA ' + index],
@@ -104,6 +104,9 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
       ZALO_NGUYET_BOT_TOKEN: 'qa-nguyet',
       ZALO_NGUYET_CHAT_IDS: 'qa-nguyet',
       ZALO_NGUYET_PROVIDER_ID: providers[1],
+      ZALO_THANH_THANH_BOT_TOKEN: 'qa-thanh-thanh',
+      ZALO_THANH_THANH_CHAT_IDS: 'qa-thanh-thanh',
+      ZALO_THANH_THANH_PROVIDER_ID: providers[2],
     }))
       config.set(key, value);
     firstBooking = booking();
@@ -224,11 +227,51 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
     ).rejects.toThrow('rollback-qa');
     expect(await deliveries(eventId)).toEqual([]);
   });
+  it('routes Thanh Thanh bookings and incoming customer messages only to her bot plus admins', async () => {
+    const input = { ...booking(2), idempotencyKey: randomUUID() };
+    const inquiry = await api(0).post('/api/v1/appointment-inquiries').send(input).expect(201);
+    const bookingRows = await deliveries(inquiry.body.id);
+    expect(bookingRows.map((row) => row.value.recipient).sort()).toEqual([
+      'qa-admin',
+      'qa-dan',
+      'qa-hoan',
+      'qa-thanh-thanh',
+    ]);
+    expect(
+      bookingRows.find((row) => row.value.recipient === 'qa-thanh-thanh')!.value.providerId,
+    ).toBe(providers[2]);
+    await api(1)
+      .post('/api/v1/ktv-chat/inquiries/' + inquiry.body.id + '/thread')
+      .expect(404);
+    const thread = await api(4)
+      .post('/api/v1/ktv-chat/inquiries/' + inquiry.body.id + '/thread')
+      .expect(201);
+    const incoming = await api(0)
+      .post(`/api/v1/ktv-chat/threads/${thread.body.id}/messages`)
+      .send({ clientMessageId: randomUUID(), body: 'Nhờ Thanh Thanh tư vấn giúp.' })
+      .expect(201);
+    expect((await deliveries(incoming.body.id)).map((row) => row.value.recipient).sort()).toEqual([
+      'qa-admin',
+      'qa-dan',
+      'qa-hoan',
+      'qa-thanh-thanh',
+    ]);
+    const reply = await api(4)
+      .post(`/api/v1/ktv-chat/threads/${thread.body.id}/messages`)
+      .send({ clientMessageId: randomUUID(), body: 'Đã nhận tin nhắn.' })
+      .expect(201);
+    expect((await deliveries(reply.body.id)).map((row) => row.value.recipient).sort()).toEqual([
+      'qa-admin',
+      'qa-dan',
+      'qa-hoan',
+    ]);
+  });
   it('persists private pairing for every bot under the actual varchar100 database limit', async () => {
     for (const [slug, prefix] of [
       ['tien-manh', 'ZALO_TIEN_MANH'],
       ['nguyet', 'ZALO_NGUYET'],
       ['tung', 'ZALO_TUNG'],
+      ['thanh-thanh', 'ZALO_THANH_THANH'],
     ]) {
       const secret = 'qa-pair-' + slug;
       app.get(ConfigService).set(prefix + '_WEBHOOK_SECRET', secret);

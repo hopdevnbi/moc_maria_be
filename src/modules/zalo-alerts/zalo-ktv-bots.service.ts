@@ -11,6 +11,7 @@ export const STAFF_ZALO_BOTS = [
   { slug: 'tien-manh', env: 'ZALO_TIEN_MANH' },
   { slug: 'tung', env: 'ZALO_TUNG' },
   { slug: 'nguyet', env: 'ZALO_NGUYET' },
+  { slug: 'thanh-thanh', env: 'ZALO_THANH_THANH' },
 ] as const;
 
 export type StaffZaloBot = (typeof STAFF_ZALO_BOTS)[number];

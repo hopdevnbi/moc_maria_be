@@ -1,0 +1,39 @@
+{
+  "spec": {
+    "template": {
+      "spec": {
+        "containers": [
+          {
+            "name": "api",
+            "env": [
+              {
+                "name": "ZALO_THANH_THANH_BOT_TOKEN",
+                "valueFrom": {
+                  "secretKeyRef": { "name": "moc-maria-zalo-thanh-thanh", "key": "token" }
+                }
+              },
+              {
+                "name": "ZALO_THANH_THANH_PROVIDER_ID",
+                "valueFrom": {
+                  "secretKeyRef": { "name": "moc-maria-zalo-thanh-thanh", "key": "provider-id" }
+                }
+              },
+              {
+                "name": "ZALO_THANH_THANH_CHAT_IDS",
+                "valueFrom": {
+                  "secretKeyRef": { "name": "moc-maria-zalo-thanh-thanh", "key": "chat-ids" }
+                }
+              },
+              {
+                "name": "ZALO_THANH_THANH_WEBHOOK_SECRET",
+                "valueFrom": {
+                  "secretKeyRef": { "name": "moc-maria-zalo-thanh-thanh", "key": "webhook-secret" }
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
+  }
+}

@@ -2,7 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
 
-export type ZaloBotId = 'primary' | 'linh-dan' | 'hoan' | 'tien-manh' | 'tung' | 'nguyet';
+export type ZaloBotId =
+  'primary' | 'linh-dan' | 'hoan' | 'tien-manh' | 'tung' | 'nguyet' | 'thanh-thanh';
 export type ZaloNotificationKind = 'inquiry' | 'chat' | 'other';
 
 export interface ZaloBotSwitches {
@@ -79,6 +80,16 @@ const BOTS: readonly BotDefinition[] = [
     webhookEnv: 'ZALO_NGUYET_WEBHOOK_SECRET',
     providerEnv: 'ZALO_NGUYET_PROVIDER_ID',
     outboxPrefix: 'mocmaria.zalo.staff.nguyet.outbox.',
+  },
+  {
+    id: 'thanh-thanh',
+    label: 'Bot KTV Thanh Thanh',
+    category: 'staff',
+    tokenEnv: 'ZALO_THANH_THANH_BOT_TOKEN',
+    recipientsEnv: 'ZALO_THANH_THANH_CHAT_IDS',
+    webhookEnv: 'ZALO_THANH_THANH_WEBHOOK_SECRET',
+    providerEnv: 'ZALO_THANH_THANH_PROVIDER_ID',
+    outboxPrefix: 'mocmaria.zalo.staff.thanh-thanh.outbox.',
   },
 ] as const;
 

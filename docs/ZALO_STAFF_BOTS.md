@@ -1,5 +1,17 @@
 # Zalo notifications for KTV Nguyệt and Tiến Mạnh
 
+## Thanh Thanh — 2026-11-10
+
+The owner authorized an additional dedicated bot for the persisted Thanh Thanh provider `4d0f6e3e-fd0e-4c84-841c-1be521de1086`. Read-only production verification found one matching active user with THERAPIST role; application status APPLIED is preserved. No new provider, role grant or approval is created.
+
+Bot slug `thanh-thanh` uses `ZALO_THANH_THANH_BOT_TOKEN`, `ZALO_THANH_THANH_PROVIDER_ID`, `ZALO_THANH_THANH_CHAT_IDS` and `ZALO_THANH_THANH_WEBHOOK_SECRET`, referencing the dedicated `moc-maria-zalo-thanh-thanh` Secret. Webhook: `/api/v1/zalo/ktv/thanh-thanh/webhook`. Apply `deploy/thanh-thanh-zalo-env-patch.json` as a strategic merge patch so existing container environment, resources and rollout strategy remain intact.
+
+The existing exact-provider checks apply at enqueue and worker claim. Only customer/admin-created bookings selecting Thanh Thanh and inbound customer chat in her thread can reach this bot. Another provider's event, an unbound provider, a KTV reply, a group pairing or a mismatched webhook secret cannot enroll or notify her. Three administrator channels and existing KTV channels retain their existing scope. Customer contact redaction and protected conversation handling remain unchanged.
+
+Private pairing uses an actual “Kết nối Mộc Maria” event from the intended recipient. Bot ID, token and group-invite URL are not a private recipient ID. Keep delivery disabled by an empty recipient binding until the intended private account is verified. Never create production booking/chat fixtures or unsolicited test deliveries. Pending/outbox keys remain within varchar(100), including this longer bot slug.
+
+Validation includes new own-provider/cross-provider units, signed private webhook/group rejection, and a real isolated PostgreSQL HTTP case covering Thanh Thanh booking → owned thread → inbound message → KTV reply. Production acceptance verifies getMe, webhook response, provider/recipient binding, API readiness and existing channel preservation without synthetic business events. Exact release evidence is recorded in the scoped release JSON after rollout.
+
 Owner scope on 2026-11-04: both recipients are KTV, not Super Admin. Persisted provider records are Nguyệt Nguyễn (1ddd7a59-3150-4ced-aa5b-052a51f367f9) and Bác sĩ Tiến Mạnh (44174274-e46e-418d-a08b-e26ceede49b7). Read-only production verification found active users with THERAPIST only, application status APPLIED. This integration grants no roles or operational approvals.
 
 The previous staff worker broadcast every event to all configured staff bots. It also used a 101-character Tiến Mạnh outbox key for a varchar(100) column, and linked to an admin-only page. All three defects are covered by the new tests.
