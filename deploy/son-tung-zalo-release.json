@@ -1,6 +1,6 @@
 {
   "configuredAt": "2026-11-11T16:53:31.9744146+07:00",
-  "status": "CONFIGURED_AWAITING_CONFIRMED_PRIVATE_PAIRING",
+  "status": "RELEASED_CONFIRMED_PRIVATE_RECIPIENT_ACTIVE",
   "provider": {
     "applicationStatus": "APPLIED unchanged",
     "active": true,
@@ -9,20 +9,22 @@
     "id": "d9c0c4b2-35d3-4672-9f5b-8b084ecb3341"
   },
   "bot": {
-    "recipientCount": 0,
+    "recipientCount": 1,
     "secret": "moc-maria-zalo-tung",
     "slug": "tung",
     "intendedRecipientName": "Sơn Tùng Thảo Y",
     "webhook": "https://api.mocmaria.com/api/v1/zalo/ktv/tung/webhook",
-    "privatePairingPending": true,
+    "privatePairingPending": false,
     "unsignedRequestStatus": 401,
-    "webhookVerified": true
+    "webhookVerified": true,
+    "recipientMatchesOwnerConfirmedAccount": true,
+    "pairing": "Actual signed private connection event arrived through live webhook from owner-confirmed Sơn Tùng Thảo Y; no synthetic event or polling needed"
   },
   "runtime": {
     "readyReplicas": 1,
     "newTungReferences": 4,
     "previousEnvironmentEntries": 47,
-    "health": "ready200",
+    "health": "live200/ready200",
     "applicationCodeChanged": false,
     "allOtherSpecPreserved": true,
     "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:2b3e8d150b647b6d1ab93ce8070c2230335c556374a3cb70afddb1264a02a9cb",
@@ -38,5 +40,19 @@
   "routing": "Only assigned Sơn Tùng inquiries and inbound buyer messages; other providers, missing bindings and outgoing KTV replies excluded; administrator channels preserved.",
   "existingChannels": "Primary/Hoan/LinhDan/Nguyet/TienManh/ThanhThanh remain configured with one recipient each.",
   "businessData": "Dedicated bot configuration only; no synthetic production booking/chat/notification or enrollment event; no role/schema/GiangXa changes; disposable QA resources removed.",
-  "pending": "Actual private connection event from owner-confirmed Sơn Tùng Thảo Y; operator must verify and bind before notifications are enabled."
+  "pending": "None for configuration. Delivery awaits real own-provider booking/inbound buyer chat; no synthetic test send.",
+  "releasedAt": "2026-11-11T16:56:57.6525304+07:00",
+  "configSource": "738fdfca1b7f25a82fa88c477c53a007a8b20c7a",
+  "ci": {
+    "imageBuild": 42999021151,
+    "quality": 42999021243,
+    "qualityState": "SUCCESS",
+    "imageDeployment": "Current tested runtime retained; application implementation unchanged",
+    "imageState": "SUCCESS"
+  },
+  "deliveryCounts": {
+    "pending": 0,
+    "failed": 0,
+    "sent": 0
+  }
 }
