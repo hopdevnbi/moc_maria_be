@@ -95,7 +95,7 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
     text: string,
     kind: 'inquiry' | 'chat' = 'inquiry',
     providerId?: string,
-    senderRole?: 'customer' | 'provider',
+    senderRole?: 'customer' | 'provider' | 'support',
   ): Promise<void> {
     // No identity or outgoing KTV reply can fall through to a broadcast.
     if (!providerId || (kind === 'chat' && senderRole !== 'customer')) return;

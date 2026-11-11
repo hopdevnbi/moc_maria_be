@@ -9,6 +9,22 @@ const event: ZaloAlert = {
   providerName: 'KTV',
 };
 describe('Zalo durable notifications', () => {
+  it('links every administrator alert to the exact authenticated support locator while KTV links stay participant-only', () => {
+    const inquiry = { ...event, kind: 'inquiry' as const, eventId: 'ab'.repeat(32) };
+    const threadId = '11111111-1111-4111-8111-111111111111';
+    expect(alertText(inquiry)).toContain('/tin-nhan?inquiry=' + inquiry.eventId + '&support=1');
+    expect(alertText(inquiry, { audience: 'ktv' })).toContain(
+      '/tin-nhan?inquiry=' + inquiry.eventId,
+    );
+    expect(alertText(inquiry, { audience: 'ktv' })).not.toContain('support=1');
+    expect(alertText({ ...event, threadId })).toContain(
+      '/tin-nhan?thread=' + threadId + '&support=1',
+    );
+    expect(alertText({ ...event, threadId, senderRole: 'support' })).toContain(
+      'Người gửi: Quản trị hỗ trợ',
+    );
+    expect(alertText(inquiry)).not.toContain('/quan-tri/lich-hen');
+  });
   const originalFetch = global.fetch;
   afterEach(() => {
     global.fetch = originalFetch;

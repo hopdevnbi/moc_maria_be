@@ -16,8 +16,10 @@ import { KtvChatPrivacyService, privacyKey } from './ktv-chat-privacy.service';
 import { ZaloAlertsService } from '../zalo-alerts/zalo-alerts.service';
 import { chatImageUploadKey, chatMessageImageKey, imageIdFromUrl } from './ktv-chat-image.keys';
 import { KtvChatPushService } from './ktv-chat-push.service';
+import { canSupportChat, hasSupportAccess } from './ktv-chat-support';
 
 export interface KtvThread {
+  support_access?: boolean;
   id: string;
   customer_user_id: string;
   provider_user_id: string;
@@ -36,6 +38,8 @@ export interface KtvThread {
   unlock_expires_at: string | null;
 }
 export interface KtvMessage {
+  sender_name?: string;
+  sender_is_support?: boolean;
   id: string;
   thread_id: string;
   sender_user_id: string;
@@ -154,6 +158,7 @@ export class KtvChatService {
     >(
       `SELECT t.id,t.customer_user_id,t.provider_user_id,t.provider_application_id,
       t.updated_at,p.public_name AS provider_name,u.display_name AS customer_name,
+      (t.customer_user_id<>$1 AND t.provider_user_id<>$1) AS support_access,
       p.status AS provider_status,provider.is_active AS provider_active,u.is_active AS customer_active,
       EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id=$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS blocked_by_me,
       EXISTS(SELECT 1 FROM ktv_chat_blocks b WHERE b.thread_id=t.id AND b.blocker_user_id<>$1 AND b.revoked_at IS NULL AND (b.expires_at IS NULL OR b.expires_at>clock_timestamp())) AS blocked_by_other,
@@ -166,14 +171,20 @@ export class KtvChatService {
         THEN to_timestamp((privacy.value->'grants'->$2::text->>'expiresAt')::bigint/1000.0) ELSE NULL END AS unlock_expires_at,
       CASE WHEN t.customer_user_id=$1 AND COALESCE(privacy.value ? 'passwordHash',false) THEN NULL
         ELSE (SELECT body FROM ktv_chat_messages WHERE thread_id=t.id ORDER BY seq DESC LIMIT 1) END AS last_message,
+      CASE WHEN t.customer_user_id<>$1 AND t.provider_user_id<>$1 THEN 0 ELSE
       (SELECT count(*)::int FROM ktv_chat_messages m WHERE m.thread_id=t.id AND m.sender_user_id<>$1
-        AND m.seq>CASE WHEN t.customer_user_id=$1 THEN t.customer_read_seq ELSE t.provider_read_seq END) AS unread_count
+        AND m.seq>CASE WHEN t.customer_user_id=$1 THEN t.customer_read_seq ELSE t.provider_read_seq END) END AS unread_count
       FROM ktv_chat_threads t JOIN provider_applications p ON p.id=t.provider_application_id
       JOIN users u ON u.id=t.customer_user_id
       JOIN users provider ON provider.id=t.provider_user_id
       LEFT JOIN app_metadata privacy ON privacy.key='mocmaria.chat.privacy.'||t.id::text
-      WHERE t.customer_user_id=$1 OR t.provider_user_id=$1 ORDER BY t.updated_at DESC,t.id`,
-      [actor.id, actor.sessionId],
+      WHERE t.customer_user_id=$1 OR t.provider_user_id=$1 OR
+        ($3::boolean AND NOT COALESCE(privacy.value ? 'passwordHash',false) AND EXISTS(
+          SELECT 1 FROM app_metadata support WHERE support.key='mocmaria.chat.support.'||t.id::text||'.'||$1::text
+          AND support.value->>'actorId'=$1::text AND support.value->>'threadId'=t.id::text
+          AND (support.value->>'expiresAt')::timestamptz>clock_timestamp()))
+      ORDER BY t.updated_at DESC,t.id`,
+      [actor.id, actor.sessionId, canSupportChat(actor)],
     );
     const seeded = new Set((await this.seededProviders()).map((p) => p.id));
     return rows.map(({ provider_status, provider_active, customer_active, ...thread }) => ({
@@ -214,7 +225,7 @@ export class KtvChatService {
 
   private async member(
     manager: EntityManager,
-    actorId: string,
+    actor: AuthUserContext,
     threadId: string,
     lock = false,
   ): Promise<{
@@ -227,9 +238,16 @@ export class KtvChatService {
     >(
       `SELECT customer_user_id,provider_user_id,provider_application_id FROM ktv_chat_threads
        WHERE id=$1 AND (customer_user_id=$2 OR provider_user_id=$2)${lock ? ' FOR UPDATE' : ''}`,
-      [threadId, actorId],
+      [threadId, actor.id],
     );
-    // Non-members get the same response as an unknown thread, including administrators.
+    if (!thread && canSupportChat(actor)) {
+      const [supported] = await manager.query<(typeof thread)[]>(
+        `SELECT customer_user_id,provider_user_id,provider_application_id FROM ktv_chat_threads WHERE id=$1${lock ? ' FOR UPDATE' : ''}`,
+        [threadId],
+      );
+      if (supported && (await hasSupportAccess(manager, actor, threadId))) return supported;
+    }
+    // Administrators need an explicit, unexpired support entry for this thread.
     if (!thread) throw new NotFoundException('Không tìm thấy hội thoại.');
     return thread;
   }
@@ -239,7 +257,7 @@ export class KtvChatService {
     token?: string,
   ): Promise<void> {
     await this.db.transaction(async (manager) => {
-      const thread = await this.member(manager, actor.id, threadId, true);
+      const thread = await this.member(manager, actor, threadId, true);
       await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
       const [blocked] = await manager.query<{ thread_id: string }[]>(
         `SELECT thread_id FROM ktv_chat_blocks WHERE thread_id=$1 AND revoked_at IS NULL
@@ -257,7 +275,7 @@ export class KtvChatService {
     token?: string,
   ): Promise<KtvMessage[]> {
     return this.db.transaction(async (manager) => {
-      const thread = await this.member(manager, actor.id, threadId, true);
+      const thread = await this.member(manager, actor, threadId, true);
       await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
       if (before) {
         const [cursor] = await manager.query<{ id: string }[]>(
@@ -267,8 +285,9 @@ export class KtvChatService {
         if (!cursor) throw new BadRequestException('Mốc tin nhắn không hợp lệ.');
       }
       const rows = await manager.query<KtvMessage[]>(
-        `SELECT m.id,m.thread_id,m.sender_user_id,m.body,m.created_at,attachment.value->>'url' AS image_url
-      FROM ktv_chat_messages m
+        `SELECT m.id,m.thread_id,m.sender_user_id,m.body,m.created_at,attachment.value->>'url' AS image_url,
+      sender.display_name AS sender_name,(m.sender_user_id<>t.customer_user_id AND m.sender_user_id<>t.provider_user_id) AS sender_is_support
+      FROM ktv_chat_messages m JOIN ktv_chat_threads t ON t.id=m.thread_id JOIN users sender ON sender.id=m.sender_user_id
       LEFT JOIN app_metadata attachment ON attachment.key='mocmaria.chat.image.'||m.id::text
       WHERE m.thread_id=$1
       AND ($2::uuid IS NULL OR seq<(SELECT seq FROM ktv_chat_messages WHERE id=$2 AND thread_id=$1))
@@ -292,10 +311,13 @@ export class KtvChatService {
     if (dto.imageUrl && !attachmentId) throw new BadRequestException('Ảnh chat không hợp lệ.');
     const storedBody = body || '📷 Ảnh';
     const alert = {
-      recipient: null as { userId: string; senderRole: 'customer' | 'provider' } | null,
+      supportProvider: null as string | null,
+      recipient: null as { userId: string; senderRole: 'customer' | 'provider' | 'support' } | null,
     };
     const saved = await this.db.transaction(async (manager) => {
-      const thread = await this.member(manager, actor.id, threadId, true);
+      const thread = await this.member(manager, actor, threadId, true);
+      const isSupport =
+        actor.id !== thread.customer_user_id && actor.id !== thread.provider_user_id;
       await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
       const clientId = dto.clientMessageId ?? randomUUID();
       const [existing] = await manager.query<KtvMessage[]>(
@@ -304,6 +326,10 @@ export class KtvChatService {
         [threadId, actor.id, clientId],
       );
       if (existing) {
+        if (isSupport) {
+          existing.sender_name = actor.displayName;
+          existing.sender_is_support = true;
+        }
         if (existing.body !== storedBody)
           throw new BadRequestException('Mã tin nhắn đã được sử dụng.');
         const [image] = await manager.query<{ url: string }[]>(
@@ -404,21 +430,40 @@ export class KtvChatService {
           providerName: contact.providerName,
           providerId: thread.provider_application_id,
           threadId,
-          senderRole: thread.customer_user_id === actor.id ? 'customer' : 'provider',
+          senderRole: isSupport
+            ? 'support'
+            : thread.customer_user_id === actor.id
+              ? 'customer'
+              : 'provider',
           messageBody: privacy?.isProtected ? undefined : message.body,
           chatPrivacyProtected: privacy?.isProtected ?? false,
         });
       }
+      if (isSupport) {
+        alert.supportProvider = thread.provider_user_id;
+        message.sender_name = actor.displayName;
+        message.sender_is_support = true;
+        await manager.query(
+          `INSERT INTO audit_logs(event,actor_user_id,target_user_id,metadata) VALUES('KTV_CHAT_SUPPORT_MESSAGE',$1,$2,$3::jsonb)`,
+          [actor.id, thread.customer_user_id, JSON.stringify({ threadId, messageId: message.id })],
+        );
+      }
       // Notify only the other participant of a committed message.
       // Idempotent client retries returned above never trigger another alert.
-      alert.recipient =
-        thread.customer_user_id === actor.id
+      alert.recipient = isSupport
+        ? { userId: thread.customer_user_id, senderRole: 'support' }
+        : thread.customer_user_id === actor.id
           ? { userId: thread.provider_user_id, senderRole: 'customer' }
           : { userId: thread.customer_user_id, senderRole: 'provider' };
       return message;
     });
     this.changed(threadId);
     const recipient = alert.recipient;
+    if (alert.supportProvider && this.notifications) {
+      void this.notifications
+        .notifyRecipient(alert.supportProvider, saved.id, threadId, 'support')
+        .catch(() => {});
+    }
     if (recipient && this.notifications) {
       void this.notifications
         .notifyRecipient(recipient.userId, saved.id, threadId, recipient.senderRole)
@@ -451,7 +496,7 @@ export class KtvChatService {
       signal?.addEventListener('abort', wake, { once: true });
       try {
         const rows = await this.db.transaction(async (manager) => {
-          const thread = await this.member(manager, actor.id, threadId, true);
+          const thread = await this.member(manager, actor, threadId, true);
           await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
           if (after) {
             const [cursor] = await manager.query<{ id: string }[]>(
@@ -461,8 +506,9 @@ export class KtvChatService {
             if (!cursor) throw new BadRequestException('Mốc tin nhắn không hợp lệ.');
           }
           return manager.query<KtvMessage[]>(
-            `SELECT m.id,m.thread_id,m.sender_user_id,m.body,m.created_at,attachment.value->>'url' AS image_url
-            FROM ktv_chat_messages m
+            `SELECT m.id,m.thread_id,m.sender_user_id,m.body,m.created_at,attachment.value->>'url' AS image_url,
+            sender.display_name AS sender_name,(m.sender_user_id<>t.customer_user_id AND m.sender_user_id<>t.provider_user_id) AS sender_is_support
+            FROM ktv_chat_messages m JOIN ktv_chat_threads t ON t.id=m.thread_id JOIN users sender ON sender.id=m.sender_user_id
             LEFT JOIN app_metadata attachment ON attachment.key='mocmaria.chat.image.'||m.id::text
             WHERE m.thread_id=$1
             AND ($2::uuid IS NULL OR seq>(SELECT seq FROM ktv_chat_messages WHERE id=$2 AND thread_id=$1))
@@ -489,7 +535,7 @@ export class KtvChatService {
     token?: string,
   ): Promise<void> {
     await this.db.transaction(async (manager) => {
-      const thread = await this.member(manager, actor.id, threadId, true);
+      const thread = await this.member(manager, actor, threadId, true);
       await this.privacy.assertAccess(manager, actor, threadId, thread.customer_user_id, token);
       const column =
         thread.customer_user_id === actor.id ? 'customer_read_seq' : 'provider_read_seq';
@@ -498,6 +544,7 @@ export class KtvChatService {
         [messageId, threadId],
       );
       if (!message) throw new BadRequestException('Tin nhắn không thuộc hội thoại.');
+      if (actor.id !== thread.customer_user_id && actor.id !== thread.provider_user_id) return;
       await manager.query(
         `UPDATE ktv_chat_threads SET ${column}=GREATEST(${column},m.seq)
         FROM ktv_chat_messages m WHERE ktv_chat_threads.id=$1 AND m.id=$2 AND m.thread_id=$1`,
@@ -522,7 +569,9 @@ export class KtvChatService {
     if (dto.mode === 'PERMANENT' && dto.durationMinutes !== undefined)
       throw new BadRequestException('Chặn vĩnh viễn không có thời hạn.');
     await this.db.transaction(async (manager) => {
-      await this.member(manager, actor.id, threadId, true);
+      const thread = await this.member(manager, actor, threadId, true);
+      if (actor.id !== thread.customer_user_id && actor.id !== thread.provider_user_id)
+        throw new ForbiddenException('Hỗ trợ không được thay đổi chặn liên hệ của khách và KTV.');
       await manager.query(
         `INSERT INTO ktv_chat_blocks(thread_id,blocker_user_id,expires_at,reason)
         VALUES($1,$2,CASE WHEN $3::int IS NULL THEN NULL ELSE clock_timestamp()+$3*interval '1 minute' END,$4)
@@ -551,7 +600,9 @@ export class KtvChatService {
   }
   async unblock(actor: AuthUserContext, threadId: string): Promise<KtvThread> {
     await this.db.transaction(async (manager) => {
-      await this.member(manager, actor.id, threadId, true);
+      const thread = await this.member(manager, actor, threadId, true);
+      if (actor.id !== thread.customer_user_id && actor.id !== thread.provider_user_id)
+        throw new ForbiddenException('Hỗ trợ không được thay đổi chặn liên hệ của khách và KTV.');
       await manager.query(
         `UPDATE ktv_chat_blocks SET revoked_at=clock_timestamp() WHERE thread_id=$1 AND blocker_user_id=$2 AND revoked_at IS NULL`,
         [threadId, actor.id],

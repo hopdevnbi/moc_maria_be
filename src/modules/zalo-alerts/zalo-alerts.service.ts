@@ -13,7 +13,7 @@ export interface ZaloAlert {
   kind: 'chat' | 'inquiry';
   eventId: string;
   customerName: string;
-  senderRole?: 'customer' | 'provider';
+  senderRole?: 'customer' | 'provider' | 'support';
   messageBody?: string;
   chatPrivacyProtected?: boolean;
   customerPhone?: string | null;
@@ -78,13 +78,17 @@ export function alertText(
     [
       alert.kind === 'inquiry'
         ? 'Mộc Maria · Yêu cầu đặt lịch mới'
-        : alert.senderRole === 'provider'
-          ? 'Mộc Maria · KTV nhắn khách'
-          : 'Mộc Maria · Khách nhắn KTV',
+        : alert.senderRole === 'support'
+          ? 'Mộc Maria · Quản trị hỗ trợ hội thoại'
+          : alert.senderRole === 'provider'
+            ? 'Mộc Maria · KTV nhắn khách'
+            : 'Mộc Maria · Khách nhắn KTV',
       `Khách: ${line(customerName)}`,
       `KTV: ${line(alert.providerName)}`,
       ...(alert.kind === 'chat'
-        ? [`Người gửi: ${alert.senderRole === 'provider' ? 'KTV' : 'Khách'}`]
+        ? [
+            `Người gửi: ${alert.senderRole === 'support' ? 'Quản trị hỗ trợ' : alert.senderRole === 'provider' ? 'KTV' : 'Khách'}`,
+          ]
         : []),
       ...(alert.kind === 'chat' && alert.chatPrivacyProtected
         ? ['Nội dung: [Hội thoại được bảo vệ bằng mật khẩu]']
@@ -97,8 +101,10 @@ export function alertText(
       `Mã ${alert.kind === 'chat' ? 'tin' : 'yêu cầu'}: ${line(alert.eventId)}`,
       options.audience === 'ktv'
         ? 'Mở cuộc trò chuyện với khách:'
-        : 'Vui lòng liên hệ KTV để hỗ trợ khách.',
-      options.audience === 'ktv' ? chatLink : 'https://mocmaria.com/quan-tri/lich-hen',
+        : 'Mở hội thoại để hỗ trợ khách và KTV:',
+      options.audience === 'ktv'
+        ? chatLink
+        : chatLink + (chatLink.includes('?') ? '&support=1' : '?support=1'),
     ].join('\n'),
   );
 }

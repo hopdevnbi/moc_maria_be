@@ -394,4 +394,116 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
       .send({ ...booking(2), idempotencyKey: randomUUID(), customerId: actors[0].id })
       .expect(400);
   });
+  it('opens an exact inquiry for super admin support, keeps honest message identity and preserves participant read/block state', async () => {
+    const entry = '/api/v1/ktv-chat/inquiries/' + inquiryId + '/support-thread';
+    const messages = `/api/v1/ktv-chat/threads/${threadId}/messages`;
+    await api(3).get(messages).expect(404);
+    for (const index of [0, 1, 2, 5]) await api(index).post(entry).expect(403);
+    const opened = await api(3).post(entry).expect(201);
+    expect(opened.body.id).toBe(threadId);
+    expect(opened.body.support_access).toBe(true);
+    await api(3).post('/api/v1/ktv-chat/inquiries/invalid/support-thread').expect(404);
+    const before = await db.query(
+      'SELECT customer_read_seq,provider_read_seq FROM ktv_chat_threads WHERE id=$1',
+      [threadId],
+    );
+    const payload = {
+      clientMessageId: randomUUID(),
+      body: 'Quản trị hỗ trợ khách và KTV trong DB QA.',
+    };
+    const sent = await api(3).post(messages).send(payload).expect(201);
+    expect(sent.body.sender_user_id).toBe(actors[3].id);
+    expect(sent.body.sender_is_support).toBe(true);
+    expect(sent.body.sender_name).toBe('KTV QA 3');
+    for (const index of [0, 1, 3]) {
+      const history = await api(index).get(messages).expect(200);
+      expect(
+        (history.body as Array<{ id: string; sender_is_support: boolean }>).find(
+          (m) => m.id === sent.body.id,
+        )?.sender_is_support,
+      ).toBe(true);
+    }
+    const retry = await api(3).post(messages).send(payload).expect(201);
+    expect(retry.body.id).toBe(sent.body.id);
+    expect((await deliveries(sent.body.id)).map((row) => row.value.recipient).sort()).toEqual([
+      'qa-admin',
+      'qa-dan',
+      'qa-hoan',
+    ]);
+    for (const delivery of await deliveries(sent.body.id)) {
+      expect(delivery.value.text).toContain('/tin-nhan?thread=' + threadId + '&support=1');
+      expect(delivery.value.text).toContain('Quản trị hỗ trợ');
+    }
+    await api(3)
+      .post(`/api/v1/ktv-chat/threads/${threadId}/read`)
+      .send({ lastMessageId: sent.body.id })
+      .expect(204);
+    const after = await db.query(
+      'SELECT customer_read_seq,provider_read_seq FROM ktv_chat_threads WHERE id=$1',
+      [threadId],
+    );
+    expect(after).toEqual(before);
+    await api(3)
+      .post(`/api/v1/ktv-chat/threads/${threadId}/block`)
+      .send({ mode: 'PERMANENT' })
+      .expect(403);
+    await api(3).post(`/api/v1/ktv-chat/threads/${threadId}/unblock`).expect(403);
+    await api(2).get(messages).expect(404);
+    const audits = await db.query<Array<{ count: number }>>(
+      "SELECT count(*)::int count FROM audit_logs WHERE actor_user_id=$1 AND event='KTV_CHAT_SUPPORT_MESSAGE' AND metadata->>'messageId'=$2",
+      [actors[3].id, sent.body.id],
+    );
+    expect(audits[0].count).toBe(1);
+  });
+  it('checks support grant expiry, live role revocation, blocked and protected threads without changing customer controls', async () => {
+    const entry = `/api/v1/ktv-chat/inquiries/support/threads/${threadId}`;
+    const messages = `/api/v1/ktv-chat/threads/${threadId}/messages`;
+    const key = `mocmaria.chat.support.${threadId}.${actors[3].id}`;
+    expect(key.length).toBeLessThanOrEqual(100);
+    await db.query(
+      "UPDATE app_metadata SET value=jsonb_set(value,'{expiresAt}',to_jsonb('2000-01-01T00:00:00Z'::text)) WHERE key=$1",
+      [key],
+    );
+    await api(3).get(messages).expect(404);
+    await api(3).post(entry).expect(201);
+    await db.query(
+      "DELETE FROM user_roles WHERE user_id=$1 AND role_id=(SELECT id FROM roles WHERE name='SUPER_ADMIN')",
+      [actors[3].id],
+    );
+    try {
+      await api(3).get(messages).expect(404);
+      await api(3).post(entry).expect(403);
+    } finally {
+      await db.query(
+        "INSERT INTO user_roles(user_id,role_id) SELECT $1,id FROM roles WHERE name='SUPER_ADMIN' ON CONFLICT DO NOTHING",
+        [actors[3].id],
+      );
+    }
+    await api(1)
+      .post(`/api/v1/ktv-chat/threads/${threadId}/block`)
+      .send({ mode: 'PERMANENT' })
+      .expect(201);
+    try {
+      await api(3)
+        .post(messages)
+        .send({ body: 'Cannot bypass block', clientMessageId: randomUUID() })
+        .expect(403);
+    } finally {
+      await api(1).post(`/api/v1/ktv-chat/threads/${threadId}/unblock`).expect(201);
+    }
+    const privacyKey = 'mocmaria.chat.privacy.' + threadId;
+    await db.query(
+      'INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb) ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value',
+      [privacyKey, JSON.stringify({ passwordHash: 'qa-protected', failures: 0, grants: {} })],
+    );
+    try {
+      await api(3).get(messages).expect(404);
+      await api(3).post(entry).expect(403);
+      const list = await api(3).get('/api/v1/ktv-chat/threads').expect(200);
+      expect((list.body as Array<{ id: string }>).some((row) => row.id === threadId)).toBe(false);
+      await api(1).get(messages).expect(200);
+    } finally {
+      await db.query('DELETE FROM app_metadata WHERE key=$1', [privacyKey]);
+    }
+  });
 });

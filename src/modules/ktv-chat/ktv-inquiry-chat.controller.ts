@@ -8,6 +8,22 @@ import { KtvInquiryChatService } from './ktv-inquiry-chat.service';
 @UseGuards(AccessTokenGuard)
 export class KtvInquiryChatController {
   constructor(private readonly chat: KtvInquiryChatService) {}
+  @Post(':id/support-thread')
+  @Header('Cache-Control', 'private, no-store')
+  support(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id') id: string,
+  ): ReturnType<KtvInquiryChatService['support']> {
+    return this.chat.support(actor, id, 'inquiry');
+  }
+  @Post('support/threads/:id')
+  @Header('Cache-Control', 'private, no-store')
+  supportThread(
+    @CurrentUser() actor: AuthUserContext,
+    @Param('id') id: string,
+  ): ReturnType<KtvInquiryChatService['support']> {
+    return this.chat.support(actor, id, 'thread');
+  }
   @Post(':id/thread')
   @Header('Cache-Control', 'private, no-store')
   open(

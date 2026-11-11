@@ -12,7 +12,7 @@ export function privateZaloText(value: string): string {
       // These lines are generated from validated internal UUIDs, never user content.
       if (
         /^Mã (?:tin|yêu cầu): (?:[0-9a-f-]{36}|[0-9a-f]{64})$/i.test(part) ||
-        /^https:\/\/mocmaria\.com\/(?:quan-tri\/lich-hen|tin-nhan(?:\?(?:thread=[0-9a-f-]{36}|inquiry=[0-9a-f]{64}))?)$/i.test(
+        /^https:\/\/mocmaria\.com\/(?:quan-tri\/lich-hen|tin-nhan(?:\?(?:(?:thread=[0-9a-f-]{36}|inquiry=[0-9a-f]{64})(?:&support=1)?|support=1))?)$/i.test(
           part,
         )
       )

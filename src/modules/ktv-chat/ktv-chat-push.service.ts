@@ -109,7 +109,7 @@ export class KtvChatPushService {
     recipientUserId: string,
     messageId: string,
     threadId: string,
-    senderRole: 'customer' | 'provider',
+    senderRole: 'customer' | 'provider' | 'support',
   ): Promise<void> {
     const tasks: Array<Promise<unknown>> = [];
     if (this.enabled)
@@ -152,7 +152,7 @@ export class KtvChatPushService {
     recipientUserId: string,
     messageId: string,
     threadId: string,
-    senderRole: 'customer' | 'provider',
+    senderRole: 'customer' | 'provider' | 'support',
   ): Promise<void> {
     const subscriptions = await this.db.query<StoredSubscription[]>(
       `SELECT p.endpoint_hash,p.endpoint,p.p256dh,p.auth_key
@@ -175,7 +175,9 @@ export class KtvChatPushService {
       body:
         senderRole === 'customer'
           ? 'Bạn có tin nhắn mới từ khách hàng'
-          : 'Bạn có tin nhắn mới từ KTV',
+          : senderRole === 'support'
+            ? 'Bạn có tin nhắn mới từ quản trị hỗ trợ'
+            : 'Bạn có tin nhắn mới từ KTV',
       url: '/tin-nhan?thread=' + threadId,
     });
     await Promise.allSettled(
