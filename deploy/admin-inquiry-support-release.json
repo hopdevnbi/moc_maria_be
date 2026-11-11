@@ -1,0 +1,46 @@
+{
+  "releasedAt": "2026-11-11T17:27:15.0171000+07:00",
+  "backendRuntimeSource": "e3d23a3dfca4de4ba07bc371f9c8d1726dace941",
+  "frontend": "48e3659515c34b5a76834ef5de228546db8492cd",
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:16411bd5673ca87f47f6e5ff286caf1da5e029ef3099eb36e02802ecee16f0c5",
+  "ci": {
+    "state": "SUCCESS",
+    "frontendQuality": 43002785735,
+    "backendQuality": 43002849336,
+    "image": 43002848975
+  },
+  "tests": {
+    "frontend": 499,
+    "extraScopedFrontend": "45PASS after final header copy",
+    "isolatedPostgreSQLHTTP": 14,
+    "backendSuites": 69,
+    "formatLintTypecheckBuild": "PASS",
+    "extraScopedBackend": "16PASS malformed locators and notification links",
+    "backend": 378
+  },
+  "frontendDeployment": {
+    "state": "READY",
+    "id": "dpl_5XtWWZMGTiStsshXfYhMaxkUZtUM",
+    "bothDomainsReleaseMatch": true,
+    "order": "Backward-compatible frontend first; then backend emits support URLs",
+    "branch": "main"
+  },
+  "runtime": {
+    "exactAdminInquiryAndThreadURLsVerified": true,
+    "ktvLocatorUnchanged": true,
+    "allSevenBotRecipientCounts": 1,
+    "health": "live200/ready200",
+    "roleGate": "ActiveSUPER_ADMIN+admin.portal+customers.manage",
+    "sender": "Actual admin userID/name;supportlabel/audit;retrydeduplication",
+    "all51EnvironmentEntriesAndEntireOtherSpecPreserved": true,
+    "anonymousSupportEntry": 401,
+    "botSwitches": "All enabled;inquiry/chat enabled",
+    "supportGrant": "Exactthread/actor,24hours,currentrolechecked;no protected-password chat;no block bypass;read cursors isolated",
+    "readyReplicas": 1,
+    "sonTungAndThanhThanhProviderBindingsVerified": true
+  },
+  "verificationLimits": "Successful join/send/expiry/revocation/privacy tested in disposable PostgreSQL with actual application HTTP. Production uses compiled runtime probes, read-only bot/inquiry checks and anonymous denial; no administrator impersonation or synthetic business send.",
+  "existingNotifications": "Already delivered Zalo messages retain their former link; newly formatted notifications open exact support locator. No replay or synthetic notification sent.",
+  "businessData": "No role/schema/Secret/botrecipient/GiangXa changes;no fabricated production booking/chat/supportenrollment;isolatedQAresourcesremoved",
+  "report": "docs/ADMIN_INQUIRY_SUPPORT.md"
+}
