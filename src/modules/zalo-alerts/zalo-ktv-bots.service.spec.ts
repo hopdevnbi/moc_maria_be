@@ -9,6 +9,7 @@ import { privateZaloText } from './zalo-message-privacy';
 const manh = '44174274-e46e-418d-a08b-e26ceede49b7';
 const nguyet = '1ddd7a59-3150-4ced-aa5b-052a51f367f9';
 const thanhThanh = '4d0f6e3e-fd0e-4c84-841c-1be521de1086';
+const tung = 'd9c0c4b2-35d3-4672-9f5b-8b084ecb3341';
 const eventId = 'ab'.repeat(32);
 const inquiry: ZaloAlert = {
   kind: 'inquiry',
@@ -37,6 +38,9 @@ const variables = new Map([
   ['ZALO_THANH_THANH_BOT_TOKEN', 'thanh-thanh-test'],
   ['ZALO_THANH_THANH_CHAT_IDS', 'thanh-thanh-1'],
   ['ZALO_THANH_THANH_PROVIDER_ID', thanhThanh],
+  ['ZALO_TUNG_BOT_TOKEN', 'tung-test'],
+  ['ZALO_TUNG_CHAT_IDS', 'tung-1'],
+  ['ZALO_TUNG_PROVIDER_ID', tung],
 ]);
 function setup(values = variables): {
   staff: ZaloKtvBotsService;
@@ -63,6 +67,7 @@ describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
     [manh, 'tien-manh', 'manh-1'],
     [nguyet, 'nguyet', 'nguyet-1'],
     [thanhThanh, 'thanh-thanh', 'thanh-thanh-1'],
+    [tung, 'tung', 'tung-1'],
   ])(
     'sends %s booking only to its own KTV plus all three admin channels',
     async (providerId, slug, recipient) => {
@@ -91,7 +96,7 @@ describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
       }
     },
   );
-  it.each([manh, nguyet, thanhThanh])(
+  it.each([manh, nguyet, thanhThanh, tung])(
     'routes inbound customer chat to only provider %s with deterministic deduplication',
     async (providerId) => {
       const { main, manager, query } = setup();
@@ -116,7 +121,7 @@ describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
   );
   it('never creates a Thanh Thanh outbox for another KTV or an outgoing KTV reply', async () => {
     const { staff, manager, query } = setup();
-    for (const providerId of [manh, nguyet, 'unknown-provider']) {
+    for (const providerId of [manh, nguyet, tung, 'unknown-provider']) {
       await staff.enqueue(manager, eventId, 'Own booking', 'inquiry', providerId);
       await staff.enqueue(manager, eventId, 'Customer message', 'chat', providerId, 'customer');
     }
@@ -124,6 +129,24 @@ describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
     expect(
       query.mock.calls.every(([, params]) => !(params[0] as string).includes('.thanh-thanh.')),
     ).toBe(true);
+  });
+  it('never delivers other KTV events, self replies or unbound Tung configuration to the Tung bot', async () => {
+    const { staff, manager, query } = setup();
+    for (const providerId of [manh, nguyet, thanhThanh, undefined]) {
+      await staff.enqueue(manager, eventId, 'Booking', 'inquiry', providerId);
+      await staff.enqueue(manager, eventId, 'Customer chat', 'chat', providerId, 'customer');
+    }
+    await staff.enqueue(manager, eventId, 'KTV reply', 'chat', tung, 'provider');
+    expect(query.mock.calls.every(([, params]) => !(params[0] as string).includes('.tung.'))).toBe(
+      true,
+    );
+    for (const missing of ['ZALO_TUNG_BOT_TOKEN', 'ZALO_TUNG_PROVIDER_ID', 'ZALO_TUNG_CHAT_IDS']) {
+      const values = new Map(variables);
+      values.delete(missing);
+      const test = setup(values);
+      await test.staff.enqueue(test.manager, eventId, 'Booking', 'inquiry', tung);
+      expect(test.query).not.toHaveBeenCalled();
+    }
   });
   it('keeps outgoing KTV replies and unknown providers on admin channels only', async () => {
     const { main, manager, query } = setup();

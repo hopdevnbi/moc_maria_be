@@ -1,0 +1,42 @@
+{
+  "configuredAt": "2026-11-11T16:53:31.9744146+07:00",
+  "status": "CONFIGURED_AWAITING_CONFIRMED_PRIVATE_PAIRING",
+  "provider": {
+    "applicationStatus": "APPLIED unchanged",
+    "active": true,
+    "name": "Sơn Tùng Thảo Y",
+    "role": "THERAPIST unchanged",
+    "id": "d9c0c4b2-35d3-4672-9f5b-8b084ecb3341"
+  },
+  "bot": {
+    "recipientCount": 0,
+    "secret": "moc-maria-zalo-tung",
+    "slug": "tung",
+    "intendedRecipientName": "Sơn Tùng Thảo Y",
+    "webhook": "https://api.mocmaria.com/api/v1/zalo/ktv/tung/webhook",
+    "privatePairingPending": true,
+    "unsignedRequestStatus": 401,
+    "webhookVerified": true
+  },
+  "runtime": {
+    "readyReplicas": 1,
+    "newTungReferences": 4,
+    "previousEnvironmentEntries": 47,
+    "health": "ready200",
+    "applicationCodeChanged": false,
+    "allOtherSpecPreserved": true,
+    "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:2b3e8d150b647b6d1ab93ce8070c2230335c556374a3cb70afddb1264a02a9cb",
+    "source": "4dc594e207d651fbb3973493ec1f467bfe627f29"
+  },
+  "tests": {
+    "scope": "Tung own booking/chat and cross-KTV isolation units; signed Tung webhook coverage; existing real PostgreSQL transaction/privacy/pairing suite",
+    "unit": 376,
+    "isolatedPostgreSQLHTTP": 12,
+    "suites": 68,
+    "formatLintTypecheckBuild": "PASS"
+  },
+  "routing": "Only assigned Sơn Tùng inquiries and inbound buyer messages; other providers, missing bindings and outgoing KTV replies excluded; administrator channels preserved.",
+  "existingChannels": "Primary/Hoan/LinhDan/Nguyet/TienManh/ThanhThanh remain configured with one recipient each.",
+  "businessData": "Dedicated bot configuration only; no synthetic production booking/chat/notification or enrollment event; no role/schema/GiangXa changes; disposable QA resources removed.",
+  "pending": "Actual private connection event from owner-confirmed Sơn Tùng Thảo Y; operator must verify and bind before notifications are enabled."
+}

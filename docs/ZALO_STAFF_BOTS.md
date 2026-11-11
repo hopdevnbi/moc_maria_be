@@ -1,5 +1,15 @@
 # Zalo notifications for KTV Nguyệt and Tiến Mạnh
 
+## Sơn Tùng Thảo Y — 2026-11-11
+
+The owner authorized the existing `tung` bot integration for persisted provider `d9c0c4b2-35d3-4672-9f5b-8b084ecb3341`, Sơn Tùng Thảo Y. A read-only production check found a unique matching active THERAPIST with application status APPLIED; these business records and permissions are preserved.
+
+The dedicated `moc-maria-zalo-tung` Secret holds token, provider-id, chat-ids and webhook-secret. Apply `deploy/son-tung-zalo-env-patch.json` only as a strategic merge patch. It adds four ZALO_TUNG references while retaining the current runtime image, all 47 previous environment entries, resources, RollingUpdate strategy and other bot bindings. The existing main-deployed code already supports exact-provider routing and authenticated private pairing at `/api/v1/zalo/ktv/tung/webhook`; no application image replacement or migration is needed.
+
+Only bookings selecting Sơn Tùng and inbound buyer messages to his conversation can reach this bot, alongside existing administrator channels. Other providers, missing provider identities and outgoing KTV replies are excluded. Delivery stays disabled until a unique real private connection event matches the owner's confirmed personal Zalo display name, Sơn Tùng Thảo Y, and an operator binds that recipient. A shared group invite or bot ID never substitutes for a private recipient.
+
+Additional regressions activate Tung alongside every existing KTV bot and cover own booking/chat routing, deduplication, unrelated-provider isolation, outgoing replies and missing configuration. Existing signed Tung webhook tests and disposable PostgreSQL HTTP coverage remain applicable. No synthetic production booking, chat, enrollment event or test notification is sent. Exact deployment, recipient readiness and validation results belong in `deploy/son-tung-zalo-release.json`.
+
 ## Thanh Thanh — 2026-11-10
 
 The owner authorized an additional dedicated bot for the persisted Thanh Thanh provider `4d0f6e3e-fd0e-4c84-841c-1be521de1086`. Read-only production verification found one matching active user with THERAPIST role; application status APPLIED is preserved. No new provider, role grant or approval is created.
