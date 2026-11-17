@@ -54,7 +54,12 @@ async function main(): Promise<void> {
         [id, index === 3 ? 0 : 100],
       );
     }
-    const [clock] = await db.query<{ now: Date }[]>('SELECT clock_timestamp() AS now');
+    let [clock] = await db.query<{ now: Date }[]>('SELECT clock_timestamp() AS now');
+    const remaining = 20000 - (clock.now.getTime() % 20000);
+    if (remaining < 5000) {
+      await new Promise((resolve) => setTimeout(resolve, remaining + 50));
+      [clock] = await db.query<{ now: Date }[]>('SELECT clock_timestamp() AS now');
+    }
     const opensAt = new Date(Math.floor(clock.now.getTime() / 20000) * 20000);
     const roundId = randomUUID(),
       context = { organizationId: scope, id: roundId, opensAt };
@@ -172,6 +177,36 @@ async function main(): Promise<void> {
     assert.equal(response.status, 200);
     assert.match(response.headers.get('cache-control') ?? '', /no-store/);
     const current = (await response.json()) as { round: { id: string } };
+    const acceptedInput = {
+      roundId: current.round.id,
+      requestId: randomUUID(),
+      color: 'RED',
+      stake: 1,
+    };
+    const acceptedResponse = await fetch(api + '/bets', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(acceptedInput),
+    });
+    assert.equal(acceptedResponse.status, 201);
+    const accepted = (await acceptedResponse.json()) as {
+      bet: { requestId: string };
+      wallet: { balance: number };
+    };
+    assert.equal(accepted.bet.requestId, acceptedInput.requestId);
+    assert.equal(accepted.wallet.balance, 229);
+    const replayResponse = await fetch(api + '/bets', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(acceptedInput),
+    });
+    assert.equal(replayResponse.status, 201);
+    const replay = (await replayResponse.json()) as {
+      replayed: boolean;
+      wallet: { balance: number };
+    };
+    assert.equal(replay.replayed, true);
+    assert.equal(replay.wallet.balance, 229);
     assert.equal(
       (
         await fetch(api + '/bets', {
