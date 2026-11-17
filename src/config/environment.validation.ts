@@ -33,4 +33,12 @@ export const environmentValidationSchema = Joi.object({
   WEB_PUSH_VAPID_PRIVATE_KEY: Joi.string().allow('').default(''),
   WEB_PUSH_SUBJECT: Joi.string().allow('').default(''),
   QUEUE_SERVICE_URL: Joi.string().uri().allow('').default(''),
+  MOC_MARIA_WHEEL_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
+  MOC_MARIA_WHEEL_RESULT_KEY: Joi.when('MOC_MARIA_WHEEL_ENABLED', {
+    is: true,
+    then: Joi.string()
+      .pattern(/^[A-Za-z0-9_-]{43}$/)
+      .required(),
+    otherwise: Joi.string().allow('').optional(),
+  }),
 });

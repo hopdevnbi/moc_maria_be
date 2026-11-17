@@ -19,3 +19,26 @@ jobs:
       - run: npm run quality
       - run: python3 -m py_compile scripts/configure-bunny-media.py
       - run: npm audit --omit=dev --audit-level=high
+  wheel-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: moc_wheel_ci_test
+          POSTGRES_USER: wheel_test
+          POSTGRES_PASSWORD: isolated-ci-only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U wheel_test -d moc_wheel_ci_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.23.1
+          cache: npm
+      - run: npm ci
+      - run: node scripts/run-lucky-wheel-test.cjs
+        env:
+          DATABASE_URL: postgresql://wheel_test:isolated-ci-only@127.0.0.1:5432/moc_wheel_ci_test

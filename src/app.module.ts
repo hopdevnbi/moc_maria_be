@@ -27,6 +27,7 @@ import { InquiryFulfillmentModule } from './modules/inquiry-fulfillment/inquiry-
 import { GiftEventsModule } from './modules/gift-events/gift-events.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { StaffAttendanceModule } from './modules/staff-attendance/staff-attendance.module';
+import { LuckyWheelModule } from './modules/lucky-wheel/lucky-wheel.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { StaffAttendanceModule } from './modules/staff-attendance/staff-attendan
     GiftEventsModule,
     AdminDashboardModule,
     StaffAttendanceModule,
+    LuckyWheelModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],
