@@ -1,3 +1,7 @@
+# 2026-11-17 — P19-T01 backend RELEASED
+
+CODE: f9bc29d on main. TEST: 380 unit + full 32-migration real PostgreSQL/HTTP CI PASS. DEPLOY: immutable eacf9a3c image Ready 1/1; live/ready 200; migration 31→32; unrelated configuration preserved. BUSINESS_DATA: no synthetic production users/bets/coins; private backup verified. Evidence: deploy/lucky-wheel-release.json. Frontend and visual acceptance tracked in workspace Plan/P19_LUCKY_WHEEL.md.
+
 # 2026-11-17 — P19-T01 lucky wheel
 
 CODE/TEST: implemented in isolated codex/lucky-wheel-20261117 worktree; see docs/LUCKY_WHEEL.md. COMMIT/DEPLOY: pending release at this entry; exact final evidence will be added after verification. BUSINESS_DATA: no production fixtures. Browser visual QA unavailable in this Windows session.

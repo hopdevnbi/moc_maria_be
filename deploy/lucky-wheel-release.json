@@ -1,0 +1,48 @@
+{
+  "task": "P19-T01",
+  "releasedAt": "2026-11-17T09:03:46.406Z",
+  "source": "f9bc29df21de405e41c1da2f81f1ad0a9380bd11",
+  "image": "ghcr.io/hopdevnbi/moc_maria_be@sha256:eacf9a3cd79b797a4c126d4bd245699cbd5a4845d62e78708eb0fb353a3a0ff7",
+  "previousImage": "ghcr.io/hopdevnbi/moc_maria_be@sha256:16411bd5673ca87f47f6e5ff286caf1da5e029ef3099eb36e02802ecee16f0c5",
+  "namespace": "moc-maria",
+  "deployment": "moc-maria-api",
+  "replicasReady": 1,
+  "unrelatedSpecPreserved": true,
+  "migration": {
+    "before": 31,
+    "after": 32,
+    "applied": [
+      "LuckyWheel1794910000000"
+    ]
+  },
+  "backup": {
+    "bytes": 931855,
+    "sha256": "a13b19aa3bc6f9ecd4d8f8b4aded081736b4e542a66abe041ce49f85f0f98b5c",
+    "tocVerified": true
+  },
+  "database": {
+    "strictTls": true,
+    "version": "170011",
+    "dataApiExposed": false,
+    "rlsTables": 3
+  },
+  "activation": {
+    "enabled": true,
+    "keyConfigured": true,
+    "secretName": "moc-wheel-20261117-key"
+  },
+  "health": {
+    "live": 200,
+    "ready": 200,
+    "unauthenticatedGame": 401
+  },
+  "ci": {
+    "quality": 44051174934,
+    "image": 44051174839,
+    "unitTests": 380,
+    "wheelPostgresIntegration": "PASS"
+  },
+  "productionFixtures": "NONE; verification observed zero bets and zero ledger entries",
+  "visualAcceptance": "PENDING; Windows policy 1260 and IAB attach timeout",
+  "frontendTrackedIn": "Mộc Maria/Plan/P19_LUCKY_WHEEL.md"
+}
