@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import { DataSource } from 'typeorm';
 import { buildDatabaseOptionsFromEnv } from '../src/database/database-options';
 import { CatalogTranslationsService } from '../src/modules/catalog-translations/catalog-translations.service';
+import { ProviderShowcaseTranslationsService } from '../src/modules/catalog-translations/provider-showcase-translations.service';
+import { ProviderDisplayService } from '../src/modules/provider-display/provider-display.service';
 import type { AuthUserContext } from '../src/modules/identity/identity.types';
 
 async function main(): Promise<void> {
@@ -85,6 +87,72 @@ async function main(): Promise<void> {
       [user],
     );
     assert.equal(audit.count, '2');
+    const providerId = randomUUID();
+    await db.query(
+      "INSERT INTO staff_profiles(user_id,public_name,is_active) VALUES($1,'Isolated KTV',true)",
+      [user],
+    );
+    await db.query(
+      "INSERT INTO provider_applications(id,user_id,public_name,status) VALUES($1,$2,'Isolated KTV','APPROVED')",
+      [providerId, user],
+    );
+    const metadataKey = 'mocmaria.ktv.showcase.v1.' + providerId;
+    const text = {
+      headline: 'Original headline',
+      biography: 'Original biography',
+      scheduleNote: 'Original note',
+    };
+    await db.query('INSERT INTO app_metadata(key,value) VALUES($1,$2::jsonb)', [
+      metadataKey,
+      JSON.stringify(text),
+    ]);
+    const profiles = new ProviderShowcaseTranslationsService(db, new ProviderDisplayService(db));
+    const profileSource = await profiles.adminDetail(actor, providerId, 'en');
+    const profileDto = {
+      headline: 'English headline',
+      biography: 'English biography',
+      scheduleNote: 'English note',
+      status: 'DRAFT' as const,
+      expectedVersion: 0,
+      sourceFingerprint: profileSource.sourceFingerprint,
+    };
+    await profiles.save(actor, providerId, 'en', profileDto);
+    assert.equal((await profiles.publicDetail(providerId, 'en')).locale, 'vi');
+    const published = await Promise.allSettled([
+      profiles.save(actor, providerId, 'en', {
+        ...profileDto,
+        status: 'PUBLISHED',
+        expectedVersion: 1,
+      }),
+      profiles.save(actor, providerId, 'en', {
+        ...profileDto,
+        status: 'PUBLISHED',
+        expectedVersion: 1,
+      }),
+    ]);
+    assert.equal(published.filter((r) => r.status === 'fulfilled').length, 1);
+    assert.equal(
+      (await profiles.publicDetail(providerId, 'en')).translation?.biography,
+      'English biography',
+    );
+    await assert.rejects(profiles.adminDetail({ ...actor, roles: ['ADMIN'] }, providerId, 'en'));
+    await db.query('UPDATE app_metadata SET value=$2::jsonb WHERE key=$1', [
+      metadataKey,
+      JSON.stringify({ ...text, biography: 'Changed original' }),
+    ]);
+    assert.equal((await profiles.publicDetail(providerId, 'en')).locale, 'vi');
+    assert.equal((await profiles.adminDetail(actor, providerId, 'en')).translation?.stale, true);
+    await db.query("UPDATE provider_applications SET status='SUSPENDED' WHERE id=$1", [providerId]);
+    await assert.rejects(profiles.publicDetail(providerId, 'en'));
+    const [profileSecurity] = await db.query<
+      { rls: boolean; anon: boolean; authenticated: boolean }[]
+    >(
+      "SELECT relrowsecurity AS rls,has_table_privilege('anon',oid,'SELECT') AS anon,has_table_privilege('authenticated',oid,'INSERT') AS authenticated FROM pg_class WHERE relname='moc_provider_showcase_translations'",
+    );
+    assert.deepEqual(profileSecurity, { rls: true, anon: false, authenticated: false });
+    console.log(
+      'Provider showcase i18n integration PASS: publish, version conflict, source fallback, visibility and RLS.',
+    );
     console.log(
       'Catalog i18n PostgreSQL integration PASS: draft/publish, concurrent update, stale fallback, hidden parents, RLS, audit.',
     );
