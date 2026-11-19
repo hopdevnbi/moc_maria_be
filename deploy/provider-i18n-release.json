@@ -1,0 +1,47 @@
+{
+    "task":  "I18N-04 provider showcase translations",
+    "source":  "4a269c328901695411026ab1714cfafe8d27ebd0",
+    "image":  "ghcr.io/hopdevnbi/moc_maria_be@sha256:ec1dd62169e1215bf9ba0e58a47a607f995ed66eb689935e7b4f738c3a9fd5ce",
+    "previousImage":  "ghcr.io/hopdevnbi/moc_maria_be@sha256:36af518839ab38c2825b0ac7cc97fbc2d3495c415d1c2151700fef4b671aac61",
+    "namespace":  "moc-maria",
+    "deployment":  "moc-maria-api",
+    "pod":  "moc-maria-api-8c8755c-8chrj",
+    "ready":  1,
+    "restarts":  0,
+    "migration":  {
+                      "job":  "moc-maria-provider-i18n-20261119",
+                      "before":  33,
+                      "after":  34,
+                      "applied":  [
+                                      "ProviderShowcaseTranslations1795071600000"
+                                  ],
+                      "tlsClientVerified":  true,
+                      "rls":  true,
+                      "anonSelect":  false,
+                      "authenticatedInsert":  false,
+                      "revisionTrigger":  1
+                  },
+    "backup":  {
+                   "bytes":  987763,
+                   "sha256":  "5b5aaceffce90fafddce1fb9aca72830906d6d637776738ea9b7c14d8df9ff4e",
+                   "tocVerified":  true,
+                   "fullRestoreVerified":  false
+               },
+    "ci":  {
+               "quality":  44477492668,
+               "image":  44477492583,
+               "conclusion":  "success"
+           },
+    "smoke":  {
+                  "live":  200,
+                  "ready":  200,
+                  "services":  200,
+                  "providers":  200,
+                  "profileTranslationFallback":  200,
+                  "invalidLocale":  400,
+                  "unauthenticatedAdmin":  401,
+                  "unknownProvider":  404
+              },
+    "frontend":  "No frontend production change in this migration release.",
+    "releasedAt":  "2026-11-19T07:34:50.2501714Z"
+}
