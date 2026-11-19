@@ -29,8 +29,19 @@ async function main(): Promise<void> {
       );
       if (!row) await db.query('CREATE ROLE "' + role + '" NOLOGIN');
     }
+    // Mirror legacy Supabase default table grants in this disposable database.
+    await db.query(
+      'ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO anon, authenticated',
+    );
     const migrations = await db.runMigrations({ transaction: 'all' });
     console.log('Applied ' + migrations.length + ' migrations');
+    const [metadataSecurity] = await db.query<
+      { rls: boolean; anon: boolean; authenticated: boolean }[]
+    >(
+      "SELECT relrowsecurity AS rls,has_table_privilege('anon',oid,'SELECT,INSERT,UPDATE,DELETE') AS anon,has_table_privilege('authenticated',oid,'SELECT,INSERT,UPDATE,DELETE') AS authenticated FROM pg_class WHERE oid='public.app_metadata'::regclass",
+    );
+    assert.deepEqual(metadataSecurity, { rls: true, anon: false, authenticated: false });
+    console.log('Private application metadata grants verified');
     const id = randomUUID(),
       category = randomUUID(),
       variant = randomUUID(),

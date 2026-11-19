@@ -9,11 +9,15 @@ import { AppModule } from '../src/app.module';
 import { configureApplication } from '../src/bootstrap/configure-application';
 import { KtvChatService } from '../src/modules/ktv-chat/ktv-chat.service';
 import { ZaloAlertsService } from '../src/modules/zalo-alerts/zalo-alerts.service';
+import {
+  zaloDeliveryText,
+  type ZaloBookingDetails,
+} from '../src/modules/zalo-alerts/zalo-booking-details';
 import { requireIsolatedDatabase } from './isolated-database';
 
 describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL', () => {
   let app: INestApplication, db: DataSource, inquiryId: string, threadId: string;
-  const actors: Array<{ id: string; token: string }> = [];
+  const actors: Array<{ id: string; token: string; email: string; phone: string }> = [];
   const providers: string[] = [];
   const clientId = randomUUID();
   const api = (index?: number): ReturnType<typeof request.agent> => {
@@ -31,10 +35,17 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
     requestedAt: new Date(Date.now() + 86400000).toISOString(),
   });
   let firstBooking: Record<string, unknown>;
-  async function deliveries(
-    id: string,
-  ): Promise<
-    Array<{ key: string; value: { providerId?: string; recipient: string; text: string } }>
+  async function deliveries(id: string): Promise<
+    Array<{
+      key: string;
+      value: {
+        providerId?: string;
+        recipient: string;
+        text: string;
+        kind?: string;
+        booking?: ZaloBookingDetails;
+      };
+    }>
   > {
     return db.query(
       "SELECT key,value FROM app_metadata WHERE key LIKE 'mocmaria.zalo.%outbox.%' AND value->>'text' LIKE $1 ORDER BY key",
@@ -73,7 +84,9 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
         );
       }
       // The access guard resolves current roles from DB on every request.
-      actors.push({ id, token: registered.body.accessToken });
+      const phone = '090000000' + index;
+      await db.query('UPDATE users SET phone=$2 WHERE id=$1', [id, phone]);
+      actors.push({ id, token: registered.body.accessToken, email, phone });
       if (index === 1 || index === 5) {
         const me = await api(index).get('/api/v1/auth/me').expect(200);
         expect(me.body.permissions).not.toContain('customer.portal');
@@ -163,8 +176,32 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
     for (const row of rows) {
       expect(row.value.text).not.toContain('0912345678');
       expect(row.value.text).not.toContain('mai@example.com');
+      const rendered = zaloDeliveryText(row.value);
+      expect(rendered).toContain('Email khách: ' + actors[0].email);
+      expect(rendered).toContain('Email KTV: ' + actors[1].email);
+      expect(rendered).toContain('SĐT khách: ' + actors[0].phone);
+      expect(rendered).toContain('SĐT KTV: ' + actors[1].phone);
+      expect(rendered).toContain('Địa chỉ đặt lịch: ' + String(firstBooking['address']));
+      expect(rendered).toContain('Ngày giờ hẹn: ');
     }
     await api(0).post('/api/v1/appointment-inquiries').send(firstBooking).expect(201);
+    expect(await deliveries(inquiryId)).toHaveLength(4);
+  });
+  it('keeps private booking snapshots and recipient configuration inaccessible to public roles', async () => {
+    for (const role of ['anon', 'authenticated'] as const) {
+      const runner = db.createQueryRunner();
+      await runner.connect();
+      try {
+        await runner.startTransaction();
+        await runner.query('SET LOCAL ROLE ' + role);
+        await expect(
+          runner.query('SELECT key,value FROM public.app_metadata LIMIT 1'),
+        ).rejects.toMatchObject({ code: '42501' });
+      } finally {
+        if (runner.isTransactionActive) await runner.rollbackTransaction();
+        await runner.release();
+      }
+    }
     expect(await deliveries(inquiryId)).toHaveLength(4);
   });
   it('only the assigned KTV can follow the booking link; admin and unrelated actors cannot', async () => {
@@ -237,6 +274,14 @@ describe('KTV-specific Zalo and inquiry chat links on real isolated PostgreSQL',
     expect(rows).toHaveLength(4);
     expect(rows.map((x) => x.value.recipient)).toContain('qa-nguyet');
     expect(rows.map((x) => x.value.recipient)).not.toContain('qa-manh');
+    for (const row of rows) {
+      const rendered = zaloDeliveryText(row.value);
+      expect(rendered).toContain('Email khách: ' + actors[0].email);
+      expect(rendered).toContain('Email KTV: ' + actors[2].email);
+      expect(rendered).toContain('SĐT khách: ' + actors[0].phone);
+      expect(rendered).toContain('SĐT KTV: ' + actors[2].phone);
+      expect(rendered).toContain('Địa chỉ đặt lịch: ' + String(adminBooking['address']));
+    }
   });
   it('rolls back all outbox rows with a failed booking transaction', async () => {
     const eventId = 'cd'.repeat(32);

@@ -389,6 +389,7 @@
     },
     {
       "agent": "Codex Zalo admin delivery 2026-10-10",
+      "continuation": "2026-11-19 owner-authorized booking notification content only; existing routing, retries and chat privacy retained; isolated i18n BE worktree.",
       "status": "ACTIVE",
       "backendBranch": "codex/zalo-admin-delivery",
       "backendWorktree": "C:/Users/admin/AppData/Local/Temp/moc-zalo-delivery-20261010",

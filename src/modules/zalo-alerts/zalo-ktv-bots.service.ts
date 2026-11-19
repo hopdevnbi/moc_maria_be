@@ -3,6 +3,7 @@ import { Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@ne
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
 import { privateZaloText } from './zalo-message-privacy';
+import { zaloDeliveryText, type ZaloBookingDetails } from './zalo-booking-details';
 import { ZaloBotSettingsService } from './zalo-bot-settings.service';
 
 // These are separate BOT identities, not a shared super-admin recipient list.
@@ -41,6 +42,7 @@ type Delivery = {
   recipient: string;
   text: string;
   kind?: 'inquiry' | 'chat';
+  booking?: ZaloBookingDetails;
   status: 'pending' | 'sent' | 'failed';
   attempts: number;
   nextAt: string;
@@ -96,6 +98,7 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
     kind: 'inquiry' | 'chat' = 'inquiry',
     providerId?: string,
     senderRole?: 'customer' | 'provider' | 'support',
+    booking?: ZaloBookingDetails,
   ): Promise<void> {
     // No identity or outgoing KTV reply can fall through to a broadcast.
     if (!providerId || (kind === 'chat' && senderRole !== 'customer')) return;
@@ -119,6 +122,7 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
               recipient,
               text: privateZaloText(text),
               kind,
+              ...(kind === 'inquiry' && booking ? { booking } : {}),
               status: 'pending',
               attempts: 0,
             }),
@@ -185,7 +189,7 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             chat_id: row.value.recipient,
-            text: privateZaloText(row.value.text),
+            text: zaloDeliveryText(row.value),
           }),
           signal: AbortSignal.timeout(8000),
         });
@@ -211,7 +215,10 @@ export class ZaloKtvBotsService implements OnModuleInit, OnModuleDestroy {
         ...(sent ? { sentAt: new Date().toISOString() } : {}),
         ...(!sent && Number.isInteger(errorCode) ? { errorCode } : {}),
       };
-      if (sent) delete value.errorCode;
+      if (sent) {
+        delete value.errorCode;
+        delete value.booking;
+      }
       delete value.lease;
       await this.db.query(
         `UPDATE app_metadata SET value=$2::jsonb,updated_at=clock_timestamp()

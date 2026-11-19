@@ -5,6 +5,7 @@ import { STAFF_ZALO_BOTS, staffOutboxPrefix, ZaloKtvBotsService } from './zalo-k
 import { ZaloHoanAlertsService } from './zalo-hoan-alerts.service';
 import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
 import { privateZaloText } from './zalo-message-privacy';
+import { zaloDeliveryText, type ZaloBookingDetails } from './zalo-booking-details';
 
 const manh = '44174274-e46e-418d-a08b-e26ceede49b7';
 const nguyet = '1ddd7a59-3150-4ced-aa5b-052a51f367f9';
@@ -19,6 +20,11 @@ const inquiry: ZaloAlert = {
   customerPhone: '0912345678',
   customerEmail: 'mai@example.com',
   providerName: 'Bác sĩ Tiến Mạnh',
+  providerPhone: '0987654321',
+  providerEmail: 'provider@example.com',
+  requestedAt: '2026-11-20T03:30:00Z',
+  location: 'AT_BRANCH',
+  address: '12 Đường QA, Hà Nội',
   serviceName: 'Massage body',
 };
 const variables = new Map([
@@ -45,6 +51,8 @@ const variables = new Map([
 function setup(values = variables): {
   staff: ZaloKtvBotsService;
   main: ZaloAlertsService;
+  hoan: ZaloHoanAlertsService;
+  linhDan: ZaloLinhDanAlertsService;
   manager: EntityManager;
   query: jest.Mock<Promise<unknown[]>, [string, unknown[]]>;
 } {
@@ -52,17 +60,70 @@ function setup(values = variables): {
   const query = jest.fn<Promise<unknown[]>, [string, unknown[]]>().mockResolvedValue([]);
   const db = { query } as unknown as DataSource;
   const staff = new ZaloKtvBotsService(db, config);
-  const main = new ZaloAlertsService(
-    db,
-    config,
-    new ZaloLinhDanAlertsService(db, config),
-    new ZaloHoanAlertsService(db, config),
-    staff,
-  );
+  const linhDan = new ZaloLinhDanAlertsService(db, config);
+  const hoan = new ZaloHoanAlertsService(db, config);
+  const main = new ZaloAlertsService(db, config, linhDan, hoan, staff);
   jest.spyOn(main, 'configuredRecipients').mockResolvedValue(['admin-1']);
-  return { staff, main, manager: { query } as unknown as EntityManager, query };
+  return { staff, main, hoan, linhDan, manager: { query } as unknown as EntityManager, query };
 }
 describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
+  it('delivers full booking details in HTTP to exactly the four intended recipients, then removes contact snapshots', async () => {
+    const { main, staff, hoan, linhDan, manager, query } = setup();
+    await main.enqueue(manager, inquiry);
+    const rows = query.mock.calls.map(([, params]) => ({
+      key: params[0] as string,
+      value: JSON.parse(params[1] as string) as {
+        recipient: string;
+        booking?: ZaloBookingDetails;
+        kind: string;
+        text: string;
+        attempts: number;
+      },
+    }));
+    query.mockClear();
+    const pending = [...rows];
+    query.mockImplementation((sql, params) => {
+      if (sql.includes('WITH candidate')) {
+        const index = pending.findIndex((r) => r.key.startsWith(String(params[0]).slice(0, -1)));
+        return Promise.resolve(index >= 0 ? pending.splice(index, 1) : []);
+      }
+      return Promise.resolve([]);
+    });
+    const send = jest
+      .spyOn(global, 'fetch')
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ ok: true }) } as Response);
+    try {
+      await main.drain();
+      await linhDan.drain();
+      await hoan.drain();
+      await staff.drain();
+      expect(send).toHaveBeenCalledTimes(4);
+      const bodies = send.mock.calls.map(
+        ([, options]) => JSON.parse(options!.body as string) as { chat_id: string; text: string },
+      );
+      expect(bodies.map((x) => x.chat_id).sort()).toEqual(['admin-1', 'dan-1', 'hoan-1', 'manh-1']);
+      for (const payload of bodies) {
+        expect(payload.text).toContain('Email khách: mai@example.com');
+        expect(payload.text).toContain('SĐT khách: 0912345678');
+        expect(payload.text).toContain('Email KTV: provider@example.com');
+        expect(payload.text).toContain('SĐT KTV: 0987654321');
+        expect(payload.text).toContain('Địa chỉ đặt lịch: 12 Đường QA, Hà Nội');
+        expect(payload.text).toContain('10:30');
+      }
+      const finalized = query.mock.calls.filter(([sql]) => sql.includes("value->>'lease'=$3"));
+      expect(finalized).toHaveLength(4);
+      for (const [, params] of finalized) {
+        const value = JSON.parse(params[1] as string) as {
+          status: string;
+          booking?: ZaloBookingDetails;
+        };
+        expect(value.status).toBe('sent');
+        expect(value.booking).toBeUndefined();
+      }
+    } finally {
+      send.mockRestore();
+    }
+  });
   it.each([
     [manh, 'tien-manh', 'manh-1'],
     [nguyet, 'nguyet', 'nguyet-1'],
@@ -90,9 +151,21 @@ describe('KTV-specific Zalo routing with unchanged admin fanout', () => {
       expect(payload).toMatchObject({ recipient, providerId });
       expect(payload.text).toContain('/tin-nhan?inquiry=' + eventId);
       for (const [, params] of query.mock.calls) {
-        const text = (JSON.parse(params[1] as string) as { text: string }).text;
-        expect(text).not.toContain('0912345678');
-        expect(text).not.toContain('mai@example.com');
+        const delivery = JSON.parse(params[1] as string) as {
+          text: string;
+          kind: string;
+          booking: ZaloBookingDetails;
+        };
+        expect(delivery.text).not.toContain('0912345678');
+        expect(delivery.text).not.toContain('mai@example.com');
+        const text = zaloDeliveryText(delivery);
+        expect(text).toContain('SĐT khách: 0912345678');
+        expect(text).toContain('Email khách: mai@example.com');
+        expect(text).toContain('SĐT KTV: 0987654321');
+        expect(text).toContain('Email KTV: provider@example.com');
+        expect(text).toContain('10:30');
+        expect(text).toContain('20/11/2026');
+        expect(text).toContain('Địa chỉ đặt lịch: 12 Đường QA, Hà Nội');
       }
     },
   );

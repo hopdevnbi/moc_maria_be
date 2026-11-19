@@ -366,6 +366,9 @@ export class CustomerExperienceService {
         providerPhone: receiver.providerPhone,
         providerEmail: receiver.providerEmail,
         serviceName: value.serviceName,
+        requestedAt: value.requestedAt,
+        address: value.address,
+        location: value.location,
       });
       await m.save(AuditLog, {
         event: 'appointment.inquiry.created',

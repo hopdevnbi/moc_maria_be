@@ -6,6 +6,7 @@ import { ZaloLinhDanAlertsService } from './zalo-linh-dan-alerts.service';
 import { ZaloHoanAlertsService } from './zalo-hoan-alerts.service';
 import { ZaloKtvBotsService } from './zalo-ktv-bots.service';
 import { privateZaloText, redactCustomerContacts } from './zalo-message-privacy';
+import { bookingDetails, zaloDeliveryText, type ZaloBookingDetails } from './zalo-booking-details';
 import { ZaloBotSettingsService, type ZaloNotificationKind } from './zalo-bot-settings.service';
 export { redactCustomerContacts } from './zalo-message-privacy';
 
@@ -21,6 +22,9 @@ export interface ZaloAlert {
   providerName: string;
   providerPhone?: string | null;
   providerEmail?: string | null;
+  requestedAt?: string;
+  address?: string;
+  location?: 'AT_BRANCH' | 'AT_HOME';
   serviceName?: string;
   providerId?: string;
   threadId?: string;
@@ -29,6 +33,7 @@ interface Delivery {
   recipient: string;
   text: string;
   kind?: ZaloNotificationKind;
+  booking?: ZaloBookingDetails;
   status: 'pending' | 'sent' | 'failed';
   attempts: number;
   nextAt: string;
@@ -40,10 +45,6 @@ export const zaloRecipientPrefix = 'mocmaria.zalo.recipient.';
 const prefix = 'mocmaria.zalo.outbox.';
 // eslint-disable-next-line no-control-regex -- Strip untrusted name controls from notification lines.
 const line = (value: string): string => value.replace(/[\r\n\u0000-\u001f]/g, ' ').slice(0, 120);
-const optionalContact = (label: string, value?: string | null): string[] => {
-  const cleaned = line(value ?? '').trim();
-  return cleaned ? [`${label}: ${cleaned}`] : [];
-};
 // Preserve readable line breaks while stripping other control characters.
 const chatContent = (value: string): string =>
   value
@@ -55,8 +56,8 @@ const chatContent = (value: string): string =>
     .map((part) => `  ${part}`)
     .join('\n');
 
-// The three staff bots must never receive customer contact fields. If a
-// customer types their contact details into their name or chat, mask those too.
+// Base notification text remains masked for every audience.
+// Only the explicitly authorized structured booking details are appended at delivery.
 export function alertText(
   alert: ZaloAlert,
   options: { includeCustomerContacts?: boolean; audience?: 'admin' | 'ktv' } = {},
@@ -95,8 +96,6 @@ export function alertText(
         : alert.kind === 'chat' && messageBody
           ? [`Nội dung tin nhắn:\n${chatContent(messageBody)}`]
           : []),
-      ...(alert.kind === 'inquiry' ? optionalContact('SĐT KTV', alert.providerPhone) : []),
-      ...(alert.kind === 'inquiry' ? optionalContact('Email KTV', alert.providerEmail) : []),
       ...(alert.serviceName ? [`Dịch vụ: ${line(alert.serviceName)}`] : []),
       `Mã ${alert.kind === 'chat' ? 'tin' : 'yêu cầu'}: ${line(alert.eventId)}`,
       options.audience === 'ktv'
@@ -152,9 +151,13 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
   async enqueue(manager: EntityManager, alert: ZaloAlert): Promise<void> {
     const { token } = this.settings();
     const text = alertText(alert);
-    if (token) await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text);
-    await this.linhDan?.enqueue(manager, alert.eventId, text, alert.kind);
-    await this.hoan?.enqueue(manager, alert.eventId, text, alert.kind);
+    const booking =
+      alert.kind === 'inquiry' && /^[a-f0-9]{64}$/.test(alert.eventId)
+        ? bookingDetails(alert)
+        : undefined;
+    if (token) await this.enqueueText(manager, `${alert.kind}:${alert.eventId}`, text, booking);
+    await this.linhDan?.enqueue(manager, alert.eventId, text, alert.kind, booking);
+    await this.hoan?.enqueue(manager, alert.eventId, text, alert.kind, booking);
     await this.ktvBots?.enqueue(
       manager,
       alert.eventId,
@@ -162,6 +165,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
       alert.kind,
       alert.providerId,
       alert.senderRole,
+      booking,
     );
   }
 
@@ -177,7 +181,12 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
     );
   }
 
-  async enqueueText(manager: EntityManager, eventId: string, text: string): Promise<void> {
+  async enqueueText(
+    manager: EntityManager,
+    eventId: string,
+    text: string,
+    booking?: ZaloBookingDetails,
+  ): Promise<void> {
     text = privateZaloText(text);
     // Digest is a chat feature. Gift, pairing and other direct messages are
     // controlled only by the global enabled switch.
@@ -197,6 +206,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
         recipient,
         text,
         kind,
+        ...(kind === 'inquiry' && booking ? { booking } : {}),
         status: 'pending',
         attempts: 0,
       };
@@ -254,7 +264,7 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 chat_id: row.value.recipient,
-                text: privateZaloText(row.value.text),
+                text: zaloDeliveryText(row.value),
               }),
               signal: AbortSignal.timeout(8000),
             },
@@ -280,7 +290,10 @@ export class ZaloAlertsService implements OnModuleInit, OnModuleDestroy {
           ...(sent ? { sentAt: new Date().toISOString() } : {}),
           ...(!sent && Number.isInteger(errorCode) ? { errorCode } : {}),
         };
-        if (sent) delete value.errorCode;
+        if (sent) {
+          delete value.errorCode;
+          delete value.booking;
+        }
         delete value.lease;
         await this.db.query(
           `UPDATE app_metadata SET value=$2::jsonb,updated_at=clock_timestamp() WHERE key=$1 AND value->>'lease'=$3`,

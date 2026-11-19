@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { DataSource, EntityManager } from 'typeorm';
 import { alertText, ZaloAlertsService, ZaloAlert } from './zalo-alerts.service';
+import { bookingDetails, zaloDeliveryText } from './zalo-booking-details';
 
 const event: ZaloAlert = {
   kind: 'chat',
@@ -55,19 +56,34 @@ describe('Zalo durable notifications', () => {
       'KTV: KTV Fake: alert',
     );
   });
-  it('keeps phone and email out of all booking notifications', () => {
-    const text = alertText({
+  it('includes structured booking fields only in inquiry deliveries, not in base text', () => {
+    const inquiry: ZaloAlert = {
       ...event,
       kind: 'inquiry',
       customerPhone: '0912345678',
       customerEmail: 'customer@example.com',
       providerPhone: '0987654321',
       providerEmail: 'provider@example.com',
-    });
-    expect(text).not.toContain('SĐT khách: 0912345678');
-    expect(text).not.toContain('Email khách: customer@example.com');
-    expect(text).not.toContain('SĐT KTV: 0987654321');
-    expect(text).not.toContain('Email KTV: provider@example.com');
+      requestedAt: '2026-11-20T03:30:00Z',
+      location: 'AT_HOME',
+      address: '12 Đường QA, Hà Nội',
+    };
+    const text = alertText(inquiry);
+    expect(text).not.toContain('customer@example.com');
+    const delivery = { text, kind: 'inquiry', booking: bookingDetails(inquiry) };
+    const actual = zaloDeliveryText(delivery);
+    expect(actual).toContain('SĐT khách: 0912345678');
+    expect(actual).toContain('Email khách: customer@example.com');
+    expect(actual).toContain('SĐT KTV: 0987654321');
+    expect(actual).toContain('Email KTV: provider@example.com');
+    expect(actual).toContain('10:30');
+    expect(actual).toContain('20/11/2026');
+    expect(actual).toContain('Địa chỉ đặt lịch: 12 Đường QA, Hà Nội');
+    expect(actual).toContain('Hình thức: Tại địa chỉ khách');
+    expect(zaloDeliveryText({ ...delivery, kind: 'chat' })).not.toContain('customer@example.com');
+    expect(zaloDeliveryText({ ...delivery, text: 'Other notification' })).toBe(
+      'Other notification',
+    );
   });
   it('omits missing details and does not change chat notifications', () => {
     const inquiry: ZaloAlert = {
@@ -126,12 +142,15 @@ describe('Zalo durable notifications', () => {
     );
   });
   it('prevents newline injection through contact details', () => {
-    const text = alertText({
+    const inquiry: ZaloAlert = {
       ...event,
       kind: 'inquiry',
       providerEmail: 'provider@example.com\nFake: test',
-    });
-    expect(text).toContain('Email KTV: [email ẩn] Fake: test');
+      address: 'Địa chỉ QA\nFake: test',
+    };
+    const text = zaloDeliveryText({ text: alertText(inquiry), kind: 'inquiry', booking: inquiry });
+    expect(text).not.toContain('provider@example.com');
+    expect(text).toContain('Địa chỉ đặt lịch: Địa chỉ QA Fake: test');
     expect(text).not.toContain('\nFake:');
   });
   it('disabled configuration does not contact database or external service', async () => {

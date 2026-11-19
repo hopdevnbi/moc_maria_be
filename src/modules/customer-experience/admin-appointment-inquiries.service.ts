@@ -368,14 +368,18 @@ export class AdminAppointmentInquiriesService {
       .update('admin.inquiry.' + randomUUID())
       .digest('hex');
     await this.db.transaction(async (m) => {
-      const [customer] = await m.query<Array<{ id: string; display_name: string }>>(
-        `SELECT u.id,u.display_name FROM users u JOIN customers c ON c.user_id=u.id
+      const [customer] = await m.query<
+        Array<{ id: string; display_name: string; email: string | null; phone: string | null }>
+      >(
+        `SELECT u.id,u.display_name,u.email,u.phone FROM users u JOIN customers c ON c.user_id=u.id
          WHERE u.id=$1::uuid AND u.is_active FOR SHARE OF u`,
         [dto.customerId],
       );
       if (!customer) throw new BadRequestException('Khách hàng không tồn tại hoặc đã bị khóa.');
-      const [ktv] = await m.query<Array<{ user_id: string }>>(
-        `SELECT p.user_id FROM provider_applications p JOIN users u ON u.id=p.user_id
+      const [ktv] = await m.query<
+        Array<{ user_id: string; email: string | null; phone: string | null }>
+      >(
+        `SELECT p.user_id,u.email,u.phone FROM provider_applications p JOIN users u ON u.id=p.user_id
          WHERE p.id=$1::uuid AND u.is_active AND p.status NOT IN ('REJECTED','SUSPENDED')`,
         [dto.providerId],
       );
@@ -412,6 +416,13 @@ export class AdminAppointmentInquiriesService {
         providerId: dto.providerId,
         providerName: selected.publicName,
         serviceName: service.name,
+        customerEmail: customer.email,
+        customerPhone: customer.phone,
+        providerEmail: ktv.email,
+        providerPhone: ktv.phone,
+        requestedAt: record.requestedAt,
+        address: record.address,
+        location: record.location,
       });
       await m.save(AuditLog, {
         event: 'appointment.inquiry.admin_created',
