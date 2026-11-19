@@ -422,5 +422,22 @@
       ],
       "note": "Provider-reported completion stored separately from official appointment completion, with owner/role/state/time checks and audit. Preserve existing appointment/review eligibility and E2a. No migration."
     }
-  ]
+  ,
+{
+    "agent":  "ChatGPT i18n 2026-11-19",
+    "status":  "ACTIVE",
+    "stage":  "I18N-01 isolated foundation",
+    "taskIds":  [
+                    "I18N-01",
+                    "I18N-02"
+                ],
+    "backendBranch":  "codex/i18n-foundation-20261119",
+    "ownedPaths":  [
+                       "src/shared/i18n/**",
+                       "docs/I18N_ROADMAP.md",
+                       "AGENTS.md (i18n rules only)"
+                   ],
+    "note":  "No edits to existing claimed business modules, layout, migrations or production. Existing claims retained."
+}
+]
 }
