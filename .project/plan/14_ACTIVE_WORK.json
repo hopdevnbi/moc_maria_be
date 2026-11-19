@@ -426,18 +426,18 @@
 {
     "agent":  "ChatGPT i18n 2026-11-19",
     "status":  "ACTIVE",
-    "stage":  "I18N-01 isolated foundation",
+    "stage":  "I18N-04 catalog translations",
     "taskIds":  [
                     "I18N-01",
-                    "I18N-02"
+                     "I18N-02", "I18N-04"
                 ],
     "backendBranch":  "codex/i18n-foundation-20261119",
     "ownedPaths":  [
-                       "src/shared/i18n/**",
+                       "src/shared/i18n/**", "src/modules/catalog-translations/**", "src/database/migrations/1795068000000-CatalogTranslations.ts", "src/database/migrations/catalog-translations.security.spec.ts", "src/app.module.ts (new module registration only)", "scripts/test-catalog-translations.ts", "scripts/backup-public-schema.cjs (TOC check)", ".github/workflows/quality.yml (catalog integration only)",
                        "docs/I18N_ROADMAP.md",
                        "AGENTS.md (i18n rules only)"
                    ],
-    "note":  "No edits to existing claimed business modules, layout, migrations or production. Existing claims retained."
+    "note":  "New isolated catalog translation module and additive migration. Existing claims retained; no edits to provider or booking logic."
 }
 ]
 }

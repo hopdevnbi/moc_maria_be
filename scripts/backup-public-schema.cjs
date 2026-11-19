@@ -32,10 +32,13 @@ try {
   }};
   remote(kubectl+' apply -f -',JSON.stringify(pod));
   remote(kubectl+' wait --for=condition=Ready pod/'+name+' --timeout=60s');
+  const toc = remote(kubectl+' exec '+name+' -- pg_restore --list /backup/public.dump');
+  if (!/TABLE public migrations\b/.test(toc) || !/TABLE public services\b/.test(toc)) throw new Error('Backup table of contents is incomplete');
+  console.log('PostgreSQL 17 archive TOC verification passed.');
   const dump = remote(kubectl+' exec '+name+' -- cat /backup/public.dump',undefined,true);
   if (dump.subarray(0,5).toString() !== 'PGDMP') throw new Error('Invalid PostgreSQL dump');
   fs.writeFileSync(output,dump,{flag:'wx',mode:0o600});
-  const metadata = { path:output, bytes:dump.length, sha256:createHash('sha256').update(dump).digest('hex'), scope:'public application schema', transport:'PG_VERIFY_FULL_TLS_AND_SSH' };
+  const metadata = { path:output, bytes:dump.length, sha256:createHash('sha256').update(dump).digest('hex'), scope:'public application schema', tocVerified:true, transport:'PG_VERIFY_FULL_TLS_AND_SSH' };
   fs.writeFileSync(output+'.json',JSON.stringify(metadata,null,2)+'\n',{flag:'wx',mode:0o600});
   console.log(JSON.stringify(metadata));
 } finally {

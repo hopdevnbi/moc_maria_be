@@ -11,6 +11,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ProfilesModule } from './modules/profiles/profiles.module';
 import { BranchesModule } from './modules/branches/branches.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
+import { CatalogTranslationsModule } from './modules/catalog-translations/catalog-translations.module';
 import { ProvidersModule } from './modules/providers/providers.module';
 import { BookingsModule } from './modules/bookings/bookings.module';
 import { ApplicationConfigModule } from './config/config.module';
@@ -44,6 +45,7 @@ import { LuckyWheelModule } from './modules/lucky-wheel/lucky-wheel.module';
     ProfilesModule,
     BranchesModule,
     CatalogModule,
+    CatalogTranslationsModule,
     ProvidersModule,
     BookingsModule,
     KtvChatModule,
