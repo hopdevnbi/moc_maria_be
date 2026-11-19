@@ -1,0 +1,49 @@
+{
+    "task":  "I18N-04 catalog persistence",
+    "source":  "efbd0b8bb71b53decc73f576f6cce347295dec43",
+    "image":  "ghcr.io/hopdevnbi/moc_maria_be@sha256:36af518839ab38c2825b0ac7cc97fbc2d3495c415d1c2151700fef4b671aac61",
+    "previousImage":  "ghcr.io/hopdevnbi/moc_maria_be@sha256:eacf9a3cd79b797a4c126d4bd245699cbd5a4845d62e78708eb0fb353a3a0ff7",
+    "namespace":  "moc-maria",
+    "deployment":  "moc-maria-api",
+    "replicasReady":  1,
+    "restarts":  0,
+    "migration":  {
+                      "job":  "moc-maria-catalog-i18n-20261119-v2",
+                      "before":  32,
+                      "after":  33,
+                      "applied":  [
+                                      "CatalogTranslations1795068000000"
+                                  ],
+                      "tlsClientVerified":  true,
+                      "rlsTables":  3,
+                      "directAnonAuthenticatedAccess":  false,
+                      "revisionTriggers":  3,
+                      "translationRows":  0,
+                      "firstJob":  "Stopped before apply: pg_stat_ssl describes pooler upstream rather than client TLS; second job verified authorized TLS socket."
+                  },
+    "backup":  {
+                   "bytes":  972774,
+                   "sha256":  "df18fd3d62855314b2e1fbdc69a18e1e1716e3d2aaa6d1bf9cdc6b57e185378c",
+                   "tocVerified":  true,
+                   "fullRestoreVerified":  false
+               },
+    "ci":  {
+               "quality":  44470396810,
+               "image":  44470394899,
+               "conclusion":  "success",
+               "localTests":  392,
+               "catalogPostgres17":  "PASS"
+           },
+    "smoke":  {
+                  "live":  200,
+                  "ready":  200,
+                  "services":  200,
+                  "categories":  200,
+                  "translationFallback":  200,
+                  "invalidLocale":  400,
+                  "unauthenticatedAdmin":  401,
+                  "missingRecord":  404
+              },
+    "frontend":  "Preview unchanged; admin editor and public dynamic translation consumption pending.",
+    "releasedAt":  "2026-11-19T06:47:53.7174741Z"
+}
