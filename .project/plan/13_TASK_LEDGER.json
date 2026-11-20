@@ -1389,4 +1389,4 @@
     }
   }
 ,
-  "referralPhase1_20261120":{"status":"FOUNDATION_LIVE","policy":"Uncertain indicators are advisory only; never deny registration/award using risk score.","migration":"ReferralFoundation1795082400000","test":"405 unit tests; PostgreSQL integration with mocked OTP, shared browser and reused phone advisory, exact once-per-account reward and RLS PASS.","remaining":"Real OTP provider, IP trust configuration, Zalo/OA consent, additional roadmap gates; attribution enabled in production, payout disabled pending real OTP."}}
+  "referralPhase1_20261120":{"status":"EXTENDED_LIVE","policy":"Uncertain indicators are advisory only; never deny registration/award using risk score.","migration":"ReferralFoundation1795082400000","test":"405 unit tests; PostgreSQL integration with mocked OTP, shared browser and reused phone advisory, exact once-per-account reward and RLS PASS.","remaining":"History, trusted IP and voluntary Zalo link configuration deployed; awaiting real group URL and OTP provider keys, additional notification/reporting gates. Payout disabled."}}
