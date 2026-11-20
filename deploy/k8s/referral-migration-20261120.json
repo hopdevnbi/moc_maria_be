@@ -1,0 +1,105 @@
+{
+    "apiVersion":  "batch/v1",
+    "kind":  "Job",
+    "metadata":  {
+                     "name":  "moc-maria-referral-20261120",
+                     "namespace":  "moc-maria"
+                 },
+    "spec":  {
+                 "backoffLimit":  0,
+                 "activeDeadlineSeconds":  180,
+                 "ttlSecondsAfterFinished":  86400,
+                 "template":  {
+                                  "spec":  {
+                                               "dnsConfig":  {
+                                                                 "options":  [
+                                                                                 {
+                                                                                     "name":  "ndots",
+                                                                                     "value":  "1"
+                                                                                 }
+                                                                             ]
+                                                             },
+                                               "restartPolicy":  "Never",
+                                               "containers":  [
+                                                                  {
+                                                                      "name":  "migrate",
+                                                                      "image":  "ghcr.io/hopdevnbi/moc_maria_be@sha256:23bee182794c74ad1378f07d4b2087e8ac3286a163c139ede3b1f3ca5caf6329",
+                                                                      "command":  [
+                                                                                      "node",
+                                                                                      "-e"
+                                                                                  ],
+                                                                      "args":  [
+                                                                                   "const ds=require(\u0027./dist/database/data-source\u0027).default;\nconst expected=\u0027ReferralFoundation1795082400000\u0027;\nconst tables=[\u0027referral_codes\u0027,\u0027referral_settings\u0027,\u0027referrals\u0027,\u0027referral_phone_claims\u0027,\u0027referral_coin_ledger\u0027,\u0027referral_verification_challenges\u0027];\n(async()=\u003e{\n await ds.initialize();\n const before=await ds.query(\u0027SELECT name FROM migrations ORDER BY id\u0027);\n const names=before.map(m=\u003em.name),available=ds.migrations.map(m=\u003em.name||m.constructor.name);\n if(available.length!==37||new Set(available).size!==37||!available.includes(expected)||![36,37].includes(names.length)||new Set(names).size!==names.length||names.some(n=\u003e!available.includes(n)))throw Error(\u0027UNEXPECTED_SCHEMA_STATE\u0027);\n const pending=available.filter(n=\u003e!names.includes(n));\n if(pending.length!==(names.length===36?1:0)||pending.some(n=\u003en!==expected))throw Error(\u0027UNEXPECTED_PENDING_MIGRATION\u0027);\n const runner=ds.createQueryRunner();try{const client=await runner.connect();const socket=client.connection.stream;if(!socket?.encrypted||!socket.authorized)throw Error(\u0027CLIENT_TLS_UNVERIFIED\u0027)}finally{await runner.release()}\n const pre=await ds.query(\"SELECT relname FROM pg_class WHERE relnamespace=\u0027public\u0027::regnamespace AND relname=ANY($1::text[])\",[tables]);\n if(pre.length!==(names.length===36?0:6))throw Error(\u0027UNEXPECTED_EXISTING_TABLES\u0027);\n const applied=await ds.runMigrations({transaction:\u0027all\u0027});\n const after=await ds.query(\u0027SELECT name FROM migrations ORDER BY id\u0027);\n const verified=await ds.query(\"SELECT relname,relrowsecurity AS rls,has_table_privilege(\u0027anon\u0027,oid,\u0027SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER\u0027) AS anon,has_table_privilege(\u0027authenticated\u0027,oid,\u0027SELECT,INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER\u0027) AS authenticated FROM pg_class WHERE relnamespace=\u0027public\u0027::regnamespace AND relname=ANY($1::text[])\",[tables]);\n if(after.length!==37||!after.some(m=\u003em.name===expected)||verified.length!==6||verified.some(x=\u003e!x.rls||x.anon||x.authenticated))throw Error(\u0027VERIFY_FAILED\u0027);\n const [settings]=await ds.query(\u0027SELECT enabled,reward_coins,payout_enabled FROM referral_settings WHERE id=1\u0027);\n const [counts]=await ds.query(\u0027SELECT (SELECT count(*)::int FROM referral_codes) AS codes,(SELECT count(*)::int FROM users) AS users,(SELECT count(*)::int FROM referrals) AS referrals,(SELECT count(*)::int FROM referral_coin_ledger) AS ledger\u0027);\n if(!settings||settings.reward_coins!==100||settings.payout_enabled||settings.enabled||counts.codes!==counts.users||counts.referrals!==0||counts.ledger!==0)throw Error(\u0027INITIAL_STATE_UNEXPECTED\u0027);\n console.log(JSON.stringify({before:before.length,after:after.length,applied:applied.map(m=\u003em.name),tls:true,tables:verified,settings,counts}));\n})().catch(e=\u003e{console.error(JSON.stringify({error:e.code||e.message}));process.exitCode=1}).finally(async()=\u003e{if(ds.isInitialized)await ds.destroy()});"
+                                                                               ],
+                                                                      "env":  [
+                                                                                  {
+                                                                                      "name":  "NODE_EXTRA_CA_CERTS",
+                                                                                      "value":  "/etc/moc-maria-ca/supabase.crt"
+                                                                                  },
+                                                                                  {
+                                                                                      "name":  "DATABASE_SSL",
+                                                                                      "value":  "true"
+                                                                                  },
+                                                                                  {
+                                                                                      "name":  "DATABASE_SSL_REJECT_UNAUTHORIZED",
+                                                                                      "value":  "true"
+                                                                                  },
+                                                                                  {
+                                                                                      "name":  "DATABASE_POOL_MAX",
+                                                                                      "value":  "1"
+                                                                                  },
+                                                                                  {
+                                                                                      "name":  "DATABASE_URL",
+                                                                                      "valueFrom":  {
+                                                                                                        "secretKeyRef":  {
+                                                                                                                             "name":  "moc-maria-api-secrets",
+                                                                                                                             "key":  "DATABASE_URL"
+                                                                                                                         }
+                                                                                                    }
+                                                                                  }
+                                                                              ],
+                                                                      "volumeMounts":  [
+                                                                                           {
+                                                                                               "name":  "database-ca",
+                                                                                               "mountPath":  "/etc/moc-maria-ca",
+                                                                                               "readOnly":  true
+                                                                                           }
+                                                                                       ],
+                                                                      "resources":  {
+                                                                                        "requests":  {
+                                                                                                         "cpu":  "50m",
+                                                                                                         "memory":  "128Mi"
+                                                                                                     },
+                                                                                        "limits":  {
+                                                                                                       "cpu":  "300m",
+                                                                                                       "memory":  "256Mi"
+                                                                                                   }
+                                                                                    },
+                                                                      "securityContext":  {
+                                                                                              "runAsNonRoot":  true,
+                                                                                              "runAsUser":  1000,
+                                                                                              "runAsGroup":  1000,
+                                                                                              "allowPrivilegeEscalation":  false,
+                                                                                              "capabilities":  {
+                                                                                                                   "drop":  [
+                                                                                                                                "ALL"
+                                                                                                                            ]
+                                                                                                               },
+                                                                                              "seccompProfile":  {
+                                                                                                                     "type":  "RuntimeDefault"
+                                                                                                                 }
+                                                                                          }
+                                                                  }
+                                                              ],
+                                               "volumes":  [
+                                                               {
+                                                                   "name":  "database-ca",
+                                                                   "configMap":  {
+                                                                                     "name":  "moc-maria-database-ca"
+                                                                                 }
+                                                               }
+                                                           ]
+                                           }
+                              }
+             }
+}

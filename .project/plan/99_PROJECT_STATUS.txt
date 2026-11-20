@@ -99,3 +99,5 @@ CODE: private referral codes, attribution, admin review, optional phone verifica
 TEST: 405/405 Backend, isolated PostgreSQL full schema 37 migrations and referral integration PASS. Mock OTP only.
 DEPLOY: release gate pending, program and payout default disabled. No business-data changes.
 See docs/REFERRAL_PHASE1.md.
+REFERRAL FOUNDATION PRODUCTION RELEASE — 2026-11-20
+BE 66ac490 / migration 37 / six private tables / 53 codes / API rollout ready. Attribution enabled, 100 Coin configured, payout remains off until real OTP provider and acceptance. Device signal secret configured. See docs/REFERRAL_PHASE1.md.
