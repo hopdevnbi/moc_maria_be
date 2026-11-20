@@ -7,6 +7,9 @@ import { CatalogTranslationsService } from '../src/modules/catalog-translations/
 import { ProviderShowcaseTranslationsService } from '../src/modules/catalog-translations/provider-showcase-translations.service';
 import { ProviderDisplayService } from '../src/modules/provider-display/provider-display.service';
 import { KtvChatMonitorService } from '../src/modules/ktv-chat/ktv-chat-monitor.service';
+import { ReferralsService } from '../src/modules/referrals/referrals.service';
+import { ReferralVerificationService } from '../src/modules/referrals/referral-verification.service';
+import { recordReferral } from '../src/modules/referrals/referral-attribution';
 import type { AuthUserContext } from '../src/modules/identity/identity.types';
 
 async function main(): Promise<void> {
@@ -241,6 +244,146 @@ async function main(): Promise<void> {
     console.log(
       'Catalog i18n PostgreSQL integration PASS: draft/publish, concurrent update, stale fallback, hidden parents, RLS, audit.',
     );
+    const referrals = new ReferralsService(db);
+    const verifier = new ReferralVerificationService(db);
+    const originalFetch = global.fetch;
+    const envKeys = [
+      'REFERRAL_TWILIO_VERIFY_SERVICE_SID',
+      'REFERRAL_TWILIO_API_KEY',
+      'REFERRAL_TWILIO_API_SECRET',
+      'REFERRAL_IDENTITY_SECRET',
+      'REFERRAL_SIGNAL_SECRET',
+    ] as const;
+    const originalEnv = envKeys.map((k) => process.env[k]);
+    const serviceSid = 'VA' + '1'.repeat(32),
+      verificationSid = 'VE' + '2'.repeat(32);
+    try {
+      Object.assign(process.env, {
+        REFERRAL_TWILIO_VERIFY_SERVICE_SID: serviceSid,
+        REFERRAL_TWILIO_API_KEY: 'SK' + '3'.repeat(32),
+        REFERRAL_TWILIO_API_SECRET: 'test-only-provider-secret',
+        REFERRAL_IDENTITY_SECRET: 'test-only-identity-secret-'.repeat(2),
+        REFERRAL_SIGNAL_SECRET: 'test-only-signal-secret-'.repeat(2),
+      });
+      const config = await referrals.settings(monitorActor);
+      assert.equal(config.rewardCoins, 100);
+      assert.equal(config.payoutEnabled, false);
+      const mine = await referrals.mine(monitorActor);
+      assert.match(mine.code, /^[A-F0-9]{20}$/);
+      assert.equal((await referrals.mine(monitorActor)).code, mine.code);
+      await assert.rejects(referrals.list({ ...monitorActor, roles: ['ADMIN'] }, 1));
+      await referrals.saveSettings(monitorActor, {
+        enabled: true,
+        rewardCoins: 100,
+        payoutEnabled: true,
+      });
+      const device = randomUUID();
+      const firstId = randomUUID(),
+        secondId = randomUUID();
+      const phone = '+84900000001';
+      await db.query(
+        "INSERT INTO users(id,email,phone,display_name,password_hash,is_active) VALUES($1,'ref-first@example.invalid',$2,'First isolated member','test-only',true),($3,'ref-second@example.invalid',NULL,'Second isolated member','test-only',true)",
+        [firstId, phone, secondId],
+      );
+      await db.transaction((m) => recordReferral(m, firstId, mine.code, device));
+      await db.transaction((m) => recordReferral(m, secondId, mine.code, device));
+      await db.transaction((m) => recordReferral(m, secondId, mine.code, device));
+      await db.transaction((m) => recordReferral(m, user, mine.code, device));
+      const rows = await referrals.list(monitorActor, 1);
+      assert.equal(rows.items.length, 2);
+      assert.equal(
+        rows.items.find((r) => r.referredName === 'Second isolated member')?.riskScore,
+        35,
+      );
+      assert.ok(rows.items.every((r) => r.status === 'PENDING_VERIFICATION'));
+      global.fetch = async (input, init) => {
+        assert.equal(typeof input, 'string');
+        const path = input as string;
+        assert.ok(path.startsWith('https://verify.twilio.com/v2/Services/' + serviceSid + '/'));
+        assert.ok(init?.body instanceof URLSearchParams);
+        const fields = init.body;
+        const status = path.endsWith('/Verifications')
+          ? 'pending'
+          : fields.get('Code') === '123456'
+            ? 'approved'
+            : 'pending';
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              sid: verificationSid,
+              to: phone,
+              service_sid: serviceSid,
+              channel: 'sms',
+              status,
+            }),
+            { status: 200 },
+          ),
+        );
+      };
+      const firstActor = {
+        ...monitorActor,
+        id: firstId,
+        roles: ['CUSTOMER'],
+        phone,
+      } as AuthUserContext;
+      await verifier.start(firstActor);
+      await assert.rejects(verifier.start(firstActor));
+      await assert.rejects(verifier.confirm(firstActor, '000000'));
+      await db.query('UPDATE referrals SET risk_score=100 WHERE referred_id=$1', [firstId]);
+      const firstResult = await verifier.confirm(firstActor, '123456');
+      assert.equal(firstResult.rewarded, true);
+      await assert.rejects(verifier.confirm(firstActor, '123456'));
+      // A reused verified phone could be reassigned to a genuine new person.
+      // It is an advisory flag, not a duplicate verdict or payout gate.
+      await db.query('UPDATE users SET phone=NULL WHERE id=$1', [firstId]);
+      await db.query('UPDATE users SET phone=$2 WHERE id=$1', [secondId, phone]);
+      const secondActor = { ...firstActor, id: secondId };
+      await verifier.start(secondActor);
+      const secondResult = await verifier.confirm(secondActor, '123456');
+      assert.equal(secondResult.rewarded, true);
+      const [wallet] = await db.query<{ balance: number; total_earned: number }[]>(
+        'SELECT balance,total_earned FROM staff_coin_wallets WHERE user_id=$1',
+        [user],
+      );
+      assert.deepEqual(wallet, { balance: 200, total_earned: 200 });
+      const [ledger] = await db.query<{ count: number; amount: number }[]>(
+        'SELECT count(*)::int AS count,sum(amount)::int AS amount FROM referral_coin_ledger WHERE user_id=$1',
+        [user],
+      );
+      assert.deepEqual(ledger, { count: 2, amount: 200 });
+      const reviewed = await referrals.list(monitorActor, 1);
+      assert.ok(
+        reviewed.items
+          .find((r) => r.referredName === 'Second isolated member')
+          ?.riskFlags.includes('VERIFIED_PHONE_PREVIOUSLY_USED'),
+      );
+      assert.ok(reviewed.items.every((r) => r.status === 'REWARDED'));
+      for (const table of [
+        'referral_codes',
+        'referral_settings',
+        'referrals',
+        'referral_phone_claims',
+        'referral_coin_ledger',
+        'referral_verification_challenges',
+      ]) {
+        const [security] = await db.query<
+          { rls: boolean; anon: boolean; authenticated: boolean }[]
+        >(
+          "SELECT relrowsecurity AS rls,has_table_privilege('anon',oid,'SELECT,INSERT,UPDATE,DELETE') AS anon,has_table_privilege('authenticated',oid,'SELECT,INSERT,UPDATE,DELETE') AS authenticated FROM pg_class WHERE oid=$1::regclass",
+          ['public.' + table],
+        );
+        assert.deepEqual(security, { rls: true, anon: false, authenticated: false });
+      }
+      console.log(
+        'Referral integration PASS: roles, attribution, OTP transport mocked, risk-only score, reused phone advisory, one reward per account, ledger/wallet and RLS.',
+      );
+    } finally {
+      global.fetch = originalFetch;
+      envKeys.forEach((k, i) => {
+        if (originalEnv[i] === undefined) delete process.env[k];
+        else process.env[k] = originalEnv[i];
+      });
+    }
   } finally {
     await db.destroy();
   }

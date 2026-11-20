@@ -20,4 +20,14 @@ export class RegisterCustomerDto {
   @MinLength(10)
   @MaxLength(128)
   password!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  referralCode?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  referralDeviceId?: string;
 }

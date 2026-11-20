@@ -29,6 +29,7 @@ import { GiftEventsModule } from './modules/gift-events/gift-events.module';
 import { AdminDashboardModule } from './modules/admin-dashboard/admin-dashboard.module';
 import { StaffAttendanceModule } from './modules/staff-attendance/staff-attendance.module';
 import { LuckyWheelModule } from './modules/lucky-wheel/lucky-wheel.module';
+import { ReferralsModule } from './modules/referrals/referrals.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { LuckyWheelModule } from './modules/lucky-wheel/lucky-wheel.module';
     AdminDashboardModule,
     StaffAttendanceModule,
     LuckyWheelModule,
+    ReferralsModule,
     KtvSafetyModule,
   ],
   providers: [GlobalExceptionFilter],

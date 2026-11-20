@@ -25,6 +25,7 @@ import type { ForgotPasswordDto } from './dto/forgot-password.dto';
 import type { LoginDto } from './dto/login.dto';
 import type { RegisterCustomerDto } from './dto/register-customer.dto';
 import type { ResetPasswordDto } from './dto/reset-password.dto';
+import { recordReferral } from '../referrals/referral-attribution';
 
 interface SessionIssue {
   refreshToken: string;
@@ -48,6 +49,7 @@ export class AuthService {
   async registerCustomer(
     dto: RegisterCustomerDto,
     userAgent?: string,
+    referralIp?: string,
   ): Promise<{ auth: AuthResult; refreshToken: string }> {
     const email = normalizeEmail(dto.email);
     const phone = normalizePhone(dto.phone);
@@ -105,6 +107,14 @@ export class AuthService {
         );
 
         const session = await this.createSession(manager, user.id, userAgent);
+        if (dto.referralCode)
+          await recordReferral(
+            manager,
+            user.id,
+            dto.referralCode.trim().toUpperCase(),
+            dto.referralDeviceId,
+            referralIp,
+          );
         await this.writeAuditWithManager(manager, {
           event: 'AUTH_REGISTER_CUSTOMER',
           actorUserId: user.id,

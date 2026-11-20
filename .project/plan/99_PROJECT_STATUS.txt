@@ -93,3 +93,9 @@ CODE/TEST PASS: customer chat + appointment inquiry transactional outbox; retry/
 ZALO SERVER CODE DEPLOYED — 2026-10-10
 Main37e734853e9c78652f2af79fd3b99630561be9bf; image sha256:4811bdda3f581beff6493c2942499abe15716d920768707c0ec3841aa317938a; rollout ready1.
 Live/ready200; chat/inquiry/admin email private401. Existing email configuration retained. Bot token stored in dedicated Secret; recipient empty, sends disabled. Await fresh owner connection message; no live Zalo delivery claimed.
+
+REFERRAL PHASE 1 — 2026-11-20
+CODE: private referral codes, attribution, admin review, optional phone verification and wallet ledger; score advisory only.
+TEST: 405/405 Backend, isolated PostgreSQL full schema 37 migrations and referral integration PASS. Mock OTP only.
+DEPLOY: release gate pending, program and payout default disabled. No business-data changes.
+See docs/REFERRAL_PHASE1.md.

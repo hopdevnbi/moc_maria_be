@@ -23,6 +23,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterCustomerDto } from './dto/register-customer.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { AccessTokenGuard } from './guards/access-token.guard';
+import { trustedReferralIp } from '../referrals/referral-attribution';
 
 const REFRESH_COOKIE = 'moc_maria_refresh';
 
@@ -42,7 +43,11 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ): Promise<unknown> {
-    const result = await this.authService.registerCustomer(dto, request.headers['user-agent']);
+    const result = await this.authService.registerCustomer(
+      dto,
+      request.headers['user-agent'],
+      dto.referralCode ? trustedReferralIp(request) : undefined,
+    );
     this.setRefreshCookie(response, result.refreshToken);
     return result.auth;
   }
