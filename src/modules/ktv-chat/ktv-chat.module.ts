@@ -10,6 +10,8 @@ import { KtvChatPushService } from './ktv-chat-push.service';
 import { KtvChatPushController } from './ktv-chat-push.controller';
 import { KtvInquiryChatController } from './ktv-inquiry-chat.controller';
 import { KtvInquiryChatService } from './ktv-inquiry-chat.service';
+import { KtvChatMonitorController } from './ktv-chat-monitor.controller';
+import { KtvChatMonitorService } from './ktv-chat-monitor.service';
 @Module({
   imports: [AuthModule, ProvidersModule, ProviderDisplayModule],
   controllers: [
@@ -17,6 +19,7 @@ import { KtvInquiryChatService } from './ktv-inquiry-chat.service';
     KtvChatDirectoryController,
     KtvChatPushController,
     KtvInquiryChatController,
+    KtvChatMonitorController,
   ],
   providers: [
     KtvChatService,
@@ -24,6 +27,7 @@ import { KtvInquiryChatService } from './ktv-inquiry-chat.service';
     KtvChatImageService,
     KtvChatPushService,
     KtvInquiryChatService,
+    KtvChatMonitorService,
   ],
   exports: [KtvChatService],
 })

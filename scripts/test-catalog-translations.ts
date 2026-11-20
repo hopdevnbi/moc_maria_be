@@ -6,6 +6,7 @@ import { buildDatabaseOptionsFromEnv } from '../src/database/database-options';
 import { CatalogTranslationsService } from '../src/modules/catalog-translations/catalog-translations.service';
 import { ProviderShowcaseTranslationsService } from '../src/modules/catalog-translations/provider-showcase-translations.service';
 import { ProviderDisplayService } from '../src/modules/provider-display/provider-display.service';
+import { KtvChatMonitorService } from '../src/modules/ktv-chat/ktv-chat-monitor.service';
 import type { AuthUserContext } from '../src/modules/identity/identity.types';
 
 async function main(): Promise<void> {
@@ -161,6 +162,79 @@ async function main(): Promise<void> {
       "SELECT relrowsecurity AS rls,has_table_privilege('anon',oid,'SELECT') AS anon,has_table_privilege('authenticated',oid,'INSERT') AS authenticated FROM pg_class WHERE relname='moc_provider_showcase_translations'",
     );
     assert.deepEqual(profileSecurity, { rls: true, anon: false, authenticated: false });
+    const monitor = new KtvChatMonitorService(db);
+    const customerId = randomUUID(),
+      threadId = randomUUID();
+    await db.query(
+      "INSERT INTO users(id,email,display_name,password_hash,is_active,must_change_password) VALUES($1,'chat-customer@example.invalid','Isolated customer','not-a-login-password',true,false)",
+      [customerId],
+    );
+    await db.query(
+      'INSERT INTO ktv_chat_threads(id,customer_user_id,provider_user_id,provider_application_id) VALUES($1,$2,$3,$4)',
+      [threadId, customerId, user, providerId],
+    );
+    const first = await db.query<{ id: string }[]>(
+      "INSERT INTO ktv_chat_messages(thread_id,sender_user_id,client_message_id,body) VALUES($1,$2,$3,'Customer message') RETURNING id",
+      [threadId, customerId, randomUUID()],
+    );
+    await db.query(
+      "INSERT INTO ktv_chat_messages(thread_id,sender_user_id,client_message_id,body) VALUES($1,$2,$3,'Therapist reply')",
+      [threadId, user, randomUUID()],
+    );
+    await db.query(
+      "INSERT INTO app_metadata(key,value) VALUES($1,jsonb_build_object('url','https://example.invalid/qa.webp'))",
+      ['mocmaria.chat.image.' + first[0].id],
+    );
+    const monitorActor = {
+      ...actor,
+      isActive: true,
+      permissions: ['admin.portal', 'customers.manage'],
+    };
+    const feed = await monitor.list(monitorActor);
+    assert.deepEqual(
+      feed.items.map((m) => m.senderRole),
+      ['provider', 'customer'],
+    );
+    assert.equal(feed.items[0].body, 'Therapist reply');
+    assert.equal(feed.items[1].imageUrl, 'https://example.invalid/qa.webp');
+    assert.equal((await monitor.list(monitorActor, feed.items[0].seq, threadId)).items.length, 1);
+    await assert.rejects(monitor.list({ ...monitorActor, roles: ['ADMIN'] }));
+    await assert.rejects(
+      monitor.list({ ...monitorActor, roles: ['CUSTOMER'] }, undefined, threadId),
+    );
+    await db.query(
+      "INSERT INTO app_metadata(key,value) VALUES($1,jsonb_build_object('passwordHash','test-only'))",
+      ['mocmaria.chat.privacy.' + threadId],
+    );
+    const locked = await monitor.list(monitorActor, undefined, threadId);
+    assert.ok(locked.items.every((m) => m.protected && m.body === null && m.imageUrl === null));
+    const [logged] = await db.query<{ count: number }[]>(
+      "SELECT count(*)::int AS count FROM audit_logs WHERE event='KTV_CHAT_MONITOR_ACCESSED' AND actor_user_id=$1",
+      [user],
+    );
+    assert.equal(logged.count, 1);
+    for (const table of [
+      'ktv_chat_threads',
+      'ktv_chat_messages',
+      'ktv_chat_blocks',
+      'audit_logs',
+      'users',
+      'roles',
+      'permissions',
+      'user_roles',
+      'role_permissions',
+      'refresh_sessions',
+      'password_reset_tokens',
+    ]) {
+      const [security] = await db.query<{ rls: boolean; anon: boolean; authenticated: boolean }[]>(
+        "SELECT relrowsecurity AS rls,has_table_privilege('anon',oid,'SELECT,INSERT,UPDATE,DELETE') AS anon,has_table_privilege('authenticated',oid,'SELECT,INSERT,UPDATE,DELETE') AS authenticated FROM pg_class WHERE oid=$1::regclass",
+        ['public.' + table],
+      );
+      assert.deepEqual(security, { rls: true, anon: false, authenticated: false });
+    }
+    console.log(
+      'Chat monitor integration PASS: both senders, history, password mask, roles, audit, RLS.',
+    );
     console.log(
       'Provider showcase i18n integration PASS: publish, version conflict, source fallback, visibility and RLS.',
     );

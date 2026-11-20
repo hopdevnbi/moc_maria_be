@@ -440,5 +440,14 @@
                    ],
     "note":  "New isolated catalog translation module and additive migration. Existing claims retained; no edits to provider or booking logic."
 }
-]
+,
+    {
+      "agent": "ChatGPT chat monitor 2026-11-20",
+      "status": "ACTIVE",
+      "stage": "Super Admin private chat activity",
+      "taskIds": ["CHAT-MONITOR-01"],
+      "branch": "codex/i18n-foundation-20261119",
+      "ownedPaths": ["BE new ktv-chat monitor controller/service and scoped privacy migration", "FE new chat monitor page and navigation", "FE participant notice", "own tests and docs"],
+      "note": "Owner-authorized additive read-only monitor. Preserve password protection, existing support grants, Zalo and shared Chat/Queue; no production fixtures."
+    }]
 }
