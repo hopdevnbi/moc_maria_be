@@ -354,6 +354,20 @@ async function main(): Promise<void> {
       const updatedMine = await referrals.mine(monitorActor);
       assert.equal(updatedMine.coins, 200);
       assert.equal(updatedMine.latestReward?.amount, 100);
+      assert.deepEqual(await referrals.community(firstActor), { url: null });
+      await assert.rejects(referrals.saveCommunity(firstActor, 'https://zalo.me/g/IsolatedQA'));
+      await assert.rejects(
+        referrals.saveCommunity(monitorActor, 'https://zalo.me.evil.example/g/IsolatedQA'),
+      );
+      assert.deepEqual(
+        await referrals.saveCommunity(monitorActor, 'https://zalo.me/g/IsolatedQA'),
+        { url: 'https://zalo.me/g/IsolatedQA' },
+      );
+      assert.deepEqual(await referrals.community(firstActor), {
+        url: 'https://zalo.me/g/IsolatedQA',
+      });
+      await referrals.saveCommunity(monitorActor, '');
+      assert.deepEqual(await referrals.community(firstActor), { url: null });
       const [wallet] = await db.query<{ balance: number; total_earned: number }[]>(
         'SELECT balance,total_earned FROM staff_coin_wallets WHERE user_id=$1',
         [user],

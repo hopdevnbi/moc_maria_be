@@ -17,7 +17,12 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { ReferralsService } from './referrals.service';
 import { ReferralVerificationService } from './referral-verification.service';
-import { IsBoolean, IsInt, IsString, Matches, Min, Max } from 'class-validator';
+import { IsBoolean, IsInt, IsString, Matches, Min, Max, MaxLength } from 'class-validator';
+class CommunityUrlDto {
+  @IsString()
+  @MaxLength(256)
+  url!: string;
+}
 class ReferralSettingsDto {
   @IsBoolean()
   enabled!: boolean;
@@ -47,6 +52,19 @@ export class ReferralsController {
   @Header('Cache-Control', 'private, no-store')
   mine(@CurrentUser() actor: AuthUserContext): ReturnType<ReferralsService['mine']> {
     return this.service.mine(actor);
+  }
+  @Get('community')
+  @Header('Cache-Control', 'private, no-store')
+  community(@CurrentUser() actor: AuthUserContext): ReturnType<ReferralsService['community']> {
+    return this.service.community(actor);
+  }
+  @Put('admin/community')
+  @Header('Cache-Control', 'private, no-store')
+  saveCommunity(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: CommunityUrlDto,
+  ): ReturnType<ReferralsService['saveCommunity']> {
+    return this.service.saveCommunity(actor, dto.url);
   }
   @Get('me/history')
   @Header('Cache-Control', 'private, no-store')

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   Injectable,
@@ -7,6 +8,7 @@ import {
 import { DataSource } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
 import { verificationConfigured } from './referral-verification.service';
+import { COMMUNITY_KEY, normalizeCommunityUrl } from './referral-community';
 
 interface ReferralRow {
   id: string;
@@ -42,6 +44,31 @@ export function assertReferralAdmin(actor: AuthUserContext): void {
 @Injectable()
 export class ReferralsService {
   constructor(private readonly db: DataSource) {}
+  async community(actor: AuthUserContext): Promise<{ url: string | null }> {
+    if (!actor.isActive) throw new ForbiddenException('REFERRAL_FORBIDDEN');
+    const [row] = await this.db.query<{ url: unknown }[]>(
+      "SELECT value->>'url' AS url FROM app_metadata WHERE key=$1",
+      [COMMUNITY_KEY],
+    );
+    return { url: normalizeCommunityUrl(row?.url) };
+  }
+  async saveCommunity(actor: AuthUserContext, input: string): Promise<{ url: string | null }> {
+    assertReferralAdmin(actor);
+    const url = normalizeCommunityUrl(input);
+    if (input.trim() && !url) throw new BadRequestException('REFERRAL_COMMUNITY_URL_INVALID');
+    await this.db.transaction(async (m) => {
+      await m.query(
+        `INSERT INTO app_metadata(key,value) VALUES($1,jsonb_build_object('url',$2::text))
+        ON CONFLICT(key) DO UPDATE SET value=EXCLUDED.value,updated_at=now()`,
+        [COMMUNITY_KEY, url],
+      );
+      await m.query(
+        "INSERT INTO audit_logs(event,actor_user_id,metadata) VALUES('REFERRAL_COMMUNITY_SAVED',$1,jsonb_build_object('enabled',$2::boolean))",
+        [actor.id, !!url],
+      );
+    });
+    return { url };
+  }
   // Only the owner's records and committed ledger amounts are returned.
   // Do not expose referred identities, contact details, risk or device signals.
   async history(
