@@ -48,6 +48,16 @@ export class ReferralsController {
   mine(@CurrentUser() actor: AuthUserContext): ReturnType<ReferralsService['mine']> {
     return this.service.mine(actor);
   }
+  @Get('me/history')
+  @Header('Cache-Control', 'private, no-store')
+  history(
+    @CurrentUser() actor: AuthUserContext,
+    @Query('page') page = '1',
+  ): ReturnType<ReferralsService['history']> {
+    if (typeof page !== 'string' || !/^[1-9][0-9]{0,3}$/.test(page))
+      throw new BadRequestException('REFERRAL_PAGE_INVALID');
+    return this.service.history(actor, Number(page));
+  }
   @Post('verify/start')
   start(@CurrentUser() actor: AuthUserContext): ReturnType<ReferralVerificationService['start']> {
     return this.verification.start(actor);

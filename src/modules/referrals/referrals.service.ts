@@ -14,6 +14,10 @@ interface ReferralRow {
   rewardCoins: number;
   createdAt: Date;
 }
+interface MemberReferralRow extends ReferralRow {
+  awardedAt: Date | null;
+  earnedCoins: number;
+}
 interface AdminReferralRow extends ReferralRow {
   referrerName: string;
   referredName: string;
@@ -38,6 +42,26 @@ export function assertReferralAdmin(actor: AuthUserContext): void {
 @Injectable()
 export class ReferralsService {
   constructor(private readonly db: DataSource) {}
+  // Only the owner's records and committed ledger amounts are returned.
+  // Do not expose referred identities, contact details, risk or device signals.
+  async history(
+    actor: AuthUserContext,
+    page: number,
+  ): Promise<{ items: MemberReferralRow[]; hasMore: boolean }> {
+    if (!actor.isActive) throw new ForbiddenException('REFERRAL_FORBIDDEN');
+    const rows = await this.db.query<MemberReferralRow[]>(
+      `
+      SELECT r.id,r.status,r.reward_coins AS "rewardCoins",r.created_at AS "createdAt",
+        CASE WHEN r.status='REWARDED' THEN l.created_at ELSE NULL END AS "awardedAt",
+        CASE WHEN r.status='REWARDED' THEN COALESCE(l.amount,0) ELSE 0 END AS "earnedCoins"
+      FROM referrals r LEFT JOIN referral_coin_ledger l ON l.referral_id=r.id AND l.user_id=r.referrer_id
+      WHERE r.referrer_id=$1
+      ORDER BY r.created_at DESC,r.id DESC LIMIT 21 OFFSET $2
+    `,
+      [actor.id, (page - 1) * 20],
+    );
+    return { items: rows.slice(0, 20), hasMore: rows.length > 20 };
+  }
   async settings(
     actor: AuthUserContext,
   ): Promise<ReferralSettings & { verificationConfigured: boolean }> {
@@ -73,6 +97,7 @@ export class ReferralsService {
     verificationAvailable: boolean;
     verificationStatus: string | null;
     hasPhone: boolean;
+    latestReward: { id: string; amount: number; awardedAt: Date } | null;
   }> {
     return this.db.transaction(async (m) => {
       await m.query(
@@ -91,13 +116,21 @@ export class ReferralsService {
       const [stats] = await m.query<{ registered: number; rewarded: number; coins: number }[]>(
         `
         SELECT count(*)::int AS registered,count(*) FILTER(WHERE status='REWARDED')::int AS rewarded,
-         COALESCE(sum(reward_coins) FILTER(WHERE status='REWARDED'),0)::int AS coins
-        FROM referrals WHERE referrer_id=$1
+         COALESCE(sum(l.amount) FILTER(WHERE r.status='REWARDED'),0)::int AS coins
+        FROM referrals r LEFT JOIN referral_coin_ledger l ON l.referral_id=r.id AND l.user_id=r.referrer_id WHERE r.referrer_id=$1
       `,
         [actor.id],
       );
       const [own] = await m.query<{ status: string }[]>(
         'SELECT status FROM referrals WHERE referred_id=$1',
+        [actor.id],
+      );
+      const [latestReward] = await m.query<{ id: string; amount: number; awardedAt: Date }[]>(
+        `
+        SELECT l.referral_id AS id,l.amount,l.created_at AS "awardedAt" FROM referral_coin_ledger l
+        JOIN referrals r ON r.id=l.referral_id AND r.referrer_id=l.user_id AND r.status='REWARDED'
+        WHERE l.user_id=$1 ORDER BY l.created_at DESC,l.referral_id DESC LIMIT 1
+      `,
         [actor.id],
       );
       return {
@@ -108,6 +141,7 @@ export class ReferralsService {
         verificationAvailable: settings.payoutEnabled && verificationConfigured(),
         verificationStatus: own?.status ?? null,
         hasPhone: !!actor.phone,
+        latestReward: latestReward ?? null,
       };
     });
   }

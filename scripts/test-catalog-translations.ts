@@ -341,6 +341,19 @@ async function main(): Promise<void> {
       await verifier.start(secondActor);
       const secondResult = await verifier.confirm(secondActor, '123456');
       assert.equal(secondResult.rewarded, true);
+      const history = await referrals.history(monitorActor, 1);
+      assert.equal(history.items.length, 2);
+      assert.ok(history.items.every((r) => r.earnedCoins === 100 && r.awardedAt));
+      assert.ok(
+        history.items.every(
+          (r) => !('referredName' in r) && !('riskScore' in r) && !('phone' in r),
+        ),
+      );
+      assert.deepEqual(await referrals.history(firstActor, 1), { items: [], hasMore: false });
+      assert.deepEqual(await referrals.history(monitorActor, 2), { items: [], hasMore: false });
+      const updatedMine = await referrals.mine(monitorActor);
+      assert.equal(updatedMine.coins, 200);
+      assert.equal(updatedMine.latestReward?.amount, 100);
       const [wallet] = await db.query<{ balance: number; total_earned: number }[]>(
         'SELECT balance,total_earned FROM staff_coin_wallets WHERE user_id=$1',
         [user],
