@@ -30,6 +30,55 @@ const message: Record<ReferralEmailLocale, (code: string) => string> = {
   ru: (code) => `Код подтверждения: ${code}. Срок действия 10 минут. Никому не сообщайте код.`,
 };
 
+const emailLabels: Record<
+  ReferralEmailLocale,
+  { heading: string; expires: string; privacy: string; footer: string }
+> = {
+  vi: {
+    heading: 'Xác minh email giới thiệu',
+    expires: 'Mã có hiệu lực trong 10 phút.',
+    privacy: 'Không chia sẻ mã này với bất kỳ ai.',
+    footer: 'Nếu bạn không yêu cầu mã này, hãy bỏ qua email.',
+  },
+  en: {
+    heading: 'Verify your referral email',
+    expires: 'This code expires in 10 minutes.',
+    privacy: 'Never share your code with anyone.',
+    footer: 'If you did not request this code, you can ignore this email.',
+  },
+  ko: {
+    heading: '추천 이메일 인증',
+    expires: '인증 코드는 10분 후 만료됩니다.',
+    privacy: '누구에게도 코드를 공유하지 마세요.',
+    footer: '요청하지 않으셨다면 이 이메일을 무시하세요.',
+  },
+  ja: {
+    heading: '紹介メールの確認',
+    expires: 'コードの有効期限は10分です。',
+    privacy: 'コードを他人に教えないでください。',
+    footer: '心当たりがない場合は、このメールを無視してください。',
+  },
+  'zh-CN': {
+    heading: '验证邀请邮箱',
+    expires: '验证码将在10分钟后失效。',
+    privacy: '请勿向任何人透露验证码。',
+    footer: '如果您没有请求验证码，请忽略此邮件。',
+  },
+  ru: {
+    heading: 'Подтверждение email',
+    expires: 'Код действует 10 минут.',
+    privacy: 'Никому не сообщайте этот код.',
+    footer: 'Если вы не запрашивали код, проигнорируйте письмо.',
+  },
+};
+
+/** Static, email-client-friendly markup. No links, trackers, user data or remote images. */
+export function buildReferralOtpEmail(locale: ReferralEmailLocale, code: string): string {
+  if (!/^\d{6}$/.test(code)) throw new Error('Invalid OTP format');
+  const labels = emailLabels[locale];
+  return `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:32px 12px;background:#f3f6f1;font-family:Arial,Helvetica,sans-serif;color:#243b30"><div style="max-width:480px;margin:0 auto;background:#ffffff;border:1px solid #dce6dd;border-radius:18px;overflow:hidden"><div style="background:#23583b;color:#ffffff;padding:24px 30px;font-size:22px;font-weight:bold">Mộc Maria</div><div style="padding:30px"><h1 style="font-size:21px;line-height:1.4;margin:0 0 18px;color:#214b35">${labels.heading}</h1><div style="padding:18px 12px;text-align:center;background:#f3f7f2;border:1px solid #d7e6d8;border-radius:12px;font-size:34px;font-weight:bold;letter-spacing:7px;color:#204e34" aria-label="${code}">${code}</div><p style="font-size:15px;line-height:1.6;margin:22px 0 8px">${labels.expires}</p><p style="font-size:14px;line-height:1.6;margin:0;color:#6b5540">${labels.privacy}</p><hr style="border:0;border-top:1px solid #e7ede6;margin:25px 0"><p style="font-size:13px;line-height:1.6;margin:0;color:#617065">${labels.footer}</p></div></div><p style="text-align:center;font-size:12px;color:#69786d;margin:20px 0">Mộc Maria · Email verification</p></body></html>`;
+}
+
 export function emailVerificationConfigured(): boolean {
   return (
     process.env['REFERRAL_EMAIL_OTP_ENABLED'] === 'true' &&
@@ -64,7 +113,7 @@ async function enqueueEmail(
   const key = process.env['QUEUE_API_KEY']?.trim();
   if (!base || !key) throw new ServiceUnavailableException('REFERRAL_OTP_UNAVAILABLE');
   const text = message[locale](code);
-  const html = `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;background:#f3f7f1;padding:24px"><div style="max-width:480px;margin:auto;background:white;padding:28px;border-radius:16px"><h1 style="color:#225b3c">Mộc Maria</h1><p>${text.replace(code, '<strong style="font-size:30px;letter-spacing:5px">' + code + '</strong>')}</p></div></body></html>`;
+  const html = buildReferralOtpEmail(locale, code);
   let response: Response;
   try {
     response = await fetch(base.replace(/\/$/, '') + '/jobs', {
