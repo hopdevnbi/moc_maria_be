@@ -1389,4 +1389,4 @@
     }
   }
 ,
-  "referralPhase1_20261120":{"status":"EXTENDED_LIVE","policy":"Uncertain indicators are advisory only; never deny registration/award using risk score.","migration":"ReferralFoundation1795082400000","test":"405 unit tests; PostgreSQL integration with mocked OTP, shared browser and reused phone advisory, exact once-per-account reward and RLS PASS.","remaining":"History, trusted IP and voluntary Zalo link configuration deployed; awaiting real group URL and OTP provider keys, additional notification/reporting gates. Payout disabled."}}
+  "referralPhase1_20261120":{"status":"EMAIL_OTP_LIVE","policy":"Uncertain indicators are advisory only; never deny registration/award using risk score.","migration":"ReferralFoundation1795082400000","test":"405 unit tests; PostgreSQL integration with mocked OTP, shared browser and reused phone advisory, exact once-per-account reward and RLS PASS.","remaining":"History, IP and voluntary Zalo link deployed; independent Email OTP and 100 Coin payout enabled after SMTP transport test. SMS trial disabled. Real inbox receipt and genuine member OTP+reward UAT pending."}}
