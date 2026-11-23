@@ -8,6 +8,7 @@ import {
 import { DataSource } from 'typeorm';
 import type { AuthUserContext } from '../identity/identity.types';
 import { verificationConfigured } from './referral-verification.service';
+import { emailVerificationConfigured } from './referral-email-verification.service';
 import { COMMUNITY_KEY, normalizeCommunityUrl } from './referral-community';
 
 interface ReferralRow {
@@ -96,11 +97,14 @@ export class ReferralsService {
     const [row] = await this.db.query<ReferralSettings[]>(
       'SELECT enabled,reward_coins AS "rewardCoins",payout_enabled AS "payoutEnabled" FROM referral_settings WHERE id=1',
     );
-    return { ...row, verificationConfigured: verificationConfigured() };
+    return {
+      ...row,
+      verificationConfigured: emailVerificationConfigured() || verificationConfigured(),
+    };
   }
   async saveSettings(actor: AuthUserContext, input: ReferralSettings): Promise<ReferralSettings> {
     assertReferralAdmin(actor);
-    if (input.payoutEnabled && !verificationConfigured())
+    if (input.payoutEnabled && !emailVerificationConfigured() && !verificationConfigured())
       throw new ConflictException('REFERRAL_OTP_UNAVAILABLE');
     return this.db.transaction(async (m) => {
       const [row] = await m.query<ReferralSettings[]>(
@@ -122,7 +126,9 @@ export class ReferralsService {
     rewarded: number;
     coins: number;
     verificationAvailable: boolean;
+    verificationChannels: { email: boolean; sms: boolean };
     verificationStatus: string | null;
+    hasEmail: boolean;
     hasPhone: boolean;
     latestReward: { id: string; amount: number; awardedAt: Date } | null;
   }> {
@@ -165,8 +171,14 @@ export class ReferralsService {
         enabled: settings.enabled,
         rewardCoins: settings.rewardCoins,
         ...stats,
-        verificationAvailable: settings.payoutEnabled && verificationConfigured(),
+        verificationAvailable:
+          settings.payoutEnabled && (emailVerificationConfigured() || verificationConfigured()),
+        verificationChannels: {
+          email: settings.payoutEnabled && emailVerificationConfigured() && !!actor.email,
+          sms: settings.payoutEnabled && verificationConfigured() && !!actor.phone,
+        },
         verificationStatus: own?.status ?? null,
+        hasEmail: !!actor.email,
         hasPhone: !!actor.phone,
         latestReward: latestReward ?? null,
       };

@@ -9,6 +9,7 @@ import { ProviderDisplayService } from '../src/modules/provider-display/provider
 import { KtvChatMonitorService } from '../src/modules/ktv-chat/ktv-chat-monitor.service';
 import { ReferralsService } from '../src/modules/referrals/referrals.service';
 import { ReferralVerificationService } from '../src/modules/referrals/referral-verification.service';
+import { ReferralEmailVerificationService } from '../src/modules/referrals/referral-email-verification.service';
 import { recordReferral } from '../src/modules/referrals/referral-attribution';
 import type { AuthUserContext } from '../src/modules/identity/identity.types';
 
@@ -246,6 +247,7 @@ async function main(): Promise<void> {
     );
     const referrals = new ReferralsService(db);
     const verifier = new ReferralVerificationService(db);
+    const emailVerifier = new ReferralEmailVerificationService(db);
     const originalFetch = global.fetch;
     const envKeys = [
       'REFERRAL_TWILIO_VERIFY_SERVICE_SID',
@@ -253,6 +255,11 @@ async function main(): Promise<void> {
       'REFERRAL_TWILIO_API_SECRET',
       'REFERRAL_IDENTITY_SECRET',
       'REFERRAL_SIGNAL_SECRET',
+      'REFERRAL_SMS_OTP_ENABLED',
+      'REFERRAL_TWILIO_TRIAL_MODE',
+      'REFERRAL_EMAIL_OTP_ENABLED',
+      'QUEUE_SERVICE_URL',
+      'QUEUE_API_KEY',
     ] as const;
     const originalEnv = envKeys.map((k) => process.env[k]);
     const serviceSid = 'VA' + '1'.repeat(32),
@@ -264,6 +271,8 @@ async function main(): Promise<void> {
         REFERRAL_TWILIO_API_SECRET: 'test-only-provider-secret',
         REFERRAL_IDENTITY_SECRET: 'test-only-identity-secret-'.repeat(2),
         REFERRAL_SIGNAL_SECRET: 'test-only-signal-secret-'.repeat(2),
+        REFERRAL_SMS_OTP_ENABLED: 'true',
+        REFERRAL_TWILIO_TRIAL_MODE: 'false',
       });
       const config = await referrals.settings(monitorActor);
       assert.equal(config.rewardCoins, 100);
@@ -385,6 +394,83 @@ async function main(): Promise<void> {
           ?.riskFlags.includes('VERIFIED_PHONE_PREVIOUSLY_USED'),
       );
       assert.ok(reviewed.items.every((r) => r.status === 'REWARDED'));
+      // Email must remain fully independent from Twilio. These are isolated
+      // synthetic members and a mocked Queue: no live email or Coin is sent.
+      Object.assign(process.env, {
+        REFERRAL_SMS_OTP_ENABLED: 'false',
+        REFERRAL_EMAIL_OTP_ENABLED: 'true',
+        QUEUE_SERVICE_URL: 'http://127.0.0.1:65432',
+        QUEUE_API_KEY: 'test-queue-key',
+      });
+      assert.equal((await referrals.settings(monitorActor)).verificationConfigured, true);
+      const emailId = randomUUID();
+      await db.query(
+        "INSERT INTO users(id,email,phone,display_name,password_hash,is_active) VALUES($1,'mail-ref@example.invalid',NULL,'Email isolated member','test-only',true)",
+        [emailId],
+      );
+      await db.transaction((m) => recordReferral(m, emailId, mine.code, randomUUID()));
+      const emailActor = {
+        ...firstActor,
+        id: emailId,
+        email: 'mail-ref@example.invalid',
+        phone: null,
+      };
+      let emailCode = '';
+      global.fetch = (input, init) => {
+        assert.equal(input, 'http://127.0.0.1:65432/jobs');
+        if (typeof init?.body !== 'string') throw new Error('Invalid synthetic queue body');
+        const job = JSON.parse(init.body) as {
+          queue: string;
+          name: string;
+          data: { text: string; to: string; purpose: string };
+          options: { attempts: number };
+        };
+        assert.equal(job.queue, 'email');
+        assert.equal(job.name, 'email.send');
+        assert.equal(job.data.purpose, 'moc-maria-referral-email-otp');
+        assert.equal(job.data.to, 'mail-ref@example.invalid');
+        assert.equal(job.options.attempts, 1);
+        const match = job.data.text.match(/\b\d{6}\b/);
+        assert.ok(match);
+        emailCode = match[0];
+        return Promise.resolve(new Response(JSON.stringify({ id: randomUUID() }), { status: 202 }));
+      };
+      assert.deepEqual(await emailVerifier.start(emailActor, 'en'), {
+        sent: true,
+        channel: 'email',
+      });
+      assert.match(emailCode, /^\d{6}$/);
+      await assert.rejects(emailVerifier.start(emailActor, 'en'));
+      await assert.rejects(
+        emailVerifier.confirm(emailActor, '999999' === emailCode ? '999998' : '999999'),
+      );
+      const [attempt] = await db.query<{ attempts: number; code_hash: string }[]>(
+        'SELECT attempts,code_hash FROM referral_email_challenges WHERE user_id=$1',
+        [emailId],
+      );
+      assert.equal(attempt.attempts, 1);
+      assert.notEqual(attempt.code_hash, emailCode);
+      await db.query('UPDATE referrals SET risk_score=100 WHERE referred_id=$1', [emailId]);
+      assert.deepEqual(await emailVerifier.confirm(emailActor, emailCode), {
+        rewarded: true,
+        status: 'REWARDED',
+      });
+      await assert.rejects(emailVerifier.confirm(emailActor, emailCode));
+      const [emailReward] = await db.query<{ amount: number }[]>(
+        'SELECT amount FROM referral_coin_ledger WHERE referral_id=(SELECT id FROM referrals WHERE referred_id=$1)',
+        [emailId],
+      );
+      assert.equal(emailReward.amount, 100);
+      const [emailChallengeCount] = await db.query<{ count: number }[]>(
+        'SELECT count(*)::int AS count FROM referral_email_challenges WHERE user_id=$1',
+        [emailId],
+      );
+      assert.equal(emailChallengeCount.count, 0);
+      const [finalWallet] = await db.query<{ balance: number }[]>(
+        'SELECT balance FROM staff_coin_wallets WHERE user_id=$1',
+        [user],
+      );
+      assert.equal(finalWallet.balance, 300);
       for (const table of [
         'referral_codes',
         'referral_settings',
@@ -392,6 +478,8 @@ async function main(): Promise<void> {
         'referral_phone_claims',
         'referral_coin_ledger',
         'referral_verification_challenges',
+        'referral_email_challenges',
+        'referral_email_claims',
       ]) {
         const [security] = await db.query<
           { rls: boolean; anon: boolean; authenticated: boolean }[]
@@ -402,7 +490,7 @@ async function main(): Promise<void> {
         assert.deepEqual(security, { rls: true, anon: false, authenticated: false });
       }
       console.log(
-        'Referral integration PASS: roles, attribution, OTP transport mocked, risk-only score, reused phone advisory, one reward per account, ledger/wallet and RLS.',
+        'Referral integration PASS: roles, attribution, SMS and email OTP mocked, 100 Coin email award, wrong OTP persistence, replay rejection, risk-only score, reused phone advisory and RLS.',
       );
     } finally {
       global.fetch = originalFetch;

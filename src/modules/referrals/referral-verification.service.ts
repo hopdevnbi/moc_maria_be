@@ -28,7 +28,12 @@ function configuration(): VerifyConfig | null {
     : null;
 }
 export function verificationConfigured(): boolean {
-  return configuration() !== null;
+  // Twilio credentials alone must never enable paid SMS, especially on Trial.
+  return (
+    process.env['REFERRAL_SMS_OTP_ENABLED'] === 'true' &&
+    process.env['REFERRAL_TWILIO_TRIAL_MODE'] !== 'true' &&
+    configuration() !== null
+  );
 }
 function phoneHash(phone: string, c: VerifyConfig): string {
   return createHmac('sha256', c.identitySecret)
@@ -75,6 +80,8 @@ async function verifyCall(
 export class ReferralVerificationService {
   constructor(private readonly db: DataSource) {}
   private config(): VerifyConfig {
+    if (!verificationConfigured())
+      throw new ServiceUnavailableException('REFERRAL_OTP_UNAVAILABLE');
     const c = configuration();
     if (!c) throw new ServiceUnavailableException('REFERRAL_OTP_UNAVAILABLE');
     return c;

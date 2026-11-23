@@ -17,7 +17,11 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import type { AuthUserContext } from '../identity/identity.types';
 import { ReferralsService } from './referrals.service';
 import { ReferralVerificationService } from './referral-verification.service';
-import { IsBoolean, IsInt, IsString, Matches, Min, Max, MaxLength } from 'class-validator';
+import { IsBoolean, IsInt, IsString, Matches, Min, Max, MaxLength, IsIn } from 'class-validator';
+import {
+  ReferralEmailVerificationService,
+  type ReferralEmailLocale,
+} from './referral-email-verification.service';
 class CommunityUrlDto {
   @IsString()
   @MaxLength(256)
@@ -38,6 +42,10 @@ class ConfirmReferralDto {
   @Matches(/^\d{4,10}$/)
   code!: string;
 }
+class StartEmailReferralDto {
+  @IsIn(['vi', 'en', 'ko', 'ja', 'zh-CN', 'ru'])
+  locale!: ReferralEmailLocale;
+}
 
 @ApiTags('referrals')
 @ApiBearerAuth()
@@ -47,7 +55,24 @@ export class ReferralsController {
   constructor(
     private readonly service: ReferralsService,
     private readonly verification: ReferralVerificationService,
+    private readonly emailVerification: ReferralEmailVerificationService,
   ) {}
+  @Post('verify/email/start')
+  @Header('Cache-Control', 'private, no-store')
+  startEmail(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: StartEmailReferralDto,
+  ): ReturnType<ReferralEmailVerificationService['start']> {
+    return this.emailVerification.start(actor, dto.locale);
+  }
+  @Post('verify/email/confirm')
+  @Header('Cache-Control', 'private, no-store')
+  confirmEmail(
+    @CurrentUser() actor: AuthUserContext,
+    @Body() dto: ConfirmReferralDto,
+  ): ReturnType<ReferralEmailVerificationService['confirm']> {
+    return this.emailVerification.confirm(actor, dto.code);
+  }
   @Get('me')
   @Header('Cache-Control', 'private, no-store')
   mine(@CurrentUser() actor: AuthUserContext): ReturnType<ReferralsService['mine']> {
