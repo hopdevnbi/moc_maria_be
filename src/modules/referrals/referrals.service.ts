@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { DataSource } from 'typeorm';
+import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { AuthUserContext } from '../identity/identity.types';
 import { verificationConfigured } from './referral-verification.service';
 import { emailVerificationConfigured } from './referral-email-verification.service';
@@ -20,6 +21,40 @@ interface ReferralRow {
 interface MemberReferralRow extends ReferralRow {
   awardedAt: Date | null;
   earnedCoins: number;
+  verifiedChannel: 'email' | 'sms' | null;
+  maskedVerifiedContact: string | null;
+}
+interface MemberReferralQueryRow extends MemberReferralRow {
+  currentEmail: string | null;
+  currentPhone: string | null;
+  claimedEmailHash: string | null;
+  claimedPhoneHash: string | null;
+}
+
+/** Never return a full referred user's contact or a guessed verification identity. */
+export function maskVerifiedReferralContact(
+  channel: 'email' | 'sms',
+  contact: string | null,
+  claimHash: string | null,
+  secret: string | undefined,
+): string | null {
+  if (!contact || !claimHash || !secret || secret.length < 32) return null;
+  const normalized = channel === 'email' ? contact.trim().toLowerCase() : contact;
+  const prefix = channel === 'email' ? 'referral-email:v1:' : 'referral-verified-phone:v1:';
+  const calculated = createHmac('sha256', secret)
+    .update(prefix + normalized)
+    .digest('hex');
+  if (
+    !/^[a-f0-9]{64}$/.test(claimHash) ||
+    !timingSafeEqual(Buffer.from(calculated, 'hex'), Buffer.from(claimHash, 'hex'))
+  )
+    return null;
+  if (channel === 'sms') return normalized.length > 4 ? '••••••' + normalized.slice(-4) : null;
+  const at = normalized.lastIndexOf('@');
+  if (at < 1) return null;
+  const domain = normalized.slice(at + 1);
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) return null;
+  return normalized[0] + '***@' + domain;
 }
 interface AdminReferralRow extends ReferralRow {
   referrerName: string;
@@ -71,24 +106,52 @@ export class ReferralsService {
     return { url };
   }
   // Only the owner's records and committed ledger amounts are returned.
-  // Do not expose referred identities, contact details, risk or device signals.
+  // Verified contacts are shown only masked and only when the persisted claim hash
+  // matches the referred user's CURRENT contact. A changed contact stays hidden.
   async history(
     actor: AuthUserContext,
     page: number,
   ): Promise<{ items: MemberReferralRow[]; hasMore: boolean }> {
     if (!actor.isActive) throw new ForbiddenException('REFERRAL_FORBIDDEN');
-    const rows = await this.db.query<MemberReferralRow[]>(
+    const rows = await this.db.query<MemberReferralQueryRow[]>(
       `
       SELECT r.id,r.status,r.reward_coins AS "rewardCoins",r.created_at AS "createdAt",
         CASE WHEN r.status='REWARDED' THEN l.created_at ELSE NULL END AS "awardedAt",
-        CASE WHEN r.status='REWARDED' THEN COALESCE(l.amount,0) ELSE 0 END AS "earnedCoins"
+        CASE WHEN r.status='REWARDED' THEN COALESCE(l.amount,0) ELSE 0 END AS "earnedCoins",
+        CASE WHEN r.status='REWARDED' AND ec.referral_id IS NOT NULL THEN 'email'
+             WHEN r.status='REWARDED' AND pc.referral_id IS NOT NULL THEN 'sms'
+             ELSE NULL END AS "verifiedChannel",
+        u.email AS "currentEmail",u.phone AS "currentPhone",
+        ec.email_hash AS "claimedEmailHash",pc.phone_hash AS "claimedPhoneHash"
       FROM referrals r LEFT JOIN referral_coin_ledger l ON l.referral_id=r.id AND l.user_id=r.referrer_id
+      LEFT JOIN referral_email_claims ec ON ec.referral_id=r.id
+      LEFT JOIN referral_phone_claims pc ON pc.referral_id=r.id
+      LEFT JOIN users u ON u.id=r.referred_id
       WHERE r.referrer_id=$1
       ORDER BY r.created_at DESC,r.id DESC LIMIT 21 OFFSET $2
     `,
       [actor.id, (page - 1) * 20],
     );
-    return { items: rows.slice(0, 20), hasMore: rows.length > 20 };
+    const secret = process.env['REFERRAL_IDENTITY_SECRET'];
+    const items: MemberReferralRow[] = rows.slice(0, 20).map((row) => ({
+      id: row.id,
+      status: row.status,
+      rewardCoins: row.rewardCoins,
+      createdAt: row.createdAt,
+      awardedAt: row.awardedAt,
+      earnedCoins: row.earnedCoins,
+      verifiedChannel: row.verifiedChannel,
+      maskedVerifiedContact:
+        row.status === 'REWARDED' && row.verifiedChannel
+          ? maskVerifiedReferralContact(
+              row.verifiedChannel,
+              row.verifiedChannel === 'email' ? row.currentEmail : row.currentPhone,
+              row.verifiedChannel === 'email' ? row.claimedEmailHash : row.claimedPhoneHash,
+              secret,
+            )
+          : null,
+    }));
+    return { items, hasMore: rows.length > 20 };
   }
   async settings(
     actor: AuthUserContext,
