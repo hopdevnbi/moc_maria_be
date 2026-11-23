@@ -193,7 +193,13 @@ export class ReferralsService {
     verificationStatus: string | null;
     hasEmail: boolean;
     hasPhone: boolean;
-    latestReward: { id: string; amount: number; awardedAt: Date } | null;
+    latestReward: {
+      id: string;
+      amount: number;
+      awardedAt: Date;
+      verifiedChannel: 'email' | 'sms' | null;
+      maskedVerifiedContact: string | null;
+    } | null;
   }> {
     return this.db.transaction(async (m) => {
       await m.query(
@@ -221,10 +227,29 @@ export class ReferralsService {
         'SELECT status FROM referrals WHERE referred_id=$1',
         [actor.id],
       );
-      const [latestReward] = await m.query<{ id: string; amount: number; awardedAt: Date }[]>(
+      const [latestReward] = await m.query<
+        {
+          id: string;
+          amount: number;
+          awardedAt: Date;
+          verifiedChannel: 'email' | 'sms' | null;
+          currentEmail: string | null;
+          currentPhone: string | null;
+          claimedEmailHash: string | null;
+          claimedPhoneHash: string | null;
+        }[]
+      >(
         `
-        SELECT l.referral_id AS id,l.amount,l.created_at AS "awardedAt" FROM referral_coin_ledger l
+        SELECT l.referral_id AS id,l.amount,l.created_at AS "awardedAt",
+          CASE WHEN ec.referral_id IS NOT NULL THEN 'email'
+               WHEN pc.referral_id IS NOT NULL THEN 'sms' ELSE NULL END AS "verifiedChannel",
+          u.email AS "currentEmail",u.phone AS "currentPhone",
+          ec.email_hash AS "claimedEmailHash",pc.phone_hash AS "claimedPhoneHash"
+        FROM referral_coin_ledger l
         JOIN referrals r ON r.id=l.referral_id AND r.referrer_id=l.user_id AND r.status='REWARDED'
+        LEFT JOIN referral_email_claims ec ON ec.referral_id=r.id
+        LEFT JOIN referral_phone_claims pc ON pc.referral_id=r.id
+        LEFT JOIN users u ON u.id=r.referred_id
         WHERE l.user_id=$1 ORDER BY l.created_at DESC,l.referral_id DESC LIMIT 1
       `,
         [actor.id],
@@ -243,7 +268,26 @@ export class ReferralsService {
         verificationStatus: own?.status ?? null,
         hasEmail: !!actor.email,
         hasPhone: !!actor.phone,
-        latestReward: latestReward ?? null,
+        latestReward: latestReward
+          ? {
+              id: latestReward.id,
+              amount: latestReward.amount,
+              awardedAt: latestReward.awardedAt,
+              verifiedChannel: latestReward.verifiedChannel,
+              maskedVerifiedContact: latestReward.verifiedChannel
+                ? maskVerifiedReferralContact(
+                    latestReward.verifiedChannel,
+                    latestReward.verifiedChannel === 'email'
+                      ? latestReward.currentEmail
+                      : latestReward.currentPhone,
+                    latestReward.verifiedChannel === 'email'
+                      ? latestReward.claimedEmailHash
+                      : latestReward.claimedPhoneHash,
+                    process.env['REFERRAL_IDENTITY_SECRET'],
+                  )
+                : null,
+            }
+          : null,
       };
     });
   }
